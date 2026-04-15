@@ -1,0 +1,258 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+@source "../../../apps/**/*.{ts,tsx}";
+@source "../../../components/**/*.{ts,tsx}";
+@source "../**/*.{ts,tsx}";
+
+:root {
+    /* ── Light Theme: Pure White + Slate Blue Contrast ── */
+    --background: #FFFFFF;
+    --foreground: #0F172A;                    /* strong ink anchor */
+    --card: #F8FAFC;                          /* surface lift */
+    --card-foreground: #0F172A;
+    --popover: #FFFFFF;
+    --popover-foreground: #0F172A;
+
+    /* Nordic Inverted Accent System */
+    --primary: #0F172A;                       /* dark buttons on light */
+    --primary-foreground: #FFFFFF;
+    --secondary: #F1F5F9;
+    --secondary-foreground: #0F172A;
+    --muted: #F1F5F9;
+    --muted-foreground: #64748B;              /* secondary line */
+    --accent: #F1F5F9;
+    --accent-foreground: #0F172A;
+    --destructive: #DC2626;
+    --destructive-foreground: #FFFFFF;
+
+    /* Solid Border System — NO alpha, real visibility */
+    --border-subtle: #F1F5F9;
+    --border-default: #E2E8F0;
+    --border-strong: #CBD5E1;
+    --border: #E2E8F0;
+    --border-primary: var(--primary);
+    
+    --input: #E2E8F0;
+    --ring: #94A3B8;
+
+    /* Glass Variables (flat for Nordic) */
+    --glass-bg: transparent; 
+    --glass-highlight: transparent;
+
+    /* Illustration accent tint */
+    --accent-soft: #CBD5F5;
+
+    /* Status Token */
+    --status-active: #16A34A;
+
+    /* Typography Scale */
+    --tracking-normal: 0.02em;
+
+    /* Depth Layer Tokens */
+    --bg-base: #FFFFFF;
+    --bg-panel: #F8FAFC;
+    --bg-surface: #F1F5F9;
+    
+    --radius: 0px;
+}
+
+.dark {
+    /* ── Dark Theme: True Deep Blue-Black ── */
+    --background: #020617;
+    --foreground: #E2E8F0;                    /* primary line */
+    --card: #0F172A;                          /* surface lift */
+    --card-foreground: #E2E8F0;
+    --popover: #020617;
+    --popover-foreground: #E2E8F0;
+    
+    /* Nordic Inverted Accent System */
+    --primary: #E2E8F0;                       /* white buttons on dark */
+    --primary-foreground: #020617;
+    --secondary: #1E293B;
+    --secondary-foreground: #E2E8F0;
+    --muted: #1E293B;
+    --muted-foreground: #94A3B8;              /* secondary line */
+    --accent: #1E293B;
+    --accent-foreground: #E2E8F0;
+    --destructive: #DC2626;
+    --destructive-foreground: #FFFFFF;
+
+    /* Solid Border System — NO alpha, real visibility */
+    --border-subtle: #0F172A;
+    --border-default: #1E293B;
+    --border-strong: #334155;
+    --border: #1E293B;
+    --border-primary: var(--primary);
+    
+    --input: #1E293B;
+    --ring: #475569;
+
+    /* Glass Variables (flat for Nordic) */
+    --glass-bg: transparent; 
+    --glass-highlight: transparent;
+
+    /* Illustration accent tint */
+    --accent-soft: #1E3A8A;
+
+    /* Status Token */
+    --status-active: #4ADE80;
+
+    /* Typography Scale */
+    --tracking-normal: 0.02em;
+
+    /* Depth Layer Tokens */
+    --bg-base: #020617;
+    --bg-panel: #0F172A;
+    --bg-surface: #1E293B;
+    
+    --radius: 0px;
+}
+
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+
+    /* Glass/Border Theme Links */
+    --color-border-subtle: var(--border-subtle);
+    --color-border-default: var(--border-default);
+    --color-border-strong: var(--border-strong);
+    --color-border-primary: var(--border-primary);
+    --color-border: var(--border);
+
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    
+    /* Depth Layer System */
+    --color-bg-base: var(--bg-base);
+    --color-bg-panel: var(--bg-panel);
+    --color-bg-surface: var(--bg-surface);
+    --color-glass-bg: var(--glass-bg);
+
+    /* Illustration Tint */
+    --color-accent-soft: var(--accent-soft);
+
+    /* Status */
+    --color-status-active: var(--status-active);
+
+    /* Typography Extras */
+    --text-2xs: 0.625rem;
+    --text-3xs: 0.5rem;
+
+    /* Tracking Scale */
+    --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
+    --tracking-tight: calc(var(--tracking-normal) - 0.025em);
+    --tracking-normal: var(--tracking-normal);
+    --tracking-wide: calc(var(--tracking-normal) + 0.025em);
+    --tracking-wider: calc(var(--tracking-normal) + 0.05em);
+    --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+
+    /* Marquee Animation */
+    --animate-marquee-scroll: marquee-scroll 40s linear infinite;
+
+    @keyframes marquee-scroll {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    letter-spacing: var(--tracking-normal);
+  }
+  ::selection {
+    @apply bg-primary/30 text-foreground;
+  }
+  blockquote {
+    @apply border-l-4 border-primary pl-4 italic opacity-90;
+  }
+}
+
+/* ----------------------------------
+ * NORDIC UI APEX UTILITIES
+ * ---------------------------------- */
+
+.glass-card {
+  @apply bg-card border border-border-default rounded-none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.btn-primary {
+  @apply relative overflow-hidden rounded-none font-medium transition-all duration-300;
+  background: var(--foreground);
+  color: var(--background);
+  border: 1px solid var(--foreground);
+  box-shadow: none;
+}
+
+.btn-primary:hover {
+  background: transparent;
+  color: var(--foreground);
+  box-shadow: none;
+}
+
+.input-minimal {
+  @apply bg-transparent border-0 border-b border-border rounded-none px-0 py-2 focus:ring-0 focus:border-foreground transition-colors;
+}
+
+/* Dot grid ambient background — pure CSS */
+.tac-dot-grid {
+  background-image: radial-gradient(
+    circle,
+    var(--border) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+  animation: grid-drift 30s linear infinite;
+}
+
+@keyframes grid-drift {
+  from { background-position: 0 0; }
+  to { background-position: 24px 24px; }
+}
+
+/* Marquee track — pure CSS infinite scroll */
+.tac-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 40s linear infinite;
+}
+
+.tac-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* Background glows removed for Nordic UI flatness */
+.tac-hero-glow {
+  background: none;
+}
+
+.tac-cta-glow {
+  background: none;
+}
