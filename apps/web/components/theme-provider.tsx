@@ -11,15 +11,15 @@ function ThemeProvider({
     <NextThemesProvider
       attribute="class"
       defaultTheme="dark"
-      forcedTheme="dark"
       disableTransitionOnChange
       {...props}
     >
       <ThemeHotkey />
-      <div className="dark contents">{children}</div>
+      {children}
     </NextThemesProvider>
   )
 }
+
 
 function isTypingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {
