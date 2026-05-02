@@ -24,6 +24,25 @@ interface DataTableProps<TData, TValue> {
   pageSize?: number
 }
 
+/**
+ * DataTable — Violet Grid v6, subgrid layout.
+ *
+ * Every level (`<table>`, `<thead>`, `<tbody>`, `<tr>`) is `display: grid`,
+ * with each child level inheriting the parent's column tracks via
+ * `grid-template-columns: subgrid`. Result: header cells, body cells, and
+ * the empty-state row stay perfectly column-aligned regardless of content
+ * width — and future nested grids (expansion rows, sub-tables) can align
+ * with the parent table's columns the same way.
+ *
+ * Column widths come from `column.columnDef.size` when set; otherwise each
+ * column gets `minmax(min-content, auto)` so it sizes to its content.
+ *
+ * Native `<table>` semantics are preserved. Explicit ARIA roles are added
+ * as a safety net — most modern browsers retain table semantics under
+ * `display: grid`, but a few older versions strip them.
+ *
+ * See `docs/VIOLET-GRID-V6-EVOLUTION.md` § 4 (Layout Intelligence).
+ */
 function DataTable<TData, TValue>({
   columns,
   data,
@@ -48,6 +67,18 @@ function DataTable<TData, TValue>({
     state: { sorting, columnFilters, columnVisibility },
     initialState: { pagination: { pageSize } },
   })
+
+  // Build the parent grid's column tracks from visible leaf columns.
+  // Honor `column.size` when explicitly defined; default to natural sizing.
+  const gridTemplateColumns = React.useMemo(() => {
+    return table
+      .getVisibleLeafColumns()
+      .map((c) => {
+        const size = c.columnDef.size
+        return typeof size === "number" ? `${size}px` : "minmax(min-content, auto)"
+      })
+      .join(" ")
+  }, [table])
 
   return (
     <div data-slot="data-table" className="space-y-3">
@@ -75,48 +106,83 @@ function DataTable<TData, TValue>({
       )}
 
       <div className="tac-fui-border overflow-hidden">
-        <table aria-label="Data table" className="w-full caption-bottom text-sm font-mono">
-          <thead className="border-b border-border bg-muted/30">
+        <table
+          role="table"
+          aria-label="Data table"
+          className="grid w-full caption-bottom t-mono"
+          style={{ gridTemplateColumns }}
+        >
+          <thead
+            role="rowgroup"
+            className="col-span-full grid grid-cols-subgrid border-b border-border bg-muted/30"
+          >
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
+              <tr
+                key={headerGroup.id}
+                role="row"
+                className="col-span-full grid grid-cols-subgrid"
+              >
                 {headerGroup.headers.map((header) => {
                   const sorted = header.column.getIsSorted()
-                  return (
-                  <th
-                    key={header.id}
-                    aria-sort={
-                      !header.column.getCanSort()
-                        ? undefined
-                        : sorted === "asc"
-                        ? "ascending"
-                        : sorted === "desc"
-                        ? "descending"
-                        : "none"
-                    }
-                    className={cn(
-                      "h-9 px-3 text-left font-mono text-2xs uppercase tracking-wider text-muted-foreground",
-                      header.column.getCanSort() && "cursor-pointer select-none hover:text-foreground"
-                    )}
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
+                  const canSort = header.column.getCanSort()
+                  const headerContent = (
                     <span className="inline-flex items-center gap-1">
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
                       {sorted === "asc" && <RiArrowUpLine className="h-3 w-3" aria-hidden="true" />}
                       {sorted === "desc" && <RiArrowDownLine className="h-3 w-3" aria-hidden="true" />}
                     </span>
-                  </th>
-                )})}
+                  )
+                  return (
+                    <th
+                      key={header.id}
+                      role="columnheader"
+                      aria-sort={
+                        !canSort
+                          ? undefined
+                          : sorted === "asc"
+                          ? "ascending"
+                          : sorted === "desc"
+                          ? "descending"
+                          : "none"
+                      }
+                      className="h-9 flex items-stretch text-left t-mono-sm uppercase tracking-wider text-muted-foreground"
+                    >
+                      {canSort ? (
+                        // v6 a11y: sortable headers use a real <button> so keyboard
+                        // users can trigger sort via Enter/Space. focus-visible
+                        // lifts the project's standard premium focus utility.
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className="flex h-full w-full items-center px-3 cursor-pointer select-none hover:text-foreground focus-visible:outline-none focus-visible:tac-focus-premium"
+                        >
+                          {headerContent}
+                        </button>
+                      ) : (
+                        <span className="flex h-full w-full items-center px-3">
+                          {headerContent}
+                        </span>
+                      )}
+                    </th>
+                  )
+                })}
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody
+            role="rowgroup"
+            className="col-span-full grid grid-cols-subgrid divide-y divide-border"
+          >
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  // v6: surface-hover row tint + 2px primary edge on selection
+                  role="row"
+                  // v6: subgrid passes column tracks down; surface-hover row tint + 2px primary edge on selection.
                   className={cn(
-                    "bg-card transition-[background-color,border-color] duration-[80ms] ease-linear",
+                    "col-span-full grid grid-cols-subgrid bg-card transition-[background-color,border-color] duration-[80ms] ease-linear",
                     "hover:bg-surface-hover",
                     "data-[state=selected]:bg-primary-subtle data-[state=selected]:border-l-2 data-[state=selected]:border-l-primary",
                   )}
@@ -124,15 +190,23 @@ function DataTable<TData, TValue>({
                   aria-selected={row.getIsSelected() ? true : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-3 py-2.5 align-middle">
+                    <td
+                      key={cell.id}
+                      role="cell"
+                      className="px-3 py-2.5 flex items-center min-w-0"
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
                 </tr>
               ))
             ) : (
-              <tr>
-                <td colSpan={columns.length} className="h-24 text-center font-mono text-xs text-muted-foreground uppercase tracking-wider">
+              <tr role="row" className="col-span-full grid">
+                <td
+                  role="cell"
+                  // v6: empty-state row spans the full grid via `col-span-full` (replaces colSpan).
+                  className="col-span-full h-24 flex items-center justify-center text-center t-mono text-muted-foreground uppercase tracking-wider"
+                >
                   No results found.
                 </td>
               </tr>
