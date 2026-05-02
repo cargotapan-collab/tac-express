@@ -109,7 +109,7 @@ function DataTable<TData, TValue>({
         <table
           role="table"
           aria-label="Data table"
-          className="grid w-full caption-bottom text-sm font-mono"
+          className="grid w-full caption-bottom t-mono"
           style={{ gridTemplateColumns }}
         >
           <thead
@@ -124,12 +124,22 @@ function DataTable<TData, TValue>({
               >
                 {headerGroup.headers.map((header) => {
                   const sorted = header.column.getIsSorted()
+                  const canSort = header.column.getCanSort()
+                  const headerContent = (
+                    <span className="inline-flex items-center gap-1">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      {sorted === "asc" && <RiArrowUpLine className="h-3 w-3" aria-hidden="true" />}
+                      {sorted === "desc" && <RiArrowDownLine className="h-3 w-3" aria-hidden="true" />}
+                    </span>
+                  )
                   return (
                     <th
                       key={header.id}
                       role="columnheader"
                       aria-sort={
-                        !header.column.getCanSort()
+                        !canSort
                           ? undefined
                           : sorted === "asc"
                           ? "ascending"
@@ -137,19 +147,24 @@ function DataTable<TData, TValue>({
                           ? "descending"
                           : "none"
                       }
-                      className={cn(
-                        "h-9 px-3 flex items-center text-left font-mono text-2xs uppercase tracking-wider text-muted-foreground",
-                        header.column.getCanSort() && "cursor-pointer select-none hover:text-foreground"
-                      )}
-                      onClick={header.column.getToggleSortingHandler()}
+                      className="h-9 flex items-stretch text-left t-mono-sm uppercase tracking-wider text-muted-foreground"
                     >
-                      <span className="inline-flex items-center gap-1">
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                        {sorted === "asc" && <RiArrowUpLine className="h-3 w-3" aria-hidden="true" />}
-                        {sorted === "desc" && <RiArrowDownLine className="h-3 w-3" aria-hidden="true" />}
-                      </span>
+                      {canSort ? (
+                        // v6 a11y: sortable headers use a real <button> so keyboard
+                        // users can trigger sort via Enter/Space. focus-visible
+                        // lifts the project's standard premium focus utility.
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className="flex h-full w-full items-center px-3 cursor-pointer select-none hover:text-foreground focus-visible:outline-none focus-visible:tac-focus-premium"
+                        >
+                          {headerContent}
+                        </button>
+                      ) : (
+                        <span className="flex h-full w-full items-center px-3">
+                          {headerContent}
+                        </span>
+                      )}
                     </th>
                   )
                 })}
@@ -190,7 +205,7 @@ function DataTable<TData, TValue>({
                 <td
                   role="cell"
                   // v6: empty-state row spans the full grid via `col-span-full` (replaces colSpan).
-                  className="col-span-full h-24 flex items-center justify-center text-center font-mono text-xs text-muted-foreground uppercase tracking-wider"
+                  className="col-span-full h-24 flex items-center justify-center text-center t-mono text-muted-foreground uppercase tracking-wider"
                 >
                   No results found.
                 </td>
