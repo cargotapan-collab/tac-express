@@ -70,6 +70,13 @@ function DataTable<TData, TValue>({
 
   // Build the parent grid's column tracks from visible leaf columns.
   // Honor `column.size` when explicitly defined; default to natural sizing.
+  //
+  // `useReactTable` returns a stable instance reference; `table.getVisibleLeafColumns()`
+  // transitively reads `columnVisibility` and the `columns` prop, so we must list
+  // those as deps explicitly. ESLint's static analysis can't see the transitive
+  // read (it only sees `table.*`), so the suppression below is intentional and
+  // necessary — without these deps, the grid track string goes stale when
+  // columns are toggled at runtime (caught by Macroscope on PR #2).
   const gridTemplateColumns = React.useMemo(() => {
     return table
       .getVisibleLeafColumns()
@@ -78,7 +85,8 @@ function DataTable<TData, TValue>({
         return typeof size === "number" ? `${size}px` : "minmax(min-content, auto)"
       })
       .join(" ")
-  }, [table])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [table, columnVisibility, columns])
 
   return (
     <div data-slot="data-table" className="space-y-3">
