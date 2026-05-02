@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation"
 import { cn } from "@workspace/ui/lib/utils"
 import { CommandPalette } from "@workspace/ui/components/composed/command-palette"
 import { NotificationBell } from "@workspace/ui/components/composed/notification-bell"
+import { DensityToggle } from "@workspace/ui/components/primitives/density-toggle"
+import { useDensity } from "@workspace/ui/components/composed/density-provider"
 import {
   RiSearchLine,
   RiMoonClearLine,
@@ -36,6 +38,11 @@ function getSegments(pathname: string): { label: string; href: string }[] {
     { label: "TAC Express", href: "/home" },
     { label, href: base },
   ]
+}
+
+function HeaderDensityToggle() {
+  const { density, setDensity } = useDensity()
+  return <DensityToggle value={density} onChange={setDensity} />
 }
 
 function ThemeToggle() {
@@ -128,6 +135,7 @@ function DashboardHeader() {
           </kbd>
         </div>
 
+        <HeaderDensityToggle />
         <NotificationBell />
         <ThemeToggle />
         <UserMenu />

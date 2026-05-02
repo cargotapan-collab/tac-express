@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import type { Density } from "@workspace/ui/lib/density"
 
 /**
  * v6 — Density modes
@@ -13,9 +14,12 @@ import * as React from "react"
  *
  * Persists user choice to localStorage as `tac-density`.
  *
+ * The `Density` vocabulary lives in `@workspace/ui/lib/density` so that
+ * the `DensityToggle` primitive can import it without depending on this
+ * composed module (preserves the primitives → composed dependency direction).
+ *
  * See `docs/VIOLET-GRID-V6-EVOLUTION.md` § 1.7.
  */
-export type Density = "compact" | "comfortable" | "spacious"
 
 interface DensityContextValue {
   density: Density
