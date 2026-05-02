@@ -1,6 +1,7 @@
 import { DashboardSidebar } from "@workspace/ui/components/composed/dashboard-sidebar"
 import { DashboardHeader } from "@workspace/ui/components/composed/dashboard-header"
 import { CommandPalette } from "@workspace/ui/components/composed/command-palette"
+import { DensityProvider } from "@workspace/ui/components/composed/density-provider"
 
 import { IdleGuard } from "@/components/idle-guard"
 
@@ -26,14 +27,17 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex h-screen bg-background overflow-hidden relative selection:bg-primary/30">
-      <DashboardBackground />
-      <CommandPalette />
-      <IdleGuard />
-      <DashboardSidebar />
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative z-10">
-        <DashboardHeader />
-        <main className="flex-1 overflow-hidden bg-transparent p-3 md:p-4 lg:p-5 flex flex-col">
+    // v6: DensityProvider sets `data-density` on the dashboard root so
+    // descendant tables/lists/panels can adapt their spacing rhythm.
+    <DensityProvider>
+      <div className="flex h-screen bg-background overflow-hidden relative selection:bg-primary/30">
+        <DashboardBackground />
+        <CommandPalette />
+        <IdleGuard />
+        <DashboardSidebar />
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative z-10">
+          <DashboardHeader />
+          <main className="flex-1 overflow-hidden bg-transparent p-3 md:p-4 lg:p-5 flex flex-col">
           {/* Hardware Viewport Frame (Mission Control Aesthetic) */}
           <div className="flex-1 w-full max-w-control mx-auto tac-fui-border bg-surface shadow-brutal flex flex-col relative overflow-hidden group tac-scanline">
             {/* FUI Hardware Accents */}
@@ -49,7 +53,8 @@ export default function DashboardLayout({
             </div>
           </div>
         </main>
+        </div>
       </div>
-    </div>
+    </DensityProvider>
   )
 }

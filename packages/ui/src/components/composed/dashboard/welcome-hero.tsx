@@ -51,8 +51,25 @@ function WelcomeHero({ name, role, isSuperAdmin, className }: WelcomeHeroProps) 
         className
       )}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent pointer-events-none" />
-      
+      {/* v6: tokenized violet gradient (was inline from-primary/20) */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(135deg, var(--overlay-primary-medium) 0%, transparent 60%)",
+        }}
+      />
+      {/* v6: subtle top-edge highlight for premium inner-border feel */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-px pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, var(--overlay-primary-strong), transparent)",
+        }}
+      />
+
       <AnimatedGroup stagger={0.07} className="relative z-10 flex flex-col gap-0.5">
         {/* Mission control greeting */}
         <AnimatedGroupItem distance={8} duration={0.45}>
@@ -64,9 +81,9 @@ function WelcomeHero({ name, role, isSuperAdmin, className }: WelcomeHeroProps) 
           </div>
         </AnimatedGroupItem>
 
-        {/* Hero headline with gradient */}
+        {/* Hero headline — v6: text-glow-primary on dark mode for premium hero treatment */}
         <AnimatedGroupItem distance={14} duration={0.5}>
-          <h1 className={cn("t-display tracking-tighter text-background")}>
+          <h1 className={cn("t-display tracking-tighter text-background dark:text-glow-primary")}>
             {displayName}
           </h1>
         </AnimatedGroupItem>
@@ -82,7 +99,8 @@ function WelcomeHero({ name, role, isSuperAdmin, className }: WelcomeHeroProps) 
       {/* Role badge */}
       <AnimatedGroup stagger={0} className="relative z-10 hidden md:flex items-center gap-2 shrink-0 pb-1">
         <AnimatedGroupItem distance={0} duration={0.4}>
-          <div className="flex items-center gap-1.5 border border-muted/30 bg-background/40 px-3 py-1.5">
+          {/* v6: tac-hover-lift on the role badge (multi-axis hover signal) */}
+          <div className="flex items-center gap-1.5 border border-muted/30 bg-background/40 px-3 py-1.5 tac-hover-lift">
             {isSuperAdmin ? (
               <RiShieldCheckLine className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
             ) : (

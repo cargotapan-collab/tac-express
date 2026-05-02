@@ -157,6 +157,20 @@ export const designSystemConfig = {
         message:
           "❌ [TAC LAW-9] Arbitrary spacing value. Use Tailwind spacing scale (p-4, m-6, gap-3) — no arbitrary [px] values.",
       },
+
+      // ── v6: Block arbitrary motion durations in className ─────────────
+      // e.g. className="duration-[200ms]", className="duration-[450ms]"
+      // Components must use the 3-layer motion vocabulary:
+      //   instant     duration-[80ms]   (mission-control)
+      //   smooth      duration-[180ms]  (modal/sheet)
+      //   expressive  duration-[320ms]  (hero/onboarding)
+      // Tailwind tokens duration-75 / duration-150 / duration-300 also OK.
+      {
+        selector:
+          "JSXAttribute[name.name='className'] > Literal[value=/\\bduration-\\[(?!80ms\\]|180ms\\]|320ms\\])\\d+m?s\\]/]",
+        message:
+          "❌ [v6 motion] Arbitrary duration value. Use the 3-layer motion vocabulary: duration-[80ms] (instant), duration-[180ms] (smooth), or duration-[320ms] (expressive). See globals.css --motion-instant/smooth/expressive.",
+      },
     ],
   },
 }

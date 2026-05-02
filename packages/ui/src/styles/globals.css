@@ -248,6 +248,11 @@
   --overlay-fg-soft:         color-mix(in oklch, var(--foreground) 4%, transparent);
   --overlay-fg-subtle:       color-mix(in oklch, var(--foreground) 8%, transparent);
 
+  /* v6 density tokens (DARK) — same defaults; the [data-density] selectors below override */
+  --row-py: 0.625rem;
+  --cell-text: 0.75rem;
+  --panel-px: 1rem;
+
   /* Text shadow — stronger in dark mode for depth */
   --text-shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.30);
   --text-shadow-md: 0 2px 8px hsl(0 0% 0% / 0.40);
@@ -410,6 +415,26 @@
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
     font-optical-sizing: auto;
+  }
+
+  /* ── v6 — Density mode cascade ──
+     The DensityProvider sets `data-density` on a wrapper element; descendant
+     components (tables, lists, panels) read these tokens via CSS or the
+     `useDensity()` hook. */
+  [data-density="compact"] {
+    --row-py: 0.375rem;     /* py-1.5 */
+    --cell-text: 0.625rem;  /* text-2xs */
+    --panel-px: 0.75rem;    /* px-3 */
+  }
+  [data-density="comfortable"] {
+    --row-py: 0.625rem;     /* py-2.5 (default) */
+    --cell-text: 0.75rem;   /* text-xs */
+    --panel-px: 1rem;       /* px-4 */
+  }
+  [data-density="spacious"] {
+    --row-py: 1rem;         /* py-4 */
+    --cell-text: 0.875rem;  /* text-sm */
+    --panel-px: 1.5rem;     /* px-6 */
   }
   /* Override prose defaults to use our font stack and zero radius */
   .prose {
