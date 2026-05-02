@@ -50,7 +50,7 @@ function KPIGrid({ data, loading, currency = "INR", className }: KPIGridProps) {
       <div
         data-slot="kpi-grid"
         className={cn(
-          "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4",
+          "@container/kpi-grid grid grid-cols-1 gap-3 @md:grid-cols-2 @4xl:grid-cols-4",
           className
         )}
       >
@@ -70,7 +70,7 @@ function KPIGrid({ data, loading, currency = "INR", className }: KPIGridProps) {
   return (
     <div
       data-slot="kpi-grid"
-      className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4", className)}
+      className={cn("@container/kpi-grid grid grid-cols-1 gap-3 @md:grid-cols-2 @4xl:grid-cols-4", className)}
     >
       <KPICard
         label="Active Shipments"

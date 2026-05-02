@@ -44,10 +44,12 @@ function WelcomeHero({ name, role, isSuperAdmin, className }: WelcomeHeroProps) 
   return (
     <div
       data-slot="welcome-hero"
+      // v6: container queries — adapts to the dashboard-content container width
+      // rather than the viewport. md:flex-row → @md:flex-row.
       className={cn(
-        "relative flex flex-col gap-1 md:flex-row md:items-end md:justify-between",
-        "bg-foreground text-background tac-scanline overflow-hidden pt-12 pb-24 px-6 md:px-10 border-b-2 border-border",
-        "-mx-5 sm:-mx-8 lg:-mx-10 -mt-6 lg:-mt-8",
+        "relative flex flex-col gap-1 @md:flex-row @md:items-end @md:justify-between",
+        "bg-foreground text-background tac-scanline overflow-hidden pt-12 pb-24 px-6 @md:px-10 border-b-2 border-border",
+        "-mx-5 @sm:-mx-8 @lg:-mx-10 -mt-6 @lg:-mt-8",
         className
       )}
     >
@@ -97,7 +99,7 @@ function WelcomeHero({ name, role, isSuperAdmin, className }: WelcomeHeroProps) 
       </AnimatedGroup>
 
       {/* Role badge */}
-      <AnimatedGroup stagger={0} className="relative z-10 hidden md:flex items-center gap-2 shrink-0 pb-1">
+      <AnimatedGroup stagger={0} className="relative z-10 hidden @md:flex items-center gap-2 shrink-0 pb-1">
         <AnimatedGroupItem distance={0} duration={0.4}>
           {/* v6: tac-hover-lift on the role badge (multi-axis hover signal) */}
           <div className="flex items-center gap-1.5 border border-muted/30 bg-background/40 px-3 py-1.5 tac-hover-lift">

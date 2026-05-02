@@ -47,8 +47,11 @@ export default function DashboardLayout({
             <div className="absolute bottom-0 right-0 w-12 h-0.5 bg-border z-20" />
             <div className="absolute bottom-0 right-0 w-0.5 h-12 bg-border z-20" />
             
-            {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-6 sm:px-8 lg:px-10 lg:py-8 relative z-10 scrollbar-hide">
+            {/* Scrollable Content Area — v6: @container/dashboard-content lets
+                descendant sections (KPI Grid, Welcome Hero, charts) adapt
+                via @md:/@lg: modifiers based on the panel's actual width
+                rather than the viewport. */}
+            <div className="@container/dashboard-content flex-1 overflow-y-auto overflow-x-hidden px-5 py-6 sm:px-8 lg:px-10 lg:py-8 relative z-10 scrollbar-hide">
               {children}
             </div>
           </div>
