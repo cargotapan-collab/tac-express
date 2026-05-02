@@ -84,13 +84,17 @@ function KPICard({
     return (
       <div
         data-slot="kpi-card"
+        role="status"
+        aria-busy="true"
+        aria-label={`Loading ${label}`}
         className={cn("flex flex-col gap-3 p-5 animate-pulse tac-fui-panel", className)}
       >
         <div className="flex items-start justify-between">
-          <div className="h-10 w-10 bg-muted" />
+          <div className="h-10 w-10 bg-muted" aria-hidden="true" />
         </div>
-        <div className="h-10 w-24 bg-muted" />
-        <div className="h-4 w-16 bg-muted" />
+        <div className="h-10 w-24 bg-muted" aria-hidden="true" />
+        <div className="h-4 w-16 bg-muted" aria-hidden="true" />
+        <span className="sr-only">Loading {label}</span>
       </div>
     )
   }
@@ -118,6 +122,7 @@ function KPICard({
       {/* Icon square + label */}
       <div className="flex flex-col gap-2.5">
         <motion.div
+          aria-hidden="true"
           className={cn("flex h-10 w-10 items-center justify-center shrink-0 tac-signal-glow", colors.bg)}
           initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -138,11 +143,14 @@ function KPICard({
       {/* Value — count-up if numeric, otherwise plain */}
       <motion.div
         className="flex items-baseline gap-1.5 mt-1"
+        aria-live="polite"
+        aria-atomic="true"
+        aria-label={`${label}: ${renderedValue}${suffix ? ` ${suffix}` : ""}`}
         initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...SPRING_EXPRESSIVE, delay: 0.15 }}
       >
-        <span className="t-data text-foreground" aria-live="polite">
+        <span className="t-data text-foreground">
           {renderedValue}
         </span>
         {suffix && (
@@ -154,6 +162,7 @@ function KPICard({
       {deltaLabel && (
         <motion.span
           className={cn("inline-flex w-fit items-center px-2 py-0.5 t-mono-sm", deltaClasses[delta])}
+          aria-label={`Trend ${delta}: ${deltaLabel}`}
           initial={shouldReduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.18, delay: 0.25 }}

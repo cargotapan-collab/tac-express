@@ -103,14 +103,16 @@ const NAV_BOTTOM_ITEMS: NavItem[] = [
   { label: "Settings", href: "/settings", icon: RiSettingsLine },
 ]
 
-function NavBadge({ count }: { count: number }) {
+function NavBadge({ count, label }: { count: number; label: string }) {
   if (count <= 0) return null
+  const displayCount = count > 99 ? "99+" : count
   return (
     <span
       data-slot="nav-badge"
+      aria-label={`${count} pending ${label}`}
       className="ml-auto inline-flex min-w-[1.25rem] h-4 items-center justify-center px-1 font-mono text-3xs bg-sidebar-primary text-sidebar-primary-foreground font-bold"
     >
-      {count > 99 ? "99+" : count}
+      <span aria-hidden="true">{displayCount}</span>
     </span>
   )
 }
@@ -135,6 +137,8 @@ function SidebarNavItem({
       data-slot="nav-item"
       data-active={isActive}
       title={collapsed ? item.label : undefined}
+      aria-label={collapsed ? item.label : undefined}
+      aria-current={isActive ? "page" : undefined}
       className={cn(
         // v6: motion-instant transitions, focus-premium on keyboard nav
         "group/nav-item flex h-9 items-center gap-3 border-l-4 px-3 relative",
@@ -146,11 +150,11 @@ function SidebarNavItem({
           : "border-transparent text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:border-sidebar-border/50"
       )}
     >
-      <Icon className="h-4 w-4 shrink-0" />
+      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
       {!collapsed && (
         <span className="flex-1 truncate">{item.label}</span>
       )}
-      {showBadge && <NavBadge count={badgeCount!} />}
+      {showBadge && <NavBadge count={badgeCount!} label={item.label} />}
       {isActive && !collapsed && (
         <span className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-sidebar-primary opacity-80" aria-hidden="true" />
       )}
@@ -237,6 +241,7 @@ function DashboardSidebar() {
   return (
     <aside
       data-slot="dashboard-sidebar"
+      aria-label="Dashboard sidebar"
       className={cn(
         "flex flex-col h-screen border-r-2 border-sidebar-border bg-sidebar transition-all duration-200 relative",
         collapsed ? "w-16" : "w-64"
@@ -280,6 +285,7 @@ function DashboardSidebar() {
       {/* Nav */}
       <nav
         data-slot="nav-primary"
+        aria-label="Main navigation"
         className="flex-1 overflow-y-auto py-1"
       >
         {NAV_GROUPS.map((group) => (
@@ -294,7 +300,7 @@ function DashboardSidebar() {
       </nav>
 
       {/* Bottom nav items */}
-      <div data-slot="nav-bottom" className="border-t border-sidebar-border py-1">
+      <nav data-slot="nav-bottom" aria-label="Secondary navigation" className="border-t border-sidebar-border py-1">
         {NAV_BOTTOM_ITEMS.map((item) => (
           <SidebarNavItem
             key={item.href}
@@ -303,7 +309,7 @@ function DashboardSidebar() {
             badgeCount={item.badgeKey && badgesQuery.data ? badgesQuery.data[item.badgeKey] : undefined}
           />
         ))}
-      </div>
+      </nav>
 
       {/* NavUser + collapse toggle */}
       <div className="border-t-2 border-sidebar-border p-4 flex items-center gap-3 shrink-0 relative z-10">

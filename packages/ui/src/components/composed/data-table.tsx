@@ -53,7 +53,12 @@ function DataTable<TData, TValue>({
     <div data-slot="data-table" className="space-y-3">
       {searchKey && (
         <div className="flex items-center gap-2">
+          <label htmlFor="data-table-search" className="sr-only">
+            {searchPlaceholder}
+          </label>
           <input
+            id="data-table-search"
+            aria-label={searchPlaceholder}
             placeholder={searchPlaceholder}
             value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
             onChange={(e) => table.getColumn(searchKey)?.setFilterValue(e.target.value)}
@@ -70,13 +75,24 @@ function DataTable<TData, TValue>({
       )}
 
       <div className="tac-fui-border overflow-hidden">
-        <table className="w-full caption-bottom text-sm font-mono">
+        <table aria-label="Data table" className="w-full caption-bottom text-sm font-mono">
           <thead className="border-b border-border bg-muted/30">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
+                {headerGroup.headers.map((header) => {
+                  const sorted = header.column.getIsSorted()
+                  return (
                   <th
                     key={header.id}
+                    aria-sort={
+                      !header.column.getCanSort()
+                        ? undefined
+                        : sorted === "asc"
+                        ? "ascending"
+                        : sorted === "desc"
+                        ? "descending"
+                        : "none"
+                    }
                     className={cn(
                       "h-9 px-3 text-left font-mono text-2xs uppercase tracking-wider text-muted-foreground",
                       header.column.getCanSort() && "cursor-pointer select-none hover:text-foreground"
@@ -85,11 +101,11 @@ function DataTable<TData, TValue>({
                   >
                     <span className="inline-flex items-center gap-1">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      {header.column.getIsSorted() === "asc" && <RiArrowUpLine className="h-3 w-3" />}
-                      {header.column.getIsSorted() === "desc" && <RiArrowDownLine className="h-3 w-3" />}
+                      {sorted === "asc" && <RiArrowUpLine className="h-3 w-3" aria-hidden="true" />}
+                      {sorted === "desc" && <RiArrowDownLine className="h-3 w-3" aria-hidden="true" />}
                     </span>
                   </th>
-                ))}
+                )})}
               </tr>
             ))}
           </thead>
@@ -105,6 +121,7 @@ function DataTable<TData, TValue>({
                     "data-[state=selected]:bg-primary-subtle data-[state=selected]:border-l-2 data-[state=selected]:border-l-primary",
                   )}
                   data-state={row.getIsSelected() ? "selected" : undefined}
+                  aria-selected={row.getIsSelected() ? true : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-3 py-2.5 align-middle">
@@ -130,18 +147,20 @@ function DataTable<TData, TValue>({
         </span>
         <div className="flex items-center gap-1">
           <button
+            aria-label="Previous page"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
             className="flex h-7 w-7 items-center justify-center border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            <RiArrowLeftSLine className="h-4 w-4" />
+            <RiArrowLeftSLine className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
+            aria-label="Next page"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
             className="flex h-7 w-7 items-center justify-center border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            <RiArrowRightSLine className="h-4 w-4" />
+            <RiArrowRightSLine className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </div>

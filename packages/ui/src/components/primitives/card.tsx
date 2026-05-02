@@ -52,12 +52,37 @@ function Card({
   size = "default",
   variant,
   microContrast,
+  role,
+  tabIndex,
+  onKeyDown,
+  onClick,
   ...props
 }: CardProps) {
+  // v6: when the `interactive` variant is used and the consumer wires an onClick,
+  // promote the div to a focusable, keyboard-activatable button-equivalent so
+  // keyboard and AT users get parity with mouse users. Consumers can still
+  // override role/tabIndex explicitly.
+  const isInteractive = variant === "interactive"
+  const resolvedRole = role ?? (isInteractive && onClick ? "button" : undefined)
+  const resolvedTabIndex =
+    tabIndex ?? (isInteractive && onClick ? 0 : undefined)
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (isInteractive && onClick && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault()
+      onClick(event as unknown as React.MouseEvent<HTMLDivElement>)
+    }
+    onKeyDown?.(event)
+  }
+
   return (
     <div
       data-slot="card"
       data-size={size}
+      role={resolvedRole}
+      tabIndex={resolvedTabIndex}
+      onClick={onClick}
+      onKeyDown={isInteractive && onClick ? handleKeyDown : onKeyDown}
       className={cn(cardVariants({ variant, microContrast, className }))}
       {...props}
     />
