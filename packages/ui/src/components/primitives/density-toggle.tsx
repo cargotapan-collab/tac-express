@@ -1,7 +1,8 @@
 "use client"
 
-import * as React from "react"
+import { RadioGroup as RadioGroupPrimitive } from "radix-ui"
 import { cn } from "@workspace/ui/lib/utils"
+import { RadioGroup } from "@workspace/ui/components/primitives/radio-group"
 import type { Density } from "@workspace/ui/lib/density"
 
 interface DensityToggleProps {
@@ -10,15 +11,6 @@ interface DensityToggleProps {
   className?: string
 }
 
-/**
- * v6 — DensityToggle
- *
- * Radio-group control for the three density modes defined by `DensityProvider`
- * and wired through `[data-density]` cascade selectors in globals.css:
- * `compact` (tight) / `comfortable` (default) / `spacious` (relaxed).
- *
- * Single-letter labels match the brutalist mission-control aesthetic.
- */
 const OPTIONS: { value: Density; label: string; description: string }[] = [
   { value: "compact", label: "C", description: "Compact density" },
   { value: "comfortable", label: "M", description: "Comfortable density" },
@@ -27,29 +19,27 @@ const OPTIONS: { value: Density; label: string; description: string }[] = [
 
 function DensityToggle({ value, onChange, className }: DensityToggleProps) {
   return (
-    <div
-      role="radiogroup"
-      aria-label="Interface density"
+    <RadioGroup
+      value={value}
+      onValueChange={onChange}
       data-slot="density-toggle"
-      className={cn("inline-flex items-center border border-border bg-card", className)}
+      className={cn("inline-flex items-center border border-border bg-card gap-0", className)}
     >
       {OPTIONS.map((opt) => (
-        <button
+        <RadioGroupPrimitive.Item
           key={opt.value}
-          type="button"
-          role="radio"
-          aria-checked={value === opt.value}
+          value={opt.value}
           aria-label={opt.description}
-          onClick={() => onChange(opt.value)}
           className={cn(
-            "flex size-7 items-center justify-center t-mono-sm tac-fui-hover focus-visible:outline-none focus-visible:tac-focus-premium",
-            value === opt.value && "bg-primary text-primary-foreground",
+            "flex size-7 items-center justify-center t-mono-sm tac-fui-hover",
+            "focus-visible:outline-none focus-visible:tac-focus-premium",
+            "data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
           )}
         >
           {opt.label}
-        </button>
+        </RadioGroupPrimitive.Item>
       ))}
-    </div>
+    </RadioGroup>
   )
 }
 
