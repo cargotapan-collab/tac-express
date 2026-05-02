@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { cn } from "@workspace/ui/lib/utils"
-import type { Density } from "@workspace/ui/components/composed/density-provider"
+import type { Density } from "@workspace/ui/lib/density"
 
 interface DensityToggleProps {
   value: Density
