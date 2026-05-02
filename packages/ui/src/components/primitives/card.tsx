@@ -3,17 +3,42 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@workspace/ui/lib/utils"
 
+/**
+ * Card — Violet Grid v6 primitive.
+ *
+ * v6 changes:
+ * - Surface tier variants: `default` (elevated), `outline` (legacy),
+ *   `surface` (explicit elevated), `floating` (popover-tier),
+ *   `interactive` (interactive-tier + tac-hover-lift).
+ * - Container query at root (`@container/card`) so children can write
+ *   `@sm:grid-cols-2`, `@lg:grid-cols-4` etc — adapts to the card's
+ *   own width, not the viewport.
+ * - Optional `inner-border` modifier via the `microContrast` prop:
+ *   adds a 1px overlay-fg-soft inset ring for depth without shadow.
+ *
+ * See `docs/VIOLET-GRID-V6-EVOLUTION.md` § 2.2.
+ */
 const cardVariants = cva(
-  "group/card flex flex-col gap-4 overflow-hidden py-4 text-xs/relaxed text-card-foreground ring-1 ring-foreground/10 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-2 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-[var(--radius-lg)] *:[img:last-child]:rounded-[var(--radius-lg)]",
+  // v6: @container/card lets descendants use @sm/@lg etc. against the card width
+  "group/card @container/card flex flex-col gap-4 overflow-hidden py-4 text-xs/relaxed text-card-foreground ring-1 ring-foreground/10 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-2 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-[var(--radius-lg)] *:[img:last-child]:rounded-[var(--radius-lg)]",
   {
     variants: {
       variant: {
         default: "bg-card rounded-[var(--radius-lg)]",
         outline: "bg-card border border-border rounded-[var(--radius-xl)]",
+        // v6: explicit surface tiers
+        surface: "bg-surface-elevated border border-border rounded-[var(--radius-lg)]",
+        floating: "bg-surface-floating border border-border ring-1 ring-fg-soft shadow-[var(--shadow-brutal-sm)] rounded-[var(--radius-lg)]",
+        interactive: "bg-surface-interactive border border-border tac-hover-lift cursor-pointer rounded-[var(--radius-lg)]",
+      },
+      microContrast: {
+        true: "ring-1 ring-fg-soft",
+        false: "",
       },
     },
     defaultVariants: {
       variant: "default",
+      microContrast: false,
     },
   }
 )
@@ -26,13 +51,14 @@ function Card({
   className,
   size = "default",
   variant,
+  microContrast,
   ...props
 }: CardProps) {
   return (
     <div
       data-slot="card"
       data-size={size}
-      className={cn(cardVariants({ variant, className }))}
+      className={cn(cardVariants({ variant, microContrast, className }))}
       {...props}
     />
   )
@@ -118,5 +144,5 @@ export {
   CardAction,
   CardDescription,
   CardContent,
+  cardVariants,
 }
-

@@ -30,7 +30,8 @@ function PopoverContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          "z-50 w-72 origin-(--radix-popover-content-transform-origin) border border-border bg-popover p-4 text-popover-foreground shadow-[var(--shadow-brutal-sm)] outline-hidden data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          // v6: bg-surface-floating + ring-fg-soft inner micro-contrast
+          "z-50 w-72 origin-(--radix-popover-content-transform-origin) border border-border bg-surface-floating ring-1 ring-fg-soft p-4 text-popover-foreground shadow-[var(--shadow-brutal-sm)] outline-hidden data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}
