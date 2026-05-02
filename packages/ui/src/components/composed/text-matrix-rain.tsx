@@ -42,9 +42,11 @@ export function TextMatrixRain({
 
       for (let i = 0; i < charCount; i++) {
         const char = finalText.charAt(i)
+        const lockTime = lockTimes[i]
+        
         if (char === " " || char === "\n") {
           newText += char
-        } else if (now >= (lockTimes[i] ?? Infinity)) {
+        } else if (lockTime !== undefined && now >= lockTime) {
           newText += char
         } else {
           allLocked = false

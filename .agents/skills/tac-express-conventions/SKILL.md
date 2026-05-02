@@ -9,13 +9,17 @@ description: Code conventions and patterns for the tac-express monorepo. Use whe
 
 | Type | Convention | Example |
 |------|-----------|---------|
-| Components | kebab-case | `user-card.tsx`, `nav-bar.tsx` |
+| Component files | kebab-case.tsx | `user-card.tsx`, `dashboard-header.tsx` |
+| Component exports | PascalCase | `export function UserCard` |
 | Pages/Layouts | lowercase | `page.tsx`, `layout.tsx`, `loading.tsx` |
-| Hooks | `use-` prefix | `use-auth.ts`, `use-theme.ts` |
+| Hook files | `use-` kebab-case | `use-session.ts`, `use-shipments.ts` |
+| Service files | kebab-case.service.ts | `shipment.service.ts` |
+| Type files | kebab-case.types.ts | `shipment.types.ts` |
 | Utilities | kebab-case | `format-date.ts`, `api-client.ts` |
-| Types/interfaces | PascalCase | `UserProfile`, `ApiResponse` |
+| Test files | same name + .test | `user-card.test.tsx` |
+| TypeScript types | PascalCase | `UserProfile`, `ApiResponse` |
 | Constants | SCREAMING_SNAKE | `MAX_RETRY_COUNT` |
-| Directories | kebab-case | `user-profile/`, `dashboard/` |
+| Directories | kebab-case | `user-profile/`, `composed/` |
 
 ## TypeScript Conventions
 
@@ -81,17 +85,29 @@ import { cn } from "@workspace/ui/lib/utils"
 
 ```
 apps/web/app/
-├── layout.tsx         ← Root layout (RootLayout)
-├── page.tsx           ← Home page
-├── loading.tsx        ← Loading UI
-├── error.tsx          ← Error boundary
-├── not-found.tsx      ← 404 page
-├── (group)/           ← Route group (no URL segment)
-│   └── dashboard/
-│       └── page.tsx
+├── layout.tsx          ← Root layout + ThemeProvider + fonts
+├── page.tsx            ← Landing page
+├── loading.tsx         ← Loading UI
+├── error.tsx           ← Error boundary
+├── not-found.tsx       ← 404 page
+├── sign-in/
+│   └── [[...sign-in]]/
+│       └── page.tsx    ← Sign-in page (Supabase Auth)
+├── track/
+│   └── [id]/page.tsx ← Public shipment tracking
 └── api/
     └── route-name/
-        └── route.ts   ← API route handlers
+        └── route.ts    ← API route handlers
+
+apps/dashboard/app/
+├── layout.tsx          ← Dashboard root layout + fonts (separate from web)
+├── (public)/           ← Unauthenticated routes
+│   ├── sign-in/page.tsx
+│   └── sign-up/page.tsx
+└── (protected)/        ← Authenticated routes (proxy.ts guards all)
+    ├── home/page.tsx
+    ├── shipments/page.tsx
+    └── ...etc
 ```
 
 ### Server Components (default in App Router)
@@ -142,8 +158,12 @@ export async function POST(request: NextRequest) {
 | Shared hooks | `packages/ui/src/hooks/` | `@workspace/ui/hooks/x` |
 | Shared utilities | `packages/ui/src/lib/` | `@workspace/ui/lib/x` |
 | Global styles | `packages/ui/src/styles/` | `@workspace/ui/globals.css` |
-| App-specific logic | `apps/web/lib/` | `@/lib/x` |
-| App components | `apps/web/components/` | `@/components/x` |
+| Auth service | `packages/auth/src/` | `@workspace/auth` |
+| Database client | `packages/database/src/` | `@workspace/database` |
+| Business logic | `packages/services/src/` | `@workspace/services` |
+| Shared types | `packages/types/src/` | `@workspace/types` |
+| App-specific logic | `apps/web/lib/` or `apps/dashboard/lib/` | `@/lib/x` |
+| App page shells | `apps/*/components/` | `@/components/x` (page-local only) |
 
 ## Adding a New Package Dependency
 

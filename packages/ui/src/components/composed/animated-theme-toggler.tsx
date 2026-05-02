@@ -85,7 +85,7 @@ export function AnimatedThemeToggler({
       variant="outline"
       size="icon"
       className={cn(
-        "relative size-10 rounded-none border border-border-strong bg-background shadow-none hover:bg-muted focus-visible:ring-0 focus-visible:border-foreground transition-all",
+        "relative rounded-none shrink-0 border border-border shadow-none bg-transparent hover:bg-muted focus-visible:ring-0 transition-colors duration-200",
         className
       )}
       aria-label="Toggle theme"
@@ -93,12 +93,12 @@ export function AnimatedThemeToggler({
     >
       {mounted ? (
         resolvedTheme === "dark" ? (
-          <Icon name="moon" className="size-[1.2rem]" />
+          <Icon name="moon" className="size-4" />
         ) : (
-          <Icon name="sun" className="size-[1.2rem]" />
+          <Icon name="sun" className="size-4" />
         )
       ) : (
-        <Icon name="sun" className="size-[1.2rem] opacity-0" />
+        <Icon name="sun" className="size-4 opacity-0" />
       )}
       <span className="sr-only">Toggle theme</span>
     </Button>

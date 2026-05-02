@@ -1,182 +1,402 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
+
 @source "../../../apps/**/*.{ts,tsx}";
 @source "../../../components/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   TAC EXPRESS — GLOBAL DESIGN TOKENS
+   Design System: TAC Express v5 — Violet Grid
+   Authority: DESIGN_SYSTEM.md + AGENTS.md (The Fourteen Laws)
+   ══════════════════════════════════════════════════════════════════════════════ */
+
 :root {
-    /* ── Light Theme: Pure White + Slate Blue Contrast ── */
-    --background: #FFFFFF;
-    --foreground: #0F172A;                    /* strong ink anchor */
-    --card: #F8FAFC;                          /* surface lift */
-    --card-foreground: #0F172A;
-    --popover: #FFFFFF;
-    --popover-foreground: #0F172A;
+  /* ── LIGHT MODE (Violet Grid) ── */
+  --background: oklch(0.9940 0 0);
+  --foreground: oklch(0.1200 0.015 264); /* Much darker for crisp readability */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.1200 0.015 264);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.1200 0.015 264);
+  --primary: oklch(0.5393 0.2713 286.7462);
+  --primary-foreground: oklch(0.9812 0 0);
+  --secondary: oklch(0.9556 0.0074 264.5319);
+  --secondary-foreground: oklch(0.1200 0.015 264);
+  --muted: oklch(0.9400 0.0100 264.5319);
+  --muted-foreground: oklch(0.4000 0.015 264); /* Darker for accessibility */
+  --accent: oklch(0.9226 0.0139 280.0145);
+  --accent-foreground: oklch(0.5393 0.2713 286.7462);
+  --destructive: oklch(0.5885 0.2090 24.0041);
+  --destructive-foreground: oklch(0.9812 0 0);
+  --border: oklch(0.8200 0.02 286); /* Harder, darker border for brutalist contrast */
+  --input: oklch(0.8200 0.02 286);
+  --ring: oklch(0.5393 0.2713 286.7462);
 
-    /* Nordic Inverted Accent System */
-    --primary: #0F172A;                       /* dark buttons on light */
-    --primary-foreground: #FFFFFF;
-    --secondary: #F1F5F9;
-    --secondary-foreground: #0F172A;
-    --muted: #F1F5F9;
-    --muted-foreground: #64748B;              /* secondary line */
-    --accent: #F1F5F9;
-    --accent-foreground: #0F172A;
-    --destructive: #DC2626;
-    --destructive-foreground: #FFFFFF;
+  --chart-1: oklch(0.5393 0.2713 286.7462);
+  --chart-2: oklch(0.6604 0.1500 286.7462);
+  --chart-3: oklch(0.4500 0.1800 286.7462);
+  --chart-4: oklch(0.7500 0.1200 286.7462);
+  --chart-5: oklch(0.3800 0.2200 286.7462);
 
-    /* Solid Border System — NO alpha, real visibility */
-    --border-subtle: #F1F5F9;
-    --border-default: #E2E8F0;
-    --border-strong: #CBD5E1;
-    --border: #E2E8F0;
-    --border-primary: var(--primary);
-    
-    --input: #E2E8F0;
-    --ring: #94A3B8;
+  --sidebar: oklch(0.9812 0.0050 264.5319);
+  --sidebar-foreground: oklch(0.1200 0.015 264);
+  --sidebar-primary: oklch(0.5393 0.2713 286.7462);
+  --sidebar-primary-foreground: oklch(0.9812 0 0);
+  --sidebar-accent: oklch(0.9226 0.0139 280.0145);
+  --sidebar-accent-foreground: oklch(0.5393 0.2713 286.7462);
+  --sidebar-border: oklch(0.8200 0.02 286);
+  --sidebar-ring: oklch(0.5393 0.2713 286.7462);
 
-    /* Glass Variables (flat for Nordic) */
-    --glass-bg: transparent; 
-    --glass-highlight: transparent;
+  /* Semantic status colors */
+  --accent-success: oklch(0.60 0.18 150);
+  --accent-success-foreground: oklch(1 0 0);
+  --accent-warning: oklch(0.72 0.18 80);
+  --accent-warning-foreground: oklch(0.25 0 0);
+  --accent-danger: oklch(0.5885 0.2090 24.0041);
+  --accent-danger-foreground: oklch(1 0 0);
+  --accent-info: oklch(0.5393 0.2713 286.7462);
+  --accent-info-foreground: oklch(1 0 0);
 
-    /* Illustration accent tint */
-    --accent-soft: #CBD5F5;
+  /* Semantic surface aliases */
+  --surface: oklch(0.9700 0.0050 264.5319);
+  --surface-foreground: oklch(0.1200 0.015 264);
+  --overlay: oklch(1 0 0);
+  --overlay-foreground: oklch(0.1200 0.015 264);
+  --code-bg: oklch(0.9556 0.0074 264.5319);
 
-    /* Status Token */
-    --status-active: #16A34A;
+  /* Print-safe forced tokens (for shipping labels + invoice views) */
+  --print-bg: oklch(1 0 0);
+  --print-fg: oklch(0 0 0);
+  --print-border: oklch(0 0 0);
 
-    /* Typography Scale */
-    --tracking-normal: 0.02em;
+  /* Typography — LAW 4 governed */
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-serif: 'Lora', ui-serif, serif;
 
-    /* Depth Layer Tokens */
-    --bg-base: #FFFFFF;
-    --bg-panel: #F8FAFC;
-    --bg-surface: #F1F5F9;
-    
-    --radius: 0px;
+  --radius: 0rem; /* ZERO RADIUS — LAW 13 */
+
+  /* Brutalist offset shadows — Violet Grid spec (LAW 13) */
+  --shadow-2xs: 1px 1px 0 0 var(--border);
+  --shadow-xs: 2px 2px 0 0 var(--border);
+  --shadow-sm: 3px 3px 0 0 var(--border);
+  --shadow: 4px 4px 0 0 var(--border);
+  --shadow-md: 6px 6px 0 0 var(--border);
+  --shadow-lg: 8px 8px 0 0 var(--border);
+  --shadow-xl: 12px 12px 0 0 var(--border);
+  --shadow-2xl: 16px 16px 0 0 var(--border);
+
+  /* Legacy brutalist aliases — kept for backward compat */
+  --shadow-brutal-sm: var(--shadow-sm);
+  --shadow-brutal: var(--shadow-md);
+
+  --tracking-normal: -0.025em;
+  --spacing: 0.25rem;
+
+  /* Animation tokens */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-linear: linear;
+
+  --duration-fast: 80ms;
+  --duration-base: 150ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+
+  /* ── v6 — 3-layer motion vocabulary (semantic, intent-named) ──
+     instant     mission-control hover/toggle/data updates           (linear, 80ms)
+     smooth      modal/sheet/tab — branded but quick                 (smooth ease, 180ms)
+     expressive  hero entrance, KPI count-up, onboarding             (spring, 320ms)
+     Use these names instead of --duration-*. The duration tokens
+     stay for backward compat. */
+  --motion-instant:    80ms var(--ease-linear);
+  --motion-smooth:     180ms var(--ease-smooth);
+  --motion-expressive: 320ms var(--ease-spring);
+
+  /* ── v6 — Surface depth tiers (additive — coexist with --background/--card/--surface) ──
+     Six logical tiers. In dark mode each tier is +1.5% L from the previous.
+     Use `bg-surface-{base,elevated,floating,interactive,hover,active}` Tailwind utilities. */
+  --surface-base:        var(--background);
+  --surface-elevated:    var(--card);
+  --surface-floating:    var(--popover);
+  --surface-interactive: oklch(0.9700 0.0050 264.5319);
+  --surface-hover:       oklch(0.9550 0.0080 268);
+  --surface-active:      oklch(0.9300 0.0120 272);
+
+  /* ── v6 — Color-mix overlay tokens ──
+     Pre-mixed transparency layers so components stop inlining color-mix() ad-hoc. */
+  --overlay-primary-soft:    color-mix(in oklch, var(--primary) 5%, transparent);
+  --overlay-primary-subtle:  color-mix(in oklch, var(--primary) 10%, transparent);
+  --overlay-primary-medium:  color-mix(in oklch, var(--primary) 15%, transparent);
+  --overlay-primary-strong:  color-mix(in oklch, var(--primary) 25%, transparent);
+  --overlay-fg-soft:         color-mix(in oklch, var(--foreground) 4%, transparent);
+  --overlay-fg-subtle:       color-mix(in oklch, var(--foreground) 8%, transparent);
+
+  /* Text shadow scale (LAW 9 — no hardcoded values in components) */
+  --text-shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.12);
+  --text-shadow-md: 0 2px 8px hsl(0 0% 0% / 0.18);
+  --text-shadow-lg: 0 4px 16px hsl(0 0% 0% / 0.24);
+  --text-glow-primary: 0 0 20px color-mix(in oklch, var(--primary) 30%, transparent), 0 0 40px color-mix(in oklch, var(--primary) 15%, transparent);
+
+  /* Prose (typography plugin) — Violet Grid theme */
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--muted-foreground);
+  --tw-prose-links: var(--primary);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--border);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--primary);
+  --tw-prose-captions: var(--muted-foreground);
+  --tw-prose-code: var(--primary);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--code-bg);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
 }
 
 .dark {
-    /* ── Dark Theme: True Deep Blue-Black ── */
-    --background: #020617;
-    --foreground: #E2E8F0;                    /* primary line */
-    --card: #0F172A;                          /* surface lift */
-    --card-foreground: #E2E8F0;
-    --popover: #020617;
-    --popover-foreground: #E2E8F0;
-    
-    /* Nordic Inverted Accent System */
-    --primary: #E2E8F0;                       /* white buttons on dark */
-    --primary-foreground: #020617;
-    --secondary: #1E293B;
-    --secondary-foreground: #E2E8F0;
-    --muted: #1E293B;
-    --muted-foreground: #94A3B8;              /* secondary line */
-    --accent: #1E293B;
-    --accent-foreground: #E2E8F0;
-    --destructive: #DC2626;
-    --destructive-foreground: #FFFFFF;
+  /* ── DARK MODE (Violet Grid — purple-tinted backgrounds) ── */
+  --background: oklch(0.2223 0.0060 271.1393);
+  --foreground: oklch(0.9556 0.0074 264.5319);
+  --card: oklch(0.2568 0.0076 274.6528);
+  --card-foreground: oklch(0.9556 0.0074 264.5319);
+  --popover: oklch(0.2568 0.0076 274.6528);
+  --popover-foreground: oklch(0.9556 0.0074 264.5319);
+  --primary: oklch(0.6132 0.2294 291.7437);
+  --primary-foreground: oklch(0.1573 0.0062 271.1393);
+  --secondary: oklch(0.3003 0.0094 271.1393);
+  --secondary-foreground: oklch(0.9556 0.0074 264.5319);
+  --muted: oklch(0.3003 0.0094 271.1393);
+  --muted-foreground: oklch(0.6351 0.0094 264.5319);
+  --accent: oklch(0.3280 0.0195 280.6754);
+  --accent-foreground: oklch(0.6132 0.2294 291.7437);
+  --destructive: oklch(0.6368 0.2078 25.3313);
+  --destructive-foreground: oklch(0.9812 0 0);
+  --border: oklch(0.3280 0.0195 280.6754);
+  --input: oklch(0.3280 0.0195 280.6754);
+  --ring: oklch(0.6132 0.2294 291.7437);
 
-    /* Solid Border System — NO alpha, real visibility */
-    --border-subtle: #0F172A;
-    --border-default: #1E293B;
-    --border-strong: #334155;
-    --border: #1E293B;
-    --border-primary: var(--primary);
-    
-    --input: #1E293B;
-    --ring: #475569;
+  --chart-1: oklch(0.6132 0.2294 291.7437);
+  --chart-2: oklch(0.7200 0.1800 291.7437);
+  --chart-3: oklch(0.5000 0.2500 291.7437);
+  --chart-4: oklch(0.7800 0.1400 291.7437);
+  --chart-5: oklch(0.4200 0.2800 291.7437);
 
-    /* Glass Variables (flat for Nordic) */
-    --glass-bg: transparent; 
-    --glass-highlight: transparent;
+  --sidebar: oklch(0.1956 0.0060 271.1393);
+  --sidebar-foreground: oklch(0.9556 0.0074 264.5319);
+  --sidebar-primary: oklch(0.6132 0.2294 291.7437);
+  --sidebar-primary-foreground: oklch(0.1573 0.0062 271.1393);
+  --sidebar-accent: oklch(0.2837 0.0137 274.6528);
+  --sidebar-accent-foreground: oklch(0.9556 0.0074 264.5319);
+  --sidebar-border: oklch(0.3280 0.0195 280.6754);
+  --sidebar-ring: oklch(0.6132 0.2294 291.7437);
 
-    /* Illustration accent tint */
-    --accent-soft: #1E3A8A;
+  --accent-success: oklch(0.60 0.18 150);
+  --accent-success-foreground: oklch(0.10 0 0);
+  --accent-warning: oklch(0.72 0.18 80);
+  --accent-warning-foreground: oklch(0.10 0 0);
+  --accent-danger: oklch(0.6368 0.2078 25.3313);
+  --accent-danger-foreground: oklch(1 0 0);
+  --accent-info: oklch(0.6132 0.2294 291.7437);
+  --accent-info-foreground: oklch(1 0 0);
 
-    /* Status Token */
-    --status-active: #4ADE80;
+  /* Dark mode semantic surface aliases */
+  --surface: oklch(0.2837 0.0137 274.6528);
+  --surface-foreground: oklch(0.9556 0.0074 264.5319);
+  --overlay: oklch(0.2568 0.0076 274.6528);
+  --overlay-foreground: oklch(0.9556 0.0074 264.5319);
+  --code-bg: oklch(0.2223 0.0060 271.1393);
 
-    /* Typography Scale */
-    --tracking-normal: 0.02em;
+  /* Dark mode brutalist offset shadows */
+  --shadow-2xs: 1px 1px 0 0 var(--border);
+  --shadow-xs: 2px 2px 0 0 var(--border);
+  --shadow-sm: 3px 3px 0 0 var(--border);
+  --shadow: 4px 4px 0 0 var(--border);
+  --shadow-md: 6px 6px 0 0 var(--border);
+  --shadow-lg: 8px 8px 0 0 var(--border);
+  --shadow-xl: 12px 12px 0 0 var(--border);
+  --shadow-2xl: 16px 16px 0 0 var(--border);
 
-    /* Depth Layer Tokens */
-    --bg-base: #020617;
-    --bg-panel: #0F172A;
-    --bg-surface: #1E293B;
-    
-    --radius: 0px;
+  --shadow-brutal-sm: var(--shadow-sm);
+  --shadow-brutal: var(--shadow-md);
+
+  /* ── v6 — Surface depth tiers (DARK) ──
+     Each tier is roughly +1.5–2% L from the previous to stack subtly. */
+  --surface-base:        var(--background);
+  --surface-elevated:    var(--card);
+  --surface-floating:    var(--popover);
+  --surface-interactive: oklch(0.2837 0.0137 274.6528);
+  --surface-hover:       oklch(0.3050 0.0160 278);
+  --surface-active:      oklch(0.3280 0.0195 280.6754);
+
+  /* ── v6 — Color-mix overlay tokens (DARK) ──
+     Same definitions as light — `color-mix` resolves against the active
+     primary/foreground tokens so they automatically rebalance per theme. */
+  --overlay-primary-soft:    color-mix(in oklch, var(--primary) 5%, transparent);
+  --overlay-primary-subtle:  color-mix(in oklch, var(--primary) 10%, transparent);
+  --overlay-primary-medium:  color-mix(in oklch, var(--primary) 15%, transparent);
+  --overlay-primary-strong:  color-mix(in oklch, var(--primary) 25%, transparent);
+  --overlay-fg-soft:         color-mix(in oklch, var(--foreground) 4%, transparent);
+  --overlay-fg-subtle:       color-mix(in oklch, var(--foreground) 8%, transparent);
+
+  /* Text shadow — stronger in dark mode for depth */
+  --text-shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.30);
+  --text-shadow-md: 0 2px 8px hsl(0 0% 0% / 0.40);
+  --text-shadow-lg: 0 4px 16px hsl(0 0% 0% / 0.50);
+  --text-glow-primary: 0 0 20px color-mix(in oklch, var(--primary) 45%, transparent), 0 0 48px color-mix(in oklch, var(--primary) 20%, transparent);
+
+  /* Prose invert — dark mode prose */
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--muted-foreground);
+  --tw-prose-links: var(--primary);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--border);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--primary);
+  --tw-prose-captions: var(--muted-foreground);
+  --tw-prose-code: var(--primary);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--code-bg);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   TAILWIND v4 THEME BINDINGS
+   ══════════════════════════════════════════════════════════════════════════════ */
 
 @theme inline {
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --color-card: var(--card);
-    --color-card-foreground: var(--card-foreground);
-    --color-popover: var(--popover);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-primary: var(--primary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-secondary: var(--secondary);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-muted: var(--muted);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-accent: var(--accent);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-destructive: var(--destructive);
-    --color-destructive-foreground: var(--destructive-foreground);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 
-    /* Glass/Border Theme Links */
-    --color-border-subtle: var(--border-subtle);
-    --color-border-default: var(--border-default);
-    --color-border-strong: var(--border-strong);
-    --color-border-primary: var(--border-primary);
-    --color-border: var(--border);
+  --color-accent-success: var(--accent-success);
+  --color-accent-success-foreground: var(--accent-success-foreground);
+  --color-accent-warning: var(--accent-warning);
+  --color-accent-warning-foreground: var(--accent-warning-foreground);
+  --color-accent-danger: var(--accent-danger);
+  --color-accent-danger-foreground: var(--accent-danger-foreground);
+  --color-accent-info: var(--accent-info);
+  --color-accent-info-foreground: var(--accent-info-foreground);
 
-    --color-input: var(--input);
-    --color-ring: var(--ring);
+  /* Semantic surface aliases */
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-overlay: var(--overlay);
+  --color-overlay-foreground: var(--overlay-foreground);
+  --color-code-bg: var(--code-bg);
 
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    
-    /* Depth Layer System */
-    --color-bg-base: var(--bg-base);
-    --color-bg-panel: var(--bg-panel);
-    --color-bg-surface: var(--bg-surface);
-    --color-glass-bg: var(--glass-bg);
+  /* ── v6 — Surface depth tiers (Tailwind utilities: bg-surface-{tier}) ── */
+  --color-surface-base: var(--surface-base);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-floating: var(--surface-floating);
+  --color-surface-interactive: var(--surface-interactive);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
 
-    /* Illustration Tint */
-    --color-accent-soft: var(--accent-soft);
+  /* ── v6 — Color-mix overlay tokens (Tailwind utilities: bg-primary-{soft|subtle|medium|strong}, bg-fg-{soft|subtle}) ── */
+  --color-primary-soft: var(--overlay-primary-soft);
+  --color-primary-subtle: var(--overlay-primary-subtle);
+  --color-primary-medium: var(--overlay-primary-medium);
+  --color-primary-strong: var(--overlay-primary-strong);
+  --color-fg-soft: var(--overlay-fg-soft);
+  --color-fg-subtle: var(--overlay-fg-subtle);
 
-    /* Status */
-    --color-status-active: var(--status-active);
+  /* Print tokens */
+  --color-print-bg: var(--print-bg);
+  --color-print-fg: var(--print-fg);
+  --color-print-border: var(--print-border);
 
-    /* Typography Extras */
-    --text-2xs: 0.625rem;
-    --text-3xs: 0.5rem;
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
 
-    /* Tracking Scale */
-    --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
-    --tracking-tight: calc(var(--tracking-normal) - 0.025em);
-    --tracking-normal: var(--tracking-normal);
-    --tracking-wide: calc(var(--tracking-normal) + 0.025em);
-    --tracking-wider: calc(var(--tracking-normal) + 0.05em);
-    --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+  --text-3xs: 0.5625rem;
+  --text-2xs: 0.625rem;
 
-    /* Marquee Animation */
-    --animate-marquee-scroll: marquee-scroll 40s linear infinite;
+  /* ── Layout scale tokens (LAW 9 — no arbitrary [px] values in components) ──
+     Authored from observed design needs in dashboard panels + hero sections.
+     Reusable as `h-panel-sm`, `min-h-panel-xl`, `max-w-control`, etc. */
+  --spacing-control: 100rem;    /* 1600px — mission-control viewport max-width */
+  --spacing-panel-sm: 13.75rem; /* 220px — chart container / hero (mobile)     */
+  --spacing-panel-md: 15rem;    /* 240px — scroll-list panel                   */
+  --spacing-panel-lg: 16.25rem; /* 260px — hero (lg viewport)                  */
+  --spacing-panel-xl: 18.75rem; /* 300px — KPI panel min-height                */
+  --spacing-hero-vh: 60vh;      /* 60vh   — auth/error hero vertical centering */
 
-    @keyframes marquee-scroll {
-      from { transform: translateX(0); }
-      to { transform: translateX(-50%); }
-    }
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+
+  --shadow-2xs: var(--shadow-2xs);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow: var(--shadow);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-2xl: var(--shadow-2xl);
+  --shadow-brutal-sm: var(--shadow-brutal-sm);
+  --shadow-brutal: var(--shadow-brutal);
+
+  /* Animation/easing tokens */
+  --ease-smooth: var(--ease-smooth);
+  --ease-in: var(--ease-in);
+  --ease-out: var(--ease-out);
+  --ease-spring: var(--ease-spring);
+  --ease-linear: var(--ease-linear);
+
+  --duration-fast: var(--duration-fast);
+  --duration-base: var(--duration-base);
+  --duration-slow: var(--duration-slow);
+  --duration-slower: var(--duration-slower);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   BASE LAYER
+   ══════════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   * {
@@ -185,74 +405,470 @@
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
+    font-optical-sizing: auto;
   }
-  ::selection {
-    @apply bg-primary/30 text-foreground;
+  /* Override prose defaults to use our font stack and zero radius */
+  .prose {
+    font-family: var(--font-sans);
+    max-width: none;
   }
-  blockquote {
-    @apply border-l-4 border-primary pl-4 italic opacity-90;
+  .prose pre {
+    border-radius: 0;
+    border: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    background-color: var(--code-bg) !important;
+  }
+  .prose code {
+    border-radius: 0;
+    font-family: var(--font-mono);
+    color: var(--primary);
+    background: color-mix(in oklch, var(--primary) 10%, transparent);
+    padding: 0.15em 0.35em;
+    font-weight: 400;
+  }
+  .prose code::before,
+  .prose code::after {
+    content: none;
+  }
+  .prose blockquote {
+    border-radius: 0;
+    border-left-color: var(--primary);
+    font-style: italic;
+    font-family: var(--font-serif);
+  }
+  .prose h1, .prose h2, .prose h3, .prose h4 {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+  .prose a {
+    color: var(--primary);
+    text-underline-offset: 3px;
+    font-weight: 500;
   }
 }
 
-/* ----------------------------------
- * NORDIC UI APEX UTILITIES
- * ---------------------------------- */
+/* ══════════════════════════════════════════════════════════════════════════════
+   TAC EXPRESS DESIGN UTILITIES — @layer utilities
+   All color references use CSS custom properties only (LAW 1 compliant).
+   ══════════════════════════════════════════════════════════════════════════════ */
 
-.glass-card {
-  @apply bg-card border border-border-default rounded-none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+@layer utilities {
+  /* 1. Structural Panel / Border Framing */
+  .tac-fui-panel {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    overflow: visible !important;
+  }
+
+  .tac-fui-border {
+    position: relative;
+    background: var(--background);
+    border: 1px solid var(--border);
+  }
+
+  /* 2. Interactive Hover State */
+  .tac-fui-hover {
+    transition: all var(--duration-fast) var(--ease-linear);
+  }
+  .tac-fui-hover:hover {
+    border-color: var(--primary);
+    background: var(--overlay-primary-soft);
+  }
+
+  /* ── v6 — Hover Intelligence ──
+     Multi-axis hover signal: bg shift + border activate + sub-pixel lift.
+     Preserves brutalist offset (no soft shadow) — the lift is just 1px translate.
+     Use on cards / KPI panels / primary buttons. */
+  .tac-hover-lift {
+    transition: background-color var(--motion-instant),
+                border-color var(--motion-instant),
+                transform var(--motion-instant);
+    will-change: transform;
+  }
+  .tac-hover-lift:hover {
+    background-color: var(--surface-hover);
+    border-color: var(--primary);
+    transform: translate3d(-1px, -1px, 0);
+  }
+  .tac-hover-lift:active {
+    background-color: var(--surface-active);
+    transform: translate3d(0, 0, 0);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tac-hover-lift,
+    .tac-hover-lift:hover,
+    .tac-hover-lift:active {
+      transform: none;
+      transition: background-color var(--motion-instant),
+                  border-color var(--motion-instant);
+    }
+  }
+
+  /* ── v6 — Focus Polish ──
+     2-layer focus signal: 1px hard outline (primary) + 8px primary bloom.
+     Apply via `focus-visible:tac-focus-premium`. Replaces generic `ring-[3px] ring-ring/50`. */
+  .tac-focus-premium {
+    outline: 1px solid var(--primary);
+    outline-offset: 1px;
+    box-shadow: 0 0 8px color-mix(in oklch, var(--primary) 40%, transparent);
+  }
+
+  /* 3. Mono Label */
+  .tac-mono-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--primary);
+  }
+
+  /* 4. Signal Glow */
+  .tac-signal-glow {
+    box-shadow:
+      0 0 0 1px var(--primary),
+      0 0 8px color-mix(in oklch, var(--primary) 40%, transparent);
+  }
+
+  /* 5. Surface convenience classes */
+  .tac-surface {
+    background: var(--surface);
+    color: var(--surface-foreground);
+  }
+
+  .tac-overlay {
+    background: var(--overlay);
+    color: var(--overlay-foreground);
+  }
+
+  .tac-code-bg {
+    background: var(--code-bg);
+  }
+
+  /* 6. Scanline Effect */
+  .tac-scanline {
+    position: relative;
+    overflow: hidden;
+  }
+  .tac-scanline::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: color-mix(in oklch, var(--primary) 40%, transparent);
+    animation: scanline 8s linear infinite;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  /* 7. Hazard Stripes */
+  .tac-hazard-stripes {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 10px,
+      color-mix(in oklch, var(--border) 50%, transparent) 10px,
+      color-mix(in oklch, var(--border) 50%, transparent) 20px
+    );
+  }
+
+  /* 8. Blinking Cursor/Element */
+  .tac-blink {
+    animation: blink 1s step-end infinite;
+  }
+
+  /* 6. Print-safe label wrapper */
+  .tac-print-label {
+    background: var(--print-bg);
+    color: var(--print-fg);
+    border-color: var(--print-border);
+  }
+
+  /* Full-bleed hero helper — compensates for layout padding at each breakpoint */
+  .tac-hero-bleed {
+    margin-left: calc(-1.25rem);   /* -mx-5 */
+    margin-right: calc(-1.25rem);
+    width: calc(100% + 2.5rem);
+  }
+  @media (min-width: 640px) {
+    .tac-hero-bleed {
+      margin-left: calc(-2rem);    /* sm:-mx-8 */
+      margin-right: calc(-2rem);
+      width: calc(100% + 4rem);
+    }
+  }
+  @media (min-width: 1024px) {
+    .tac-hero-bleed {
+      margin-left: calc(-2.5rem);  /* lg:-mx-10 */
+      margin-right: calc(-2.5rem);
+      width: calc(100% + 5rem);
+    }
+  }
+
+  /* ── TYPE SCALE — Violet Grid (premium rendering) ── */
+
+  .t-display {
+    font-family: var(--font-sans);
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 1.03;
+    text-wrap: balance;
+    font-feature-settings: "liga" 1, "kern" 1, "ss01" 1;
+  }
+
+  .t-h1 {
+    font-family: var(--font-sans);
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.12;
+    text-wrap: balance;
+    font-feature-settings: "liga" 1, "kern" 1;
+  }
+
+  .t-h2 {
+    font-family: var(--font-sans);
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.18;
+    text-wrap: balance;
+    font-feature-settings: "liga" 1, "kern" 1;
+  }
+
+  .t-h3 {
+    font-family: var(--font-sans);
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.022em;
+    line-height: 1.28;
+    font-feature-settings: "liga" 1, "kern" 1;
+  }
+
+  .t-h4 {
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.016em;
+    line-height: 1.35;
+  }
+
+  .t-body {
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.6;
+  }
+
+  .t-body-sm {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.55;
+  }
+
+  .t-caption {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: -0.005em;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+  }
+
+  .t-overline {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+
+  .t-data {
+    font-family: var(--font-mono);
+    font-size: 2.5rem;
+    font-weight: 600;
+    letter-spacing: -0.05em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+
+  .t-data-sm {
+    font-family: var(--font-mono);
+    font-size: 1.25rem;
+    font-weight: 500;
+    letter-spacing: -0.018em;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+
+  .t-mono {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 400;
+    letter-spacing: 0em;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  .t-mono-sm {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 400;
+    letter-spacing: 0em;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* ── TEXT GRADIENTS (LAW 1: defined here, not in components) ── */
+
+  /* Violet primary gradient — for headings and key labels */
+  .t-gradient-primary {
+    background: linear-gradient(
+      135deg,
+      var(--primary) 0%,
+      color-mix(in oklch, var(--primary) 65%, oklch(0.72 0.18 320)) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Hero gradient — wider sweep for display/h1 text */
+  .t-gradient-hero {
+    background: linear-gradient(
+      118deg,
+      color-mix(in oklch, var(--primary) 80%, oklch(0.60 0.22 250)) 0%,
+      var(--primary) 42%,
+      color-mix(in oklch, var(--primary) 72%, oklch(0.78 0.17 320)) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Success gradient — for positive KPI values */
+  .t-gradient-success {
+    background: linear-gradient(
+      135deg,
+      var(--accent-success) 0%,
+      color-mix(in oklch, var(--accent-success) 60%, oklch(0.75 0.18 180)) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── TEXT SHADOWS & GLOW ── */
+
+  .text-shadow-sm {
+    text-shadow: var(--text-shadow-sm);
+  }
+
+  .text-shadow-md {
+    text-shadow: var(--text-shadow-md);
+  }
+
+  .text-shadow-lg {
+    text-shadow: var(--text-shadow-lg);
+  }
+
+  /* Primary violet glow — dark mode hero headings */
+  .text-glow-primary {
+    text-shadow: var(--text-glow-primary);
+  }
 }
 
-.btn-primary {
-  @apply relative overflow-hidden rounded-none font-medium transition-all duration-300;
-  background: var(--foreground);
-  color: var(--background);
-  border: 1px solid var(--foreground);
-  box-shadow: none;
+/* ══════════════════════════════════════════════════════════════════════════════
+   KEYFRAME ANIMATIONS
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-.btn-primary:hover {
-  background: transparent;
-  color: var(--foreground);
-  box-shadow: none;
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
 }
 
-.input-minimal {
-  @apply bg-transparent border-0 border-b border-border rounded-none px-0 py-2 focus:ring-0 focus:border-foreground transition-colors;
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
-/* Dot grid ambient background — pure CSS */
-.tac-dot-grid {
-  background-image: radial-gradient(
-    circle,
-    var(--border) 1px,
-    transparent 1px
-  );
-  background-size: 24px 24px;
-  animation: grid-drift 30s linear infinite;
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100% - var(--gap))); }
 }
 
-@keyframes grid-drift {
-  from { background-position: 0 0; }
-  to { background-position: 24px 24px; }
+@keyframes marquee-y {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(-100% - var(--gap))); }
 }
 
-/* Marquee track — pure CSS infinite scroll */
-.tac-marquee-track {
-  display: flex;
-  width: max-content;
-  animation: marquee-scroll 40s linear infinite;
+@layer utilities {
+  .animate-marquee-x {
+    animation: marquee-x var(--duration) linear infinite;
+  }
+
+  .animate-marquee-y {
+    animation: marquee-y var(--duration) linear infinite;
+  }
+
+  .animate-reverse {
+    animation-direction: reverse;
+  }
+
+  .pause-on-hover:hover > div {
+    animation-play-state: paused;
+  }
 }
 
-.tac-marquee-track:hover {
-  animation-play-state: paused;
+/* ══════════════════════════════════════════════════════════════════════════════
+   VIEW TRANSITIONS API
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }
 
-/* Background glows removed for Nordic UI flatness */
-.tac-hero-glow {
-  background: none;
-}
+/* ══════════════════════════════════════════════════════════════════════════════
+   PRINT STYLES
+   ══════════════════════════════════════════════════════════════════════════════ */
 
-.tac-cta-glow {
-  background: none;
+@media print {
+  aside[data-slot="dashboard-sidebar"],
+  header[data-slot="dashboard-header"],
+  [data-slot="notifications-trigger"],
+  [data-slot="theme-toggle"],
+  [data-print-hide="true"] {
+    display: none !important;
+  }
+  body,
+  html {
+    background: white !important;
+  }
 }

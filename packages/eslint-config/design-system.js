@@ -35,17 +35,12 @@ export const designSystemConfig = {
           {
             name: "framer-motion",
             message:
-              "❌ [TAC LAW-3] framer-motion is FORBIDDEN. Use tw-animate-css classes (animate-in, fade-in, slide-in-from-*, etc.)",
+              "❌ [TAC LAW-3] framer-motion is LEGACY. Use the new 'motion' package instead: import { motion } from 'motion/react'",
           },
           {
             name: "@motionone/react",
             message:
-              "❌ [TAC LAW-3] @motionone/react is FORBIDDEN. Use tw-animate-css classes.",
-          },
-          {
-            name: "motion",
-            message:
-              "❌ [TAC LAW-3] motion is FORBIDDEN. Use tw-animate-css classes.",
+              "❌ [TAC LAW-3] @motionone/react is FORBIDDEN. Use the new 'motion' package instead.",
           },
           // ── DATABASE VIOLATIONS ───────────────────────────────────────
           {

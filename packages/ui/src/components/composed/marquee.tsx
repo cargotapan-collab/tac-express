@@ -17,7 +17,7 @@ interface MarqueeProps extends React.ComponentPropsWithoutRef<"div"> {
 
 /**
  * Marquee — CSS-only infinite scroll ticker.
- * Self-contained @keyframes via scoped <style>. No framer-motion.
+ * Global @keyframes live in globals.css. No framer-motion.
  * Uses CSS variable --duration for speed control.
  */
 export function Marquee({
@@ -60,28 +60,6 @@ export function Marquee({
             {children}
           </div>
         ))}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes marquee-x {
-          from { transform: translateX(0); }
-          to { transform: translateX(calc(-100% - var(--gap))); }
-        }
-        @keyframes marquee-y {
-          from { transform: translateY(0); }
-          to { transform: translateY(calc(-100% - var(--gap))); }
-        }
-        .animate-marquee-x {
-          animation: marquee-x var(--duration) linear infinite;
-        }
-        .animate-marquee-y {
-          animation: marquee-y var(--duration) linear infinite;
-        }
-        .animate-reverse {
-          animation-direction: reverse;
-        }
-        .pause-on-hover:hover > div {
-          animation-play-state: paused;
-        }
-      `}} />
     </div>
   )
 }

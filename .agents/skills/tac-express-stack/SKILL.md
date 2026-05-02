@@ -12,13 +12,18 @@ This skill documents the canonical technology decisions for the `tac-express` mo
 ```
 tac-express/                   ← Workspace root (pnpm + Turborepo)
 ├── apps/
-│   └── web/                   ← Next.js 16 application (Turbopack dev)
+│   ├── web/                   ← Next.js 16 — Landing page + public (port 3000)
+│   └── dashboard/             ← Next.js 16 — Logistics management (port 3001)
 ├── packages/
 │   ├── ui/                    ← Shared UI library (@workspace/ui)
+│   ├── auth/                  ← Auth service wrapper (@workspace/auth)
+│   ├── database/              ← Supabase client + middleware (@workspace/database)
+│   ├── services/              ← Business logic (@workspace/services)
+│   ├── types/                 ← Shared TypeScript types (@workspace/types)
 │   ├── eslint-config/         ← Shared ESLint config (@workspace/eslint-config)
 │   └── typescript-config/     ← Shared TS config (@workspace/typescript-config)
-├── .agent/skills/             ← GSD skills (backward-compatible path)
-├── .agents/skills/            ← Project-specific Antigravity skills (new default)
+├── .agent/skills/             ← GSD workflow skills
+├── .agents/skills/            ← Project-specific skills (canonical location)
 ├── turbo.json                 ← Turborepo pipeline
 └── pnpm-workspace.yaml        ← pnpm workspace declaration
 ```
@@ -42,15 +47,16 @@ typecheck → dependsOn [^typecheck]
 dev    → cache: false, persistent: true
 ```
 
-## `apps/web` — Next.js Application
+## `apps/web` — Landing Page (port 3000)
 
 | Property | Value |
 |----------|-------|
 | **Framework** | Next.js 16.1.6 |
-| **Dev server** | `next dev --turbopack` (Turbopack, NOT webpack) |
+| **Dev server** | `next dev --turbopack` (port 3000) |
 | **React** | 19.2.4 |
 | **App Router** | Yes — `apps/web/app/` directory |
 | **Module type** | ESM (`"type": "module"`) |
+| **Purpose** | Public landing page, shipment tracking, sign-in entry point |
 
 ### Key Dependencies (apps/web)
 
@@ -58,17 +64,36 @@ dev    → cache: false, persistent: true
 next@16.1.6
 react@19.2.4
 react-dom@19.2.4
-next-themes@0.4.6       ← Dark mode support
-@remixicon/react@4.9.0  ← Icon library
-@workspace/ui            ← Shared component library
+next-themes@0.4.6        ← Dark mode support
+@workspace/ui             ← Shared component library
+@workspace/database       ← Supabase client (never import @supabase directly)
+@workspace/services       ← Business logic
+@workspace/types          ← Shared types
 ```
 
-### Dev Dependencies (apps/web)
+## `apps/dashboard` — Logistics Management (port 3001)
+
+| Property | Value |
+|----------|-------|
+| **Framework** | Next.js 16.1.6 |
+| **Dev server** | `next dev --turbopack --port 3001` |
+| **React** | 19.2.4 |
+| **App Router** | Yes — `apps/dashboard/app/` directory |
+| **Module type** | ESM (`"type": "module"`) |
+| **Purpose** | Full logistics management — shipments, manifests, customers, finance, scanning |
+
+### Key Dependencies (apps/dashboard)
 
 ```
-@tailwindcss/postcss@4.1.18  ← TailwindCSS v4 PostCSS integration
-typescript@5.9.3
-eslint@9.39.2
+next@16.1.6
+react@19.2.4
+react-dom@19.2.4
+@tanstack/react-query     ← Server state + caching
+@workspace/ui             ← Shared component library
+@workspace/auth           ← Auth service wrapper
+@workspace/database       ← Supabase client
+@workspace/services       ← Business logic
+@workspace/types          ← Shared types
 ```
 
 ## `packages/ui` — Shared Component Library
@@ -101,17 +126,19 @@ This is the canonical source for all UI components, consumed as `@workspace/ui`.
 | **zod** | ^3.25.76 | Schema validation |
 | **lottie-react** | ^2.x | Lottie animation player (hero section) |
 
-### Design System: "Precision Velocity"
+### Design System: TAC Precision v5.0
 
-The UI package implements the **Precision Velocity** design system — a zero-curve brutalist system with:
-- **5 depth layers** (`--bg-base/panel/surface/overlay`)
-- **4 border tiers** (`--border-subtle/default/strong/primary`)
-- **3 shadow tokens** (`--shadow-brutal/brutal-sm/brutal-primary`)
+The UI package implements the **TAC Precision** design system — sharp-edge logistics aesthetic:
+- **Near-zero radius** (`--radius: 0.125rem` base — 2px, near-perfectly sharp)
+- **Teal OKLCH palette** — `--primary` anchored at hue ~195–224
+- **Directional shadows** — 1px offset (not blur-based, not glow-based)
+- **Solid surfaces** — no glassmorphism, no backdrop-filter
+- **Straight lines only** — LAW 13 — no curves, wavy paths, or organic shapes
+- **Fonts:** Plus Jakarta Sans (sans), Inter (serif), Fira Mono (mono)
 - **Atmospheric components** (NoiseOverlay, GridBackground, ScrollProgress, TextScramble, Marquee)
-- **View Transitions API** theme toggle
-- All animations via pure CSS / vanilla JS — zero forbidden packages
+- All animations via `tw-animate-css` classes + CSS @keyframes in globals.css
 
-Full design system documentation: see `tac-express-ui` skill.
+Full design system documentation: see `tac-express-ui` skill and `DESIGN_SYSTEM.md`.
 
 ### shadcn Configuration (`packages/ui/components.json`)
 
@@ -149,7 +176,7 @@ Full design system documentation: see `tac-express-ui` skill.
 - **All primitives** (shadcn wrappers) live in `packages/ui/src/components/primitives/`
 - Add new apps to `apps/` and register in `pnpm-workspace.yaml`
 - Add new packages to `packages/` and register in `pnpm-workspace.yaml`
-- **Geometry rule**: ZERO curves — `--radius: 0rem` — all straight lines and sharp corners
+- **Geometry rule**: ZERO curves — `--radius: 0.125rem` (2px base) — all straight lines and near-sharp corners
 
 ## Running Commands
 

@@ -284,7 +284,7 @@ export function useCart() {
 }
 
 // Hardcoded return:
-export function useUser() {
+export function useAuth() {
   return { name: "Test User", email: "test@example.com" }
 }
 ```

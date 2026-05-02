@@ -5,7 +5,7 @@ description: Get Shit Done (GSD) — spec-driven development system. Use this wh
 
 # GSD — Get Shit Done (Gateway)
 
-> ⚠️ **MANDATORY FOR EVERY TASK:** Load `.agents/skills/tac-express-rules/SKILL.md` before every plan, execution, or code change. The Ten Laws are non-negotiable and enforced by ESLint + CI. Any code that violates them will be blocked at commit time.
+> ⚠️ **MANDATORY FOR EVERY TASK:** Load `.agents/skills/tac-express-onboarding/SKILL.md` first, then `.agents/skills/tac-express-rules/SKILL.md`. The Fourteen Laws are non-negotiable and enforced by ESLint + CI. Any code that violates them will be blocked at commit time.
 
 GSD v1.34.2 is installed at `.agent/skills/`. All 68 GSD skills are available.
 
@@ -56,13 +56,14 @@ When `/gsd-new-project` creates `.planning/config.json`, it should include:
     "ui_phase": true
   },
   "agent_skills": {
-    "gsd-executor":         [".agents/skills/tac-express-rules", ".agents/skills/tac-express-stack", ".agents/skills/tac-express-conventions", ".agents/skills/tac-express-ui"],
-    "gsd-planner":          [".agents/skills/tac-express-rules", ".agents/skills/tac-express-stack", ".agents/skills/tac-express-conventions"],
+    "gsd-executor":         [".agents/skills/tac-express-onboarding", ".agents/skills/tac-express-rules", ".agents/skills/tac-express-stack", ".agents/skills/tac-express-conventions", ".agents/skills/tac-express-ui"],
+    "gsd-planner":          [".agents/skills/tac-express-onboarding", ".agents/skills/tac-express-rules", ".agents/skills/tac-express-stack", ".agents/skills/tac-express-conventions"],
     "gsd-phase-researcher": [".agents/skills/tac-express-rules", ".agents/skills/tac-express-stack"],
     "gsd-ui-researcher":    [".agents/skills/tac-express-rules", ".agents/skills/tac-express-ui", ".agents/skills/tac-express-stack"],
     "gsd-verifier":         [".agents/skills/tac-express-rules", ".agents/skills/tac-express-stack"],
     "gsd-plan-checker":     [".agents/skills/tac-express-rules"],
-    "gsd-code-reviewer":    [".agents/skills/tac-express-rules", ".agents/skills/tac-express-conventions"]
+    "gsd-code-reviewer":    [".agents/skills/tac-express-rules", ".agents/skills/tac-express-conventions"],
+    "gsd-auth-worker":      [".agents/skills/tac-express-auth", ".agents/skills/tac-express-rules"]
   }
 }
 ```

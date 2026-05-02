@@ -2,26 +2,20 @@
 
 import * as React from "react"
 import Lottie from "lottie-react"
-import { cn } from "@workspace/ui/lib/utils"
 
-interface LottieHeroProps extends React.HTMLAttributes<HTMLDivElement> {
+interface LottieHeroProps {
   animationData: object
+  className?: string
 }
 
-export function LottieHero({ animationData, className, ...props }: LottieHeroProps) {
+export function LottieHero({ animationData, className }: LottieHeroProps) {
   return (
-    <div 
-      className={cn("w-full h-full flex items-center justify-center overflow-hidden", className)} 
-      {...props}
-    >
+    <div className={className} data-slot="lottie-hero">
       <Lottie 
         animationData={animationData} 
         loop={true} 
         autoplay={true}
-        style={{ width: "100%", height: "100%" }}
-        rendererSettings={{
-          preserveAspectRatio: "xMidYMid slice"
-        }}
+        style={{ width: "100%", height: "100%", objectFit: "contain" }}
       />
     </div>
   )

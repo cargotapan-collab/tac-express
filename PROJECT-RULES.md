@@ -1,20 +1,19 @@
 # TAC Express — Project Rules
 
-> **Authority:** `docs/TAC-EXPRESS-IMPLEMENTATION-PLAN-v2.md`
+> **Authority:** `AGENTS.md` + `DESIGN_SYSTEM.md`
 > **Enforced by:** ESLint + pre-commit hooks + CI gates
-> **Version:** 3.0 — Supersedes all v1.0 and v2.0 references
-> **Read alongside:** `AGENTS.md` + `DESIGN_SYSTEM.md` + `CLAUDE.md`
+> **Version:** 7.0 — TAC Express v5.0 Violet Grid (May 2026)
 
 ---
 
-## The Twelve Laws (Absolute — No Exceptions)
+## The Fourteen Laws (Absolute — No Exceptions)
 
 | # | Law | Violation = |
 |---|-----|-------------|
 | LAW 1 | No color value outside `packages/ui/src/styles/globals.css` | ESLint error + CI block |
 | LAW 2 | No icon except `@remixicon/react` via `@workspace/ui/icons` | ESLint error + CI block |
-| LAW 3 | No animation library except `tw-animate-css` | ESLint error + CI block |
-| LAW 4 | No font declaration except in `apps/web/app/layout.tsx` | PR rejection |
+| LAW 3 | Animation via `motion` (motion/react) or `tw-animate-css`. No legacy `framer-motion`. | ESLint error + CI block |
+| LAW 4 | No font declaration except in `apps/*/app/layout.tsx` (web AND dashboard) | PR rejection |
 | LAW 5 | No UI component in `apps/` — only in `packages/ui` | ESLint error + CI block |
 | LAW 6 | No database call in any component — only via `packages/services` | PR rejection |
 | LAW 7 | No business logic in components — only in `packages/services` | PR rejection |
@@ -23,20 +22,29 @@
 | LAW 10 | No Tailwind color class (`bg-blue-500`, `text-red-400`) — semantic tokens only | ESLint error + CI block |
 | LAW 11 | No arbitrary Tailwind values (`w-[347px]`, `h-[52px]`) — use scale tokens | ESLint error |
 | LAW 12 | No `npm` or `yarn` — `pnpm` only | Pre-commit hook blocks |
+| LAW 13 | No curved or wavy lines (SVGs, paths, decorations). Strict straight lines/angles only. | PR rejection |
+| LAW 14 | Never rebuild a shadcn primitive from scratch. Wrap and style only. | PR rejection |
 
 ---
 
-## Version Corrections (v1.0/v2.0 → v3.0)
+## Version Corrections
 
 | Topic | Old ❌ | Correct ✅ |
-|-------|--------|-----------|
-| Icons | lucide-react | `@remixicon/react` only |
-| Animation | framer-motion / gsap | `tw-animate-css` only |
+|-------|---------|-----------|
+| Icons | lucide-react, tabler, react-icons | `@remixicon/react` via `@workspace/ui/icons` only |
+| Animation | `framer-motion` (legacy), `gsap`, `@motionone/react` | `motion` (motion/react), `tw-animate-css`, `@keyframes` in globals.css |
 | Next.js version | 15.x | **16.x (Turbopack)** |
-| Primary color | TAC Blue | **cyber cyan** `#7DF9FF` / `var(--accent-primary)` |
-| shadcn style | default | **radix-lyra** |
-| Font source | `packages/ui/fonts.ts` | `apps/web/app/layout.tsx` ONLY |
+| Design system | TAC Precision / Velox / Wasteland / Orbital | **TAC Express v5.0 Violet Grid** |
+| shadcn style | default / radix-maia | **radix-lyra** |
+| Font sans | Outfit / Geist / Space Grotesk | **Plus Jakarta Sans** |
+| Font mono | Geist Mono / Fira Mono / JetBrains Mono | **IBM Plex Mono** |
+| Font serif | Noto Serif / Inter | **Lora** |
+| Radius | 12px / 0.125rem | **0rem — zero radius** |
+| Shadow | soft drop shadows | **2px/4px brutalist offset shadows only** |
+| Primary color | cyan/orange (Wasteland), indigo (Orbital) | **violet** `oklch(0.5393 0.2713 286.7462)` |
+| Font source | `packages/ui/fonts.ts` | `apps/web/app/layout.tsx` AND `apps/dashboard/app/layout.tsx` |
 | Component location | `apps/web/components/` | `packages/ui/src/components/` ONLY |
+| Glassmorphism | Velox Glass 2.0 | **None — solid surfaces, 1px borders** |
 
 ---
 
@@ -63,11 +71,12 @@ Supabase (cloud)
 ## Forbidden Packages (Never Install — Ever)
 
 ```
-lucide-react         framer-motion        @motionone/react
+lucide-react         framer-motion (legacy)   @motionone/react
 gsap                 styled-components    @mui/material
 antd                 chakra-ui            react-icons
 moment               lodash               axios
-classnames           clsx (use cn from @workspace/ui/lib/utils)
+classnames           @tabler/icons-react
+clsx (use cn from @workspace/ui/lib/utils)
 ```
 
 ---
@@ -88,11 +97,12 @@ classnames           clsx (use cn from @workspace/ui/lib/utils)
 ## File Naming Conventions
 
 ```
-Components:      PascalCase.tsx          (GlassCard.tsx)
-Hooks:           useCamelCase.ts         (useShipments.ts)
-Services:        camelCase.service.ts    (shipment.service.ts)
-Types:           camelCase.types.ts      (shipment.types.ts)
-Tests:           FileName.test.tsx       (GlassCard.test.tsx)
+Component files: kebab-case.tsx          (dashboard-header.tsx)
+Component exports: PascalCase            (export function DashboardHeader)
+Hook files:      use-kebab-case.ts       (use-session.ts, use-shipments.ts)
+Service files:   kebab-case.service.ts   (shipment.service.ts)
+Type files:      kebab-case.types.ts     (shipment.types.ts)
+Test files:      same-name.test.tsx      (dashboard-header.test.tsx)
 Styles:          globals.css             (packages/ui/src/styles/ ONLY)
 ```
 
@@ -114,7 +124,7 @@ Additional checks:
 - [ ] No hardcoded colors, fonts, spacing, or shadows anywhere
 - [ ] No Tailwind color classes (semantic tokens only)
 - [ ] No icon imports except via `@workspace/ui/icons`
-- [ ] No animation library other than `tw-animate-css`
+- [ ] No animation library other than `motion` or `tw-animate-css`
 - [ ] `data-slot` attribute on every new component
 - [ ] Named exports only (no `export default`)
 
@@ -124,8 +134,8 @@ Additional checks:
 
 | Package | Phase | Location |
 |---------|-------|----------|
-| `@clerk/nextjs` | Ph2 | `apps/` |
-| `@supabase/supabase-js` | Ph2 | `packages/database` ONLY |
+| `@supabase/supabase-js` | ✅ Active | `packages/database` ONLY |
+| `@supabase/ssr` | ✅ Active | `packages/database` ONLY |
 | `@tanstack/react-query` | Ph2 | `packages/services` |
 | `zustand` | Ph2 | `packages/services` |
 | `react-hook-form` | Ph3 | `packages/ui` or `apps/` |
@@ -165,15 +175,17 @@ Types:    feat | fix | chore | docs | refactor | test | style | perf
 ## Quick Reference
 
 ```
-ICONS:      import { RiIconName } from "@workspace/ui/icons"
-COMPONENTS: import { ComponentName } from "@workspace/ui"
-COLORS:     bg-primary text-foreground border-border text-muted-foreground
-FONTS:      font-sans font-mono font-heading  (declared in apps/web/app/layout.tsx)
-ANIMATION:  animate-in fade-in slide-in-from-bottom duration-300
-DATA:       packages/services → packages/database  (NEVER direct Supabase)
-RADIUS:     var(--radius-sm) var(--radius-md) var(--radius-lg) var(--radius-xl)
-SPACING:    p-4 m-6 gap-3  (scale tokens — NO arbitrary px values)
-GLASS:      var(--glass-bg) var(--glass-border) var(--glass-blur)
-ACCENT:     var(--accent-primary) var(--accent-secondary) var(--accent-success)
-PM:         pnpm ONLY  (no npm, no yarn)
+ICONS:      import { Icon } from "@workspace/ui/icons"  (@remixicon/react via wrapper)
+COMPONENTS: import { ... } from "@workspace/ui"  (shadcn radix-lyra)
+COLORS:     bg-primary, text-foreground, border-border  (NO bg-blue-500, #hex, rgb())
+            bg-accent-success / bg-accent-warning / bg-accent-danger / bg-accent-info
+FONTS:      font-sans (Plus Jakarta Sans)  font-serif (Lora)  font-mono (IBM Plex Mono)
+            declared in apps/web/app/layout.tsx AND apps/dashboard/app/layout.tsx
+ANIMATION:  motion components OR animate-in fade-in slide-in-from-* duration-* (tw-animate-css)
+            + CSS @keyframes in globals.css (shimmer, scan-line, marquee-x, aurora-breathe)
+DATA:       via packages/services → packages/database  (NEVER direct Supabase in components)
+RADIUS:     var(--radius-sm/md/lg/xl)  (NOT rounded-lg)
+SPACING:    Tailwind scale (p-4, m-6)  (NO arbitrary [px] values)
+PACKAGES:   pnpm ONLY  (NO npm, NO yarn)
+GEOMETRY:   ZERO curves — all straight lines, sharp corners
 ```
