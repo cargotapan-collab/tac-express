@@ -34,3 +34,9 @@ npm-debug.log*
 # Misc
 .DS_Store
 *.pem
+
+# Per-user Claude Code / editor / agent settings (never commit)
+.claude/settings.local.json
+.cursor/
+.windsurf/settings.local.json
+.vscode/settings.local.json

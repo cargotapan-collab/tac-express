@@ -136,11 +136,14 @@ function SidebarNavItem({
       data-active={isActive}
       title={collapsed ? item.label : undefined}
       className={cn(
-        "group/nav-item flex h-9 items-center gap-3 border-l-4 px-3 transition-all duration-150 relative",
+        // v6: motion-instant transitions, focus-premium on keyboard nav
+        "group/nav-item flex h-9 items-center gap-3 border-l-4 px-3 relative",
+        "transition-[background-color,border-color,color] duration-[80ms] ease-linear",
+        "focus-visible:outline-none focus-visible:tac-focus-premium",
         "font-sans text-xs font-bold tracking-[0.1em] uppercase",
         isActive
-          ? "border-sidebar-primary bg-sidebar-primary/10 text-sidebar-primary"
-          : "border-transparent text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:border-sidebar-border/50 tac-fui-hover"
+          ? "border-sidebar-primary bg-primary-subtle text-sidebar-primary"
+          : "border-transparent text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:border-sidebar-border/50"
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />

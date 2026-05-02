@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { motion, useReducedMotion } from "motion/react"
+import { motion, useReducedMotion, useSpring, useTransform } from "motion/react"
 import { cn } from "@workspace/ui/lib/utils"
 
 interface KPICardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -15,11 +15,11 @@ interface KPICardProps extends React.HTMLAttributes<HTMLDivElement> {
   accent?: "primary" | "success" | "warning" | "danger"
 }
 
-const accentClasses: Record<NonNullable<KPICardProps["accent"]>, { bg: string; icon: string }> = {
-  primary: { bg: "bg-primary/10", icon: "text-primary" },
-  success: { bg: "bg-accent-success/10", icon: "text-accent-success" },
-  warning: { bg: "bg-accent-warning/10", icon: "text-accent-warning" },
-  danger: { bg: "bg-accent-danger/10", icon: "text-accent-danger" },
+const accentClasses: Record<NonNullable<KPICardProps["accent"]>, { bg: string; icon: string; edge: string }> = {
+  primary: { bg: "bg-primary-subtle", icon: "text-primary", edge: "bg-primary" },
+  success: { bg: "bg-accent-success/10", icon: "text-accent-success", edge: "bg-accent-success" },
+  warning: { bg: "bg-accent-warning/10", icon: "text-accent-warning", edge: "bg-accent-warning" },
+  danger: { bg: "bg-accent-danger/10", icon: "text-accent-danger", edge: "bg-accent-danger" },
 }
 
 const deltaClasses: Record<NonNullable<KPICardProps["delta"]>, string> = {
@@ -28,7 +28,34 @@ const deltaClasses: Record<NonNullable<KPICardProps["delta"]>, string> = {
   neutral: "bg-muted text-muted-foreground",
 }
 
-const SPRING = { duration: 0.5, ease: [0.16, 1, 0.3, 1] } as const
+/**
+ * v6 motion vocabulary: expressive layer (320ms, spring) for entrance choreography.
+ * Matches `--motion-expressive` in globals.css.
+ */
+const SPRING_EXPRESSIVE = { duration: 0.32, ease: [0.34, 1.56, 0.64, 1] } as const
+
+/**
+ * Numeric count-up animation. Spring-driven, respects prefers-reduced-motion.
+ * Returns the formatted string the parent should render.
+ */
+function useCountUp(target: number, reduceMotion: boolean | null): string {
+  const spring = useSpring(reduceMotion ? target : 0, {
+    duration: 800,
+    bounce: 0,
+  })
+  React.useEffect(() => {
+    spring.set(target)
+  }, [spring, target])
+
+  const display = useTransform(spring, (latest) =>
+    Math.round(latest).toLocaleString()
+  )
+  const [text, setText] = React.useState(reduceMotion ? target.toLocaleString() : "0")
+  React.useEffect(() => {
+    return display.on("change", (v) => setText(v))
+  }, [display])
+  return text
+}
 
 function KPICard({
   label,
@@ -44,6 +71,14 @@ function KPICard({
 }: KPICardProps) {
   const shouldReduceMotion = useReducedMotion()
   const colors = accentClasses[accent]
+
+  // Numeric count-up only when value is a number; otherwise pass through.
+  const numericValue = typeof value === "number" ? value : null
+  const animatedNumber = useCountUp(numericValue ?? 0, shouldReduceMotion)
+  const renderedValue =
+    numericValue !== null
+      ? animatedNumber
+      : value
 
   if (loading) {
     return (
@@ -63,18 +98,30 @@ function KPICard({
   return (
     <div
       data-slot="kpi-card"
-      className={cn("flex flex-col gap-3 p-5 tac-fui-panel group relative overflow-hidden tac-fui-hover cursor-default", className)}
+      // v6: tac-hover-lift (multi-axis: bg + border + sub-pixel translate). Container query for adaptive nested layout.
+      className={cn(
+        "@container/kpi-card flex flex-col gap-3 p-5 tac-fui-panel group relative overflow-hidden tac-hover-lift cursor-default",
+        className,
+      )}
       {...props}
     >
-      {/* Subtle edge highlight on hover */}
-      <div className={cn("absolute inset-y-0 left-0 w-[2px] opacity-0 transition-opacity group-hover:opacity-100", colors.bg.replace('/10', ''))} />
+      {/* v6: data-accent-edge slot — accent strip on the left, animates in on hover */}
+      <span
+        data-accent-edge
+        aria-hidden="true"
+        className={cn(
+          "absolute inset-y-0 left-0 w-0.5 opacity-0 group-hover:opacity-100",
+          "transition-opacity duration-[80ms] ease-linear",
+          colors.edge,
+        )}
+      />
       {/* Icon square + label */}
       <div className="flex flex-col gap-2.5">
         <motion.div
           className={cn("flex h-10 w-10 items-center justify-center shrink-0 tac-signal-glow", colors.bg)}
           initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ ...SPRING, delay: 0.05 }}
+          transition={{ ...SPRING_EXPRESSIVE, delay: 0.05 }}
         >
           <span className={cn("h-5 w-5", colors.icon)}>{icon}</span>
         </motion.div>
@@ -82,21 +129,21 @@ function KPICard({
           className="t-overline text-muted-foreground"
           initial={shouldReduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
+          transition={{ duration: 0.18, delay: 0.1 }}
         >
           {label}
         </motion.span>
       </div>
 
-      {/* Value */}
+      {/* Value — count-up if numeric, otherwise plain */}
       <motion.div
         className="flex items-baseline gap-1.5 mt-1"
         initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ ...SPRING, delay: 0.15 }}
+        transition={{ ...SPRING_EXPRESSIVE, delay: 0.15 }}
       >
-        <span className="t-data text-foreground drop-shadow-sm">
-          {typeof value === "number" ? value.toLocaleString() : value}
+        <span className="t-data text-foreground" aria-live="polite">
+          {renderedValue}
         </span>
         {suffix && (
           <span className="t-mono text-muted-foreground">{suffix}</span>
@@ -109,7 +156,7 @@ function KPICard({
           className={cn("inline-flex w-fit items-center px-2 py-0.5 t-mono-sm", deltaClasses[delta])}
           initial={shouldReduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.25 }}
+          transition={{ duration: 0.18, delay: 0.25 }}
         >
           {deltaLabel}
         </motion.span>

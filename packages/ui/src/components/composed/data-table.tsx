@@ -98,7 +98,12 @@ function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="bg-card hover:bg-accent/5 transition-colors"
+                  // v6: surface-hover row tint + 2px primary edge on selection
+                  className={cn(
+                    "bg-card transition-[background-color,border-color] duration-[80ms] ease-linear",
+                    "hover:bg-surface-hover",
+                    "data-[state=selected]:bg-primary-subtle data-[state=selected]:border-l-2 data-[state=selected]:border-l-primary",
+                  )}
                   data-state={row.getIsSelected() ? "selected" : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
