@@ -2,8 +2,7 @@
 
 import * as React from "react"
 import { cn } from "@workspace/ui/lib/utils"
-
-export type Density = "compact" | "default" | "comfortable"
+import type { Density } from "@workspace/ui/components/composed/density-provider"
 
 interface DensityToggleProps {
   value: Density
@@ -11,17 +10,26 @@ interface DensityToggleProps {
   className?: string
 }
 
-const OPTIONS: { value: Density; label: string }[] = [
-  { value: "compact", label: "C" },
-  { value: "default", label: "D" },
-  { value: "comfortable", label: "F" },
+/**
+ * v6 — DensityToggle
+ *
+ * Radio-group control for the three density modes defined by `DensityProvider`
+ * and wired through `[data-density]` cascade selectors in globals.css:
+ * `compact` (tight) / `comfortable` (default) / `spacious` (relaxed).
+ *
+ * Single-letter labels match the brutalist mission-control aesthetic.
+ */
+const OPTIONS: { value: Density; label: string; description: string }[] = [
+  { value: "compact", label: "C", description: "Compact density" },
+  { value: "comfortable", label: "M", description: "Comfortable density" },
+  { value: "spacious", label: "S", description: "Spacious density" },
 ]
 
 function DensityToggle({ value, onChange, className }: DensityToggleProps) {
   return (
     <div
       role="radiogroup"
-      aria-label="Table density"
+      aria-label="Interface density"
       data-slot="density-toggle"
       className={cn("inline-flex items-center border border-border bg-card", className)}
     >
@@ -31,10 +39,10 @@ function DensityToggle({ value, onChange, className }: DensityToggleProps) {
           type="button"
           role="radio"
           aria-checked={value === opt.value}
-          aria-label={`Density: ${opt.value}`}
+          aria-label={opt.description}
           onClick={() => onChange(opt.value)}
           className={cn(
-            "flex size-7 items-center justify-center font-mono text-xs tac-fui-hover",
+            "flex size-7 items-center justify-center t-mono-sm tac-fui-hover focus-visible:outline-none focus-visible:tac-focus-premium",
             value === opt.value && "bg-primary text-primary-foreground",
           )}
         >
