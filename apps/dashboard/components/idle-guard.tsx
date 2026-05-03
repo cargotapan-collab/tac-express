@@ -3,11 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 
-import {
-  claimSignOutReason,
-  clearSignOutReason,
-  signOutBrowser,
-} from "@workspace/auth/client"
+import { performIdleSignOut } from "@workspace/auth/client"
 import { getIdleMinutesForRole } from "@workspace/auth/rbac"
 import { useRBAC } from "@workspace/ui/hooks/use-rbac"
 import { IdleTimeoutBoundary } from "@workspace/ui/components/composed/idle-timeout-boundary"
@@ -34,20 +30,9 @@ export function IdleGuard({ idleMinutes }: IdleGuardProps) {
   const effectiveMinutes = idleMinutes ?? getIdleMinutesForRole(role)
 
   const handleLogout = React.useCallback(async () => {
-    claimSignOutReason("idle")
-    let signOutSucceeded = false
-    try {
-      await signOutBrowser()
-      signOutSucceeded = true
-    } catch {
-      /* even if signOut fails, scrub local state and redirect */
-    }
-    // If sign-out rejected, SIGNED_OUT never fires and SessionGuard won't
-    // consume the marker — clear it so a later sign-out in the same tab
-    // isn't misclassified.
-    if (!signOutSucceeded) {
-      clearSignOutReason()
-    }
+    // performIdleSignOut handles the SessionGuard handshake (claim "idle",
+    // clear marker on rejection) so this component stays pure UI.
+    await performIdleSignOut()
     if (typeof window !== "undefined") {
       const prefixes = [
         "invoice_draft",

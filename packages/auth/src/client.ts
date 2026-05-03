@@ -43,11 +43,53 @@ function subscribeAuthChange(
   return getBrowserAuth().onAuthChange(callback)
 }
 
+/**
+ * Idle-driven sign-out orchestrator. Claims the "idle" reason marker so
+ * SessionGuard yields, performs the sign-out, and clears the marker on
+ * failure (when SIGNED_OUT never fires and consumeSignOutReason wouldn't
+ * otherwise run).
+ *
+ * Returns `true` if the underlying signOutBrowser() resolved, `false` if
+ * it rejected. Callers can ignore the boolean if they always proceed with
+ * post-sign-out cleanup regardless.
+ */
+async function performIdleSignOut(): Promise<boolean> {
+  claimSignOutReason("idle")
+  try {
+    await signOutBrowser()
+    return true
+  } catch {
+    clearSignOutReason()
+    return false
+  }
+}
+
+/**
+ * Decide where to send the user when an unexpected SIGNED_OUT fires
+ * (e.g., a stale refresh token). Returns the redirect path with the
+ * caller's current location encoded as `next`, or `null` if this
+ * sign-out was idle-driven (in which case IdleGuard owns the redirect
+ * and SessionGuard yields).
+ *
+ * Pure of router/window globals — caller passes the current pathname
+ * and search so this can be unit-tested without a DOM.
+ */
+function resolveSignOutRedirect(
+  pathname: string,
+  search: string,
+): string | null {
+  if (consumeSignOutReason() === "idle") return null
+  const next = encodeURIComponent(pathname + search)
+  return `/sign-in?next=${next}&reason=session_expired`
+}
+
 export {
   claimSignOutReason,
   clearSignOutReason,
   consumeSignOutReason,
   getBrowserAuth,
+  performIdleSignOut,
+  resolveSignOutRedirect,
   signOutBrowser,
   subscribeAuthChange,
 }
