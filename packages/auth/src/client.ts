@@ -1,6 +1,10 @@
 "use client"
 
 import { createBrowserClient } from "@workspace/database/client"
+import type {
+  AuthChangeEvent,
+  Session,
+} from "@workspace/database/supabase.types"
 import { createAuthService, type AuthService } from "./auth.service"
 
 let _instance: AuthService | null = null
@@ -22,4 +26,16 @@ async function signOutBrowser(): Promise<void> {
   return getBrowserAuth().signOut()
 }
 
-export { getBrowserAuth, signOutBrowser }
+/**
+ * Subscribe to browser-side auth-state changes. Returns an unsubscribe
+ * function. Use from `useEffect` cleanup. This is the LAW-6/7-compliant way
+ * for UI components to react to sign-out / token-refresh events without
+ * importing Supabase directly.
+ */
+function subscribeAuthChange(
+  callback: (event: AuthChangeEvent, session: Session | null) => void,
+): () => void {
+  return getBrowserAuth().onAuthChange(callback)
+}
+
+export { getBrowserAuth, signOutBrowser, subscribeAuthChange }

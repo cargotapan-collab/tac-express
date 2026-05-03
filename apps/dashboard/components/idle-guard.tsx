@@ -8,6 +8,8 @@ import { getIdleMinutesForRole } from "@workspace/auth/rbac"
 import { useRBAC } from "@workspace/ui/hooks/use-rbac"
 import { IdleTimeoutBoundary } from "@workspace/ui/components/composed/idle-timeout-boundary"
 
+import { SIGNOUT_REASON_KEY } from "@/components/session-guard"
+
 interface IdleGuardProps {
   /**
    * Optional override. If omitted, the timeout is derived from the user's
@@ -30,6 +32,15 @@ export function IdleGuard({ idleMinutes }: IdleGuardProps) {
   const effectiveMinutes = idleMinutes ?? getIdleMinutesForRole(role)
 
   const handleLogout = React.useCallback(async () => {
+    // Claim ownership of this sign-out so SessionGuard yields and the
+    // user lands on /sign-in?reason=idle rather than reason=session_expired.
+    if (typeof window !== "undefined") {
+      try {
+        window.sessionStorage.setItem(SIGNOUT_REASON_KEY, "idle")
+      } catch {
+        /* sessionStorage unavailable — SessionGuard may race; harmless */
+      }
+    }
     try {
       await signOutBrowser()
     } catch {
