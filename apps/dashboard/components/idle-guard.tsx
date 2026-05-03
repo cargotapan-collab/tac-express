@@ -32,6 +32,12 @@ export function IdleGuard({ idleMinutes }: IdleGuardProps) {
   const handleLogout = React.useCallback(async () => {
     // performIdleSignOut handles the SessionGuard handshake (claim "idle",
     // clear marker on rejection) so this component stays pure UI.
+    //
+    // We intentionally ignore the boolean return value: idle timeout is a
+    // security feature — even if the server-side signOut rejects (network
+    // error, etc.), we still want to scrub local drafts and force the user
+    // through /sign-in. Continuing on rejection mirrors the pre-existing
+    // behavior of this component before the SessionGuard refactor.
     await performIdleSignOut()
     if (typeof window !== "undefined") {
       const prefixes = [

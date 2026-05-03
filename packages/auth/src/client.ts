@@ -44,17 +44,14 @@ function subscribeAuthChange(
 }
 
 /**
- * Idle-driven sign-out orchestrator. Claims the "idle" reason marker so
- * SessionGuard yields, performs the sign-out, and clears the marker on
- * failure (when SIGNED_OUT never fires and consumeSignOutReason wouldn't
- * otherwise run).
- *
- * Returns `true` if the underlying signOutBrowser() resolved, `false` if
- * it rejected. Callers can ignore the boolean if they always proceed with
- * post-sign-out cleanup regardless.
+ * Shared core: claim a reason marker, sign out, clear the marker on
+ * rejection (since SIGNED_OUT never fires in that case and the consumer
+ * wouldn't otherwise clean up).
  */
-async function performIdleSignOut(): Promise<boolean> {
-  claimSignOutReason("idle")
+async function performClaimedSignOut(
+  reason: "idle" | "user",
+): Promise<boolean> {
+  claimSignOutReason(reason)
   try {
     await signOutBrowser()
     return true
@@ -65,11 +62,28 @@ async function performIdleSignOut(): Promise<boolean> {
 }
 
 /**
- * Decide where to send the user when an unexpected SIGNED_OUT fires
- * (e.g., a stale refresh token). Returns the redirect path with the
- * caller's current location encoded as `next`, or `null` if this
- * sign-out was idle-driven (in which case IdleGuard owns the redirect
- * and SessionGuard yields).
+ * Idle-driven sign-out (IdleGuard timeout flow). Returns true if the
+ * underlying signOutBrowser() resolved.
+ */
+async function performIdleSignOut(): Promise<boolean> {
+  return performClaimedSignOut("idle")
+}
+
+/**
+ * User-initiated sign-out (e.g., UserMenu "Sign out" button). Claims the
+ * "user" reason so SessionGuard yields and the caller owns the redirect.
+ * Returns true if the underlying signOutBrowser() resolved.
+ */
+async function performUserSignOut(): Promise<boolean> {
+  return performClaimedSignOut("user")
+}
+
+/**
+ * Decide where SessionGuard should send the user when SIGNED_OUT fires.
+ * Returns null if any reason was claimed (the caller — IdleGuard, UserMenu,
+ * etc. — owns the redirect). Returns a /sign-in path with the current
+ * location encoded as `next` only when no reason was claimed, i.e. the
+ * sign-out originated server-side (stale refresh token, admin revocation).
  *
  * Pure of router/window globals — caller passes the current pathname
  * and search so this can be unit-tested without a DOM.
@@ -78,7 +92,7 @@ function resolveSignOutRedirect(
   pathname: string,
   search: string,
 ): string | null {
-  if (consumeSignOutReason() === "idle") return null
+  if (consumeSignOutReason() !== null) return null
   const next = encodeURIComponent(pathname + search)
   return `/sign-in?next=${next}&reason=session_expired`
 }
@@ -89,6 +103,7 @@ export {
   consumeSignOutReason,
   getBrowserAuth,
   performIdleSignOut,
+  performUserSignOut,
   resolveSignOutRedirect,
   signOutBrowser,
   subscribeAuthChange,
