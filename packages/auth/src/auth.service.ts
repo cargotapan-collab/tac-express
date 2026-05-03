@@ -1,7 +1,27 @@
-import type { SupabaseClient } from "@workspace/database/supabase.types"
+import type {
+  AuthChangeEvent,
+  Session,
+  SupabaseClient,
+} from "@workspace/database/supabase.types"
 
 export function createAuthService(db: SupabaseClient) {
   return {
+    // ── Auth state subscription ────────────────────────────────────────────────
+
+    /**
+     * Subscribe to Supabase auth-state changes (sign-in, sign-out, token
+     * refresh). Returns an unsubscribe function so callers don't have to
+     * thread the Supabase Subscription type through their UI layer.
+     */
+    onAuthChange(
+      callback: (event: AuthChangeEvent, session: Session | null) => void,
+    ): () => void {
+      const {
+        data: { subscription },
+      } = db.auth.onAuthStateChange(callback)
+      return () => subscription.unsubscribe()
+    },
+
     // ── Password auth ──────────────────────────────────────────────────────────
 
     async signInWithEmail(email: string, password: string) {

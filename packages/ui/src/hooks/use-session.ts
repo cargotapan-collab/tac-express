@@ -3,6 +3,7 @@
 import * as React from "react"
 import type { Session, User } from "@workspace/database/supabase.types"
 import { createBrowserClient } from "@workspace/database/client"
+import { performUserSignOut } from "@workspace/auth/client"
 
 export interface UseSessionReturn {
   session: Session | null
@@ -37,9 +38,11 @@ export function useSession(): UseSessionReturn {
     session,
     user: session?.user ?? null,
     isLoading,
+    // performUserSignOut claims the "user" reason marker so SessionGuard
+    // yields and lets the caller (e.g. UserMenu) own the post-sign-out
+    // redirect — preventing misclassification as session_expired.
     signOut: async () => {
-      const db = createBrowserClient()
-      await db.auth.signOut()
+      await performUserSignOut()
     },
   }
 }

@@ -1,1 +1,7 @@
-export type { RealtimeChannel, Session, SupabaseClient, User } from "@supabase/supabase-js"
+export type {
+  AuthChangeEvent,
+  RealtimeChannel,
+  Session,
+  SupabaseClient,
+  User,
+} from "@supabase/supabase-js"

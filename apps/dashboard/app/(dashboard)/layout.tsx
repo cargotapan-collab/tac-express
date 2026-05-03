@@ -4,6 +4,7 @@ import { CommandPalette } from "@workspace/ui/components/composed/command-palett
 import { DensityProvider } from "@workspace/ui/components/composed/density-provider"
 
 import { IdleGuard } from "@/components/idle-guard"
+import { SessionGuard } from "@/components/session-guard"
 
 function DashboardBackground() {
   return (
@@ -33,6 +34,7 @@ export default function DashboardLayout({
       <div className="flex h-screen bg-background overflow-hidden relative selection:bg-primary/30">
         <DashboardBackground />
         <CommandPalette />
+        <SessionGuard />
         <IdleGuard />
         <DashboardSidebar />
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative z-10">

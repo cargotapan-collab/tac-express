@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 
-import { signOutBrowser } from "@workspace/auth/client"
+import { performIdleSignOut } from "@workspace/auth/client"
 import { getIdleMinutesForRole } from "@workspace/auth/rbac"
 import { useRBAC } from "@workspace/ui/hooks/use-rbac"
 import { IdleTimeoutBoundary } from "@workspace/ui/components/composed/idle-timeout-boundary"
@@ -30,11 +30,15 @@ export function IdleGuard({ idleMinutes }: IdleGuardProps) {
   const effectiveMinutes = idleMinutes ?? getIdleMinutesForRole(role)
 
   const handleLogout = React.useCallback(async () => {
-    try {
-      await signOutBrowser()
-    } catch {
-      /* even if signOut fails, scrub local state and redirect */
-    }
+    // performIdleSignOut handles the SessionGuard handshake (claim "idle",
+    // clear marker on rejection) so this component stays pure UI.
+    //
+    // We intentionally ignore the boolean return value: idle timeout is a
+    // security feature — even if the server-side signOut rejects (network
+    // error, etc.), we still want to scrub local drafts and force the user
+    // through /sign-in. Continuing on rejection mirrors the pre-existing
+    // behavior of this component before the SessionGuard refactor.
+    await performIdleSignOut()
     if (typeof window !== "undefined") {
       const prefixes = [
         "invoice_draft",

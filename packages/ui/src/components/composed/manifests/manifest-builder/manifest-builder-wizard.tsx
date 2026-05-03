@@ -186,15 +186,13 @@ export function ManifestBuilderWizard({
       */}
       <div className="grid gap-6">
         <div
-          // @ts-expect-error inert is now valid HTML attribute
-          inert={step !== 0 ? "" : undefined}
+          inert={step !== 0}
           className={cn(step !== 0 && "hidden")}
         >
           <StepSetup value={setup} onChange={setSetup} hubs={hubs} />
         </div>
         <div
-          // @ts-expect-error inert is now valid HTML attribute
-          inert={step !== 1 ? "" : undefined}
+          inert={step !== 1}
           className={cn(step !== 1 && "hidden")}
         >
           <StepAddShipments
@@ -205,8 +203,7 @@ export function ManifestBuilderWizard({
           />
         </div>
         <div
-          // @ts-expect-error inert is now valid HTML attribute
-          inert={step !== 2 ? "" : undefined}
+          inert={step !== 2}
           className={cn(step !== 2 && "hidden")}
         >
           <StepReview setup={setup} rows={rows} hubLabels={hubLabels} />
