@@ -6,6 +6,11 @@ import type {
   Session,
 } from "@workspace/database/supabase.types"
 import { createAuthService, type AuthService } from "./auth.service"
+import {
+  claimSignOutReason,
+  clearSignOutReason,
+  consumeSignOutReason,
+} from "./sign-out-reason"
 
 let _instance: AuthService | null = null
 
@@ -38,4 +43,11 @@ function subscribeAuthChange(
   return getBrowserAuth().onAuthChange(callback)
 }
 
-export { getBrowserAuth, signOutBrowser, subscribeAuthChange }
+export {
+  claimSignOutReason,
+  clearSignOutReason,
+  consumeSignOutReason,
+  getBrowserAuth,
+  signOutBrowser,
+  subscribeAuthChange,
+}

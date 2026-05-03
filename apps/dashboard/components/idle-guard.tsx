@@ -3,12 +3,14 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 
-import { signOutBrowser } from "@workspace/auth/client"
+import {
+  claimSignOutReason,
+  clearSignOutReason,
+  signOutBrowser,
+} from "@workspace/auth/client"
 import { getIdleMinutesForRole } from "@workspace/auth/rbac"
 import { useRBAC } from "@workspace/ui/hooks/use-rbac"
 import { IdleTimeoutBoundary } from "@workspace/ui/components/composed/idle-timeout-boundary"
-
-import { SIGNOUT_REASON_KEY } from "@/components/session-guard"
 
 interface IdleGuardProps {
   /**
@@ -32,15 +34,7 @@ export function IdleGuard({ idleMinutes }: IdleGuardProps) {
   const effectiveMinutes = idleMinutes ?? getIdleMinutesForRole(role)
 
   const handleLogout = React.useCallback(async () => {
-    // Claim ownership of this sign-out so SessionGuard yields and the
-    // user lands on /sign-in?reason=idle rather than reason=session_expired.
-    if (typeof window !== "undefined") {
-      try {
-        window.sessionStorage.setItem(SIGNOUT_REASON_KEY, "idle")
-      } catch {
-        /* sessionStorage unavailable — SessionGuard may race; harmless */
-      }
-    }
+    claimSignOutReason("idle")
     let signOutSucceeded = false
     try {
       await signOutBrowser()
@@ -48,15 +42,11 @@ export function IdleGuard({ idleMinutes }: IdleGuardProps) {
     } catch {
       /* even if signOut fails, scrub local state and redirect */
     }
-    // If the sign-out rejected before SIGNED_OUT could fire, SessionGuard
-    // never gets a chance to consume the flag — clear it manually so a
-    // subsequent (e.g. manual) sign-out in the same tab isn't misclassified.
-    if (!signOutSucceeded && typeof window !== "undefined") {
-      try {
-        window.sessionStorage.removeItem(SIGNOUT_REASON_KEY)
-      } catch {
-        /* unavailable — already harmless */
-      }
+    // If sign-out rejected, SIGNED_OUT never fires and SessionGuard won't
+    // consume the marker — clear it so a later sign-out in the same tab
+    // isn't misclassified.
+    if (!signOutSucceeded) {
+      clearSignOutReason()
     }
     if (typeof window !== "undefined") {
       const prefixes = [
