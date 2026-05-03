@@ -41,10 +41,22 @@ export function IdleGuard({ idleMinutes }: IdleGuardProps) {
         /* sessionStorage unavailable — SessionGuard may race; harmless */
       }
     }
+    let signOutSucceeded = false
     try {
       await signOutBrowser()
+      signOutSucceeded = true
     } catch {
       /* even if signOut fails, scrub local state and redirect */
+    }
+    // If the sign-out rejected before SIGNED_OUT could fire, SessionGuard
+    // never gets a chance to consume the flag — clear it manually so a
+    // subsequent (e.g. manual) sign-out in the same tab isn't misclassified.
+    if (!signOutSucceeded && typeof window !== "undefined") {
+      try {
+        window.sessionStorage.removeItem(SIGNOUT_REASON_KEY)
+      } catch {
+        /* unavailable — already harmless */
+      }
     }
     if (typeof window !== "undefined") {
       const prefixes = [
