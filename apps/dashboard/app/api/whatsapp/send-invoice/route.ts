@@ -3,9 +3,12 @@ import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
 
 import { getServerAuth } from "@workspace/auth/server"
-import { isManagerOrAbove } from "@workspace/auth/rbac"
+import { isAdminOrAbove, isManagerOrAbove } from "@workspace/auth/rbac"
 import { UserRole } from "@workspace/types"
-import { createInvoiceServerService } from "@workspace/services/server"
+import {
+  createCustomerServerService,
+  createInvoiceServerService,
+} from "@workspace/services/server"
 import {
   createWhatsAppServiceFromEnv,
   normalizePhone,
@@ -59,6 +62,14 @@ const TemplateParamSchema = z.object({
 const BaseBodySchema = z.object({
   invoiceId: z.string().min(1, "invoiceId is required"),
   phone: z.string().max(20).optional(),
+  /**
+   * If `phone` is provided AND it doesn't match the invoice's customer-of-record
+   * phone (or the consignor/consignee phones in notes), the request is rejected
+   * unless the caller sets `overridePhone: true` AND has role >= ADMIN. This
+   * prevents an authenticated MANAGER from using the endpoint as an arbitrary
+   * paid-WhatsApp relay to numbers unrelated to any of their invoices.
+   */
+  overridePhone: z.boolean().optional(),
 })
 
 const DirectModeSchema = BaseBodySchema.extend({
@@ -79,6 +90,7 @@ const RequestBodySchema = z.union([DirectModeSchema, TemplateModeSchema])
 interface InvoiceLike {
   invoiceNumber: string
   customerName: string
+  customerId?: string | null
   awbNumber?: string | null
   totalAmount: number
   balance: number
@@ -163,8 +175,79 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
   }
 
-  /* ─── 3. Resolve phone — override > consignor > consignee ─── */
-  const rawPhone = parsed.phone ?? extractPhoneFromInvoice(invoice)
+  /* ─── 3a. Build allow-list of legitimate phones for this invoice ───
+   *
+   * The "expected" phones are the customer-of-record phone (from the
+   * customers table) plus the consignor / consignee phones embedded in
+   * the invoice's notes JSON. body.phone is only honored if it normalises
+   * to one of these — otherwise the caller must explicitly opt in via
+   * `overridePhone: true` AND hold role >= ADMIN.
+   */
+  const customerService = createCustomerServerService(cookieStore)
+  const customer = invoice.customerId
+    ? await customerService.getCustomerById(invoice.customerId).catch(() => null)
+    : null
+
+  const expectedRawPhones: string[] = []
+  if (customer?.phone) expectedRawPhones.push(customer.phone)
+  const notesPhone = extractPhoneFromInvoice(invoice)
+  if (notesPhone) expectedRawPhones.push(notesPhone)
+
+  const expectedNormalised = new Set(
+    expectedRawPhones
+      .map((p) => normalizePhone(p))
+      .filter((p): p is string => Boolean(p)),
+  )
+
+  /* ─── 3b. Resolve phone — explicit body.phone (with IDOR guard) > customer > notes ─── */
+  let rawPhone: string | null = null
+  let usingOverride = false
+
+  if (parsed.phone) {
+    const normalisedRequest = normalizePhone(parsed.phone)
+    if (!normalisedRequest) {
+      return NextResponse.json(
+        { error: `Phone "${parsed.phone}" could not be normalised to E.164` },
+        { status: 400 },
+      )
+    }
+    if (expectedNormalised.has(normalisedRequest)) {
+      // body.phone matches an on-record phone — fine, no override needed.
+      rawPhone = parsed.phone
+    } else {
+      // The supplied phone is unrelated to any phone tied to this invoice.
+      // Block unless the caller is explicitly invoking the override AND
+      // holds a higher role than the baseline send permission.
+      if (!parsed.overridePhone) {
+        return NextResponse.json(
+          {
+            error:
+              "The provided phone does not match the invoice's customer or " +
+              "shipment contacts. To send to a different number, set " +
+              "`overridePhone: true` (requires ADMIN role).",
+          },
+          { status: 403 },
+        )
+      }
+      if (!isAdminOrAbove(role)) {
+        return NextResponse.json(
+          {
+            error:
+              "Override-phone requires ADMIN role or above. The supplied " +
+              "phone is not on record for this invoice.",
+          },
+          { status: 403 },
+        )
+      }
+      rawPhone = parsed.phone
+      usingOverride = true
+    }
+  } else if (customer?.phone) {
+    rawPhone = customer.phone
+  } else if (notesPhone) {
+    rawPhone = notesPhone
+  }
+
   if (!rawPhone) {
     return NextResponse.json(
       { error: "No phone number found for this invoice" },
@@ -175,7 +258,7 @@ export async function POST(req: NextRequest) {
   const phone = normalizePhone(rawPhone)
   if (!phone) {
     return NextResponse.json(
-      { error: `Phone "${rawPhone}" could not be normalized to E.164` },
+      { error: `Phone "${rawPhone}" could not be normalised to E.164` },
       { status: 400 },
     )
   }
@@ -198,7 +281,8 @@ export async function POST(req: NextRequest) {
   /* ─── 5. Dispatch — direct or template ─── */
   if (process.env.NODE_ENV !== "production") {
     console.log(
-      `[whatsapp] sending invoice ${invoice.invoiceNumber} → ${phone} (mode=${mode}, by=${user.id})`,
+      `[whatsapp] sending invoice ${invoice.invoiceNumber} → ${phone} ` +
+        `(mode=${mode}, by=${user.id}${usingOverride ? ", OVERRIDE_PHONE" : ""})`,
     )
   }
 

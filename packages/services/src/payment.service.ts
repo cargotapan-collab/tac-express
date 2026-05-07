@@ -127,7 +127,13 @@ export function createPaymentService(db: SupabaseClient) {
       }
       const receivedAt = input.receivedAt ?? new Date().toISOString()
 
-      // RPC path: atomic invoice update + payment row.
+      // ── Canonical path ────────────────────────────────────────────────
+      // The `record_invoice_payment` RPC takes a row-level lock on the
+      // invoice inside a single transaction, mutates `advance_paid` /
+      // `balance` / `status`, and inserts the payment row atomically. This
+      // is the ONLY safe path for production traffic — concurrent requests
+      // from the same invoice page (double-click, retried mutation, parallel
+      // operators) cannot race on it.
       const rpc = await db.rpc("record_invoice_payment", {
         p_invoice_id: input.invoiceId,
         p_amount: input.amount,
@@ -141,14 +147,43 @@ export function createPaymentService(db: SupabaseClient) {
         return mapPayment(rpc.data as Record<string, unknown>)
       }
 
-      // ⚠ Fallback: best-effort, NOT atomic. Two concurrent calls for the
-      // same invoice will both read the same `advance_paid` and both write
-      // `oldAdvance + ownAmount`, swallowing one of the increments. Apply
-      // migration `20260501000002_add_record_invoice_payment_rpc.sql` so the
-      // RPC path above is taken — it locks the invoice row inside a single
-      // transaction. We keep this fallback only so the dashboard stays
-      // functional during the brief deploy window where the table exists
-      // but the RPC has not been refreshed in PostgREST's schema cache yet.
+      // ── Fallback gate ─────────────────────────────────────────────────
+      // The two-step `insert + read invoice + update` path below is a money
+      // bug under concurrency: two callers both read the same `advance_paid`
+      // and both write `oldAdvance + ownAmount`, swallowing one increment.
+      //
+      // We REFUSE to run it in production. If the RPC isn't deployed there,
+      // the right answer is to deploy migration
+      // `20260501000002_add_record_invoice_payment_rpc.sql` (or wait for
+      // PostgREST's schema cache to refresh, which happens within seconds).
+      //
+      // The fallback only runs in development / test, where it's useful for
+      // unblocking local work before the migration has been applied. To
+      // explicitly opt-in (e.g. for an emergency hot-fix), set
+      // `ALLOW_PAYMENT_FALLBACK=1` in the environment — defaults to off.
+      const env = process.env.NODE_ENV
+      const explicitOptIn = process.env.ALLOW_PAYMENT_FALLBACK === "1"
+      const fallbackAllowed = explicitOptIn || env === "development" || env === "test"
+      if (!fallbackAllowed) {
+        const rpcMsg =
+          rpc.error?.message ?? "RPC returned no data (schema cache miss?)"
+        if (isMissingInvoicePaymentsRelation(rpc.error)) {
+          markRelationMissing()
+        }
+        throw new Error(
+          `record_invoice_payment RPC failed in production and the racy ` +
+            `fallback is disabled. Deploy migration ` +
+            `20260501000002_add_record_invoice_payment_rpc.sql or set ` +
+            `ALLOW_PAYMENT_FALLBACK=1 (NOT recommended). RPC error: ${rpcMsg}`,
+        )
+      }
+
+      // ⚠ Dev-only fallback: best-effort, NOT atomic. Two concurrent calls
+      // for the same invoice will both read the same `advance_paid` and
+      // both write `oldAdvance + ownAmount`, swallowing one increment. This
+      // path exists ONLY so local dev and tests can run before the
+      // migration is applied; production reaches it only behind the
+      // explicit `ALLOW_PAYMENT_FALLBACK=1` opt-in above.
       const { data: insRow, error: insErr } = await db
         .from("invoice_payments")
         .insert({

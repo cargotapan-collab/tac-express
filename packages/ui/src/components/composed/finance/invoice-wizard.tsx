@@ -27,12 +27,14 @@ export type { ComboboxOption }
  */
 function joinBillingAddress(parts: {
   line1?: string
+  line2?: string
   city?: string
   state?: string
   zip?: string
 }): string {
   const segments = [
     parts.line1?.trim(),
+    parts.line2?.trim(),
     [parts.city?.trim(), parts.state?.trim()].filter(Boolean).join(", "),
     parts.zip?.trim(),
   ].filter((seg): seg is string => Boolean(seg && seg.length > 0))
@@ -69,6 +71,7 @@ export interface InvoiceWizardState {
   billingAddress: string
   /** Structured billing-address parts driven by SmartAddressFields. */
   billingLine1: string
+  billingLine2: string
   billingCity: string
   billingState: string
   billingZip: string
@@ -123,6 +126,7 @@ export const INITIAL_INVOICE_STATE: InvoiceWizardState = {
   customerGstin: "",
   billingAddress: "",
   billingLine1: "",
+  billingLine2: "",
   billingCity: "",
   billingState: "",
   billingZip: "",
@@ -419,23 +423,30 @@ function PartiesStep({
               value={
                 {
                   line1: state.billingLine1,
+                  line2: state.billingLine2,
                   city: state.billingCity,
                   state: state.billingState,
                   zip: state.billingZip,
                 } satisfies SmartAddressValue
               }
               onChange={(next) => {
+                // Capture EVERY field SmartAddressFields tracks. Earlier
+                // versions destructured only line1/city/state/zip — line2
+                // keystrokes were silently dropped (Macroscope flagged this).
                 const nextLine1 = next.line1 ?? ""
+                const nextLine2 = next.line2 ?? ""
                 const nextCity = next.city ?? ""
                 const nextState = next.state ?? ""
                 const nextZip = next.zip ?? ""
                 onChange({
                   billingLine1: nextLine1,
+                  billingLine2: nextLine2,
                   billingCity: nextCity,
                   billingState: nextState,
                   billingZip: nextZip,
                   billingAddress: joinBillingAddress({
                     line1: nextLine1,
+                    line2: nextLine2,
                     city: nextCity,
                     state: nextState,
                     zip: nextZip,

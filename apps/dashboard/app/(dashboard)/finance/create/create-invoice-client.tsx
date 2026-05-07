@@ -31,7 +31,11 @@ function normalizeInvoiceDraft(draft: Partial<InvoiceWizardState>): InvoiceWizar
   // legacy join so the user can re-enter and re-derive deliberately.
   const merged: InvoiceWizardState = { ...INITIAL_INVOICE_STATE, ...draft }
   const hasStructured = Boolean(
-    merged.billingLine1 || merged.billingCity || merged.billingState || merged.billingZip,
+    merged.billingLine1 ||
+      merged.billingLine2 ||
+      merged.billingCity ||
+      merged.billingState ||
+      merged.billingZip,
   )
   const hasLegacyOnly = !hasStructured && Boolean(merged.billingAddress)
   if (hasLegacyOnly) {
@@ -243,6 +247,7 @@ export function CreateInvoiceClient() {
           billingAddress: state.billingAddress,
           billing: {
             line1: state.billingLine1,
+            line2: state.billingLine2,
             city: state.billingCity,
             state: state.billingState,
             zip: state.billingZip,
