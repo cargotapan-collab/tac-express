@@ -1,0 +1,119 @@
+# Triggers the pr-review-and-merge skill on a PR.
+#
+# Two ways to invoke:
+#   1. Add the `agent-review` label to a PR.
+#   2. Manual workflow dispatch with a PR number.
+#
+# This workflow's job is to make the trigger DETERMINISTIC. The skill's
+# discoverability via `tool_search` keyword matching has a failure mode:
+# if the next session's opening prompt doesn't contain the right
+# trigger phrases, the agent skips the skill entirely. A label-driven
+# workflow removes that ambiguity — when the label is on the PR, the
+# review runs.
+#
+# IMPORTANT: the actual agent-runner invocation step is environment-
+# specific. This file ships the trigger plumbing; the integration step
+# below has placeholders for the three common patterns. Pick one and
+# delete the others before merging.
+#
+# Reference: .agents/skills/pr-review-and-merge/SKILL.md
+
+name: agent-review
+
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: string
+
+permissions:
+  pull-requests: write
+  contents: read
+  issues: write
+
+jobs:
+  trigger-review:
+    # On `pull_request` event, only run when the label being added is
+    # `agent-review`. On `workflow_dispatch`, always run.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.label.name == 'agent-review')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve PR number
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "number=${{ github.event.inputs.pr_number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Acknowledge trigger
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "${{ steps.pr.outputs.number }}" \
+            --repo "${{ github.repository }}" \
+            --body "🤖 \`agent-review\` triggered. Running the [\`pr-review-and-merge\` skill](.agents/skills/pr-review-and-merge/SKILL.md) — phase 0 (preconditions) → 7 (follow-up). Status comments will appear inline as each phase completes."
+
+      # ────────────────────────────────────────────────────────────────
+      # PICK ONE of the three integration patterns below and delete the
+      # others. The workflow is non-functional until one is enabled.
+      # ────────────────────────────────────────────────────────────────
+
+      # ── Pattern A: Anthropic claude-code-action (recommended) ──
+      # Requires repo secret: ANTHROPIC_API_KEY
+      # Docs: https://github.com/anthropics/claude-code-action
+      #
+      # - name: Run skill via claude-code-action
+      #   uses: anthropics/claude-code-action@v1
+      #   with:
+      #     anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+      #     prompt: |
+      #       Run the pr-review-and-merge skill against PR
+      #       #${{ steps.pr.outputs.number }} in this repo.
+      #       Repo owner: ${{ github.repository_owner }}
+      #       Repo name: ${{ github.event.repository.name }}
+      #       Phase 0a author check: this workflow was triggered by a
+      #       human applying the `agent-review` label, so closed-loop
+      #       enforcement defers to commit authorship inspection.
+
+      # ── Pattern B: self-hosted agent runner via webhook ──
+      # Requires repo secret: AGENT_RUNNER_WEBHOOK_URL (POST endpoint
+      # accepting {pr_number, repo, skill}).
+      #
+      # - name: Trigger self-hosted agent runner
+      #   env:
+      #     RUNNER_URL: ${{ secrets.AGENT_RUNNER_WEBHOOK_URL }}
+      #     RUNNER_TOKEN: ${{ secrets.AGENT_RUNNER_TOKEN }}
+      #   run: |
+      #     curl -X POST "$RUNNER_URL" \
+      #       -H "Authorization: Bearer $RUNNER_TOKEN" \
+      #       -H "Content-Type: application/json" \
+      #       -d '{
+      #         "skill": "pr-review-and-merge",
+      #         "repo": "${{ github.repository }}",
+      #         "pr_number": "${{ steps.pr.outputs.number }}"
+      #       }'
+
+      # ── Pattern C: bot-mention fallback ──
+      # If the repo has a Claude GitHub App that responds to @claude
+      # mentions in PR comments, post a structured request.
+      #
+      # - name: Mention bot
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     gh pr comment "${{ steps.pr.outputs.number }}" \
+      #       --repo "${{ github.repository }}" \
+      #       --body "@claude please run the pr-review-and-merge skill against this PR. Skill spec: .agents/skills/pr-review-and-merge/SKILL.md"
+
+      - name: Document next step
+        run: |
+          echo "::warning::Agent invocation step is a placeholder. Edit .github/workflows/agent-review.yml and uncomment one of patterns A/B/C, then delete the others. Add the corresponding repo secret(s)."

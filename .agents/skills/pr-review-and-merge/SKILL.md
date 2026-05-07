@@ -44,6 +44,61 @@ and the matching files under `.agents/skills/`.
 
 ---
 
+## Phase 0 — Preconditions (refuse if not met)
+
+Before reading the PR at all, validate two preconditions. Each refusal is
+hard — abort the workflow and report which precondition failed.
+
+### 0a. Closed-loop AI review check
+
+The May-2026 baseline named "AI agent generates code → AI agent reviews
+code → AI agent fixes findings" as the antipattern that justifies four
+review rounds in the first place. The skill must enforce, not just
+describe.
+
+**Concrete check:** before Phase 1, run
+
+```bash
+# Inspect commit authorship on the PR's diff range. If any commit was
+# authored by the same agent identity now invoking this skill, refuse.
+git log --pretty='%an <%ae>' "${BASE_BRANCH}..${HEAD_BRANCH}"
+```
+
+If any author email matches the agent's own identity (typical patterns:
+`*@anthropic.com`, `noreply@anthropic.com`, or a `Co-Authored-By:
+Claude` trailer in commit messages), **abort** with:
+
+> Refusing to run pr-review-and-merge against a PR I authored. Closed-loop
+> review is the antipattern this skill exists to prevent. Hand this PR
+> to a human reviewer or to a different agent identity.
+
+**Operator assertion fallback:** if the author check is ambiguous (e.g.,
+mixed-authorship PRs, commits made by humans applying agent-suggested
+patches), require the invoking operator to include this exact string in
+the initial prompt:
+
+> I assert that the agent invoked here did not generate the code under
+> review. — <operator name>
+
+If the assertion is missing, refuse and ask for it. **Do not proceed
+without one of the two checks passing.**
+
+### 0b. Tooling-environment check
+
+Verify the runtime has what the skill needs:
+
+```bash
+which gh         # GitHub CLI for the comments fallback
+which pnpm       # canonical package manager
+gh auth status   # GH must be authenticated
+```
+
+If `gh` is missing or unauthenticated, the PR-level conversation read
+path is broken — note this in Phase 1's inventory and proceed with only
+the MCP-tool reads. Don't fail silently.
+
+---
+
 ## The seven phases
 
 ### Phase 1 — Inventory
@@ -194,6 +249,32 @@ Sufficient conditions:
 - **Sentry/observability check.** New error paths should fire a
   structured `captureException` with tags. Verify by reading the
   source, not by trusting the description.
+
+#### Test-plan walkability decision rule
+
+For each item in the PR's test plan, classify before claiming any
+verification:
+
+| Walkable by agent? | Examples | Action |
+|---|---|---|
+| **Yes — agent walks it** | Static-route renders, client-side form validation, sort/filter/pagination on local data, theme toggle, hydration warnings in console, `pnpm dev` build passes | Walk it via browser tool against the local dev server. Capture console output; flag any errors. |
+| **Hybrid — agent walks a stubbed/mocked version** | Email send (mock recipient inbox), payment flow (test-mode Stripe key), webhook delivery (local ngrok-style tunnel) | Walk against the stub. Note explicitly that the real upstream was not exercised; flag for human walk-through before deploy. |
+| **No — human-only** | Paid upstream calls (production WhatsApp/SMS that costs money per send), real-money payment authorization, printer/scanner I/O, multi-user concurrency tests, anything requiring production-only data shapes (e.g., "verify against real customer GSTIN") | **Do not claim verified.** Defer to human, surface as the highest-risk item in the pre-merge comment. |
+
+When in doubt, classify as "no" and defer. **Over-claiming closure on a
+test-plan item the agent couldn't actually verify is the same anti-pattern
+as a comment-instead-of-fix.** A human reviewer reading "✅ WhatsApp send
+verified" assumes a real WAMID came back from a real WPBox call; if the
+agent only verified the dialog opens, that's lying.
+
+The output template's "Manual test plan" row should look like:
+
+```
+| Manual test plan | <agent-walked>/<total> walkable items verified;
+                     <human-only> items deferred (highest risk: <item>) |
+```
+
+Not just "✅" or "⚠" without the breakdown.
 
 ### Phase 6 — Decide
 
