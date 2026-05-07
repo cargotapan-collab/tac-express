@@ -4,9 +4,16 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useInvoice, useIssueInvoice, useMarkPaid, useCancelInvoice } from "@workspace/services/hooks/use-invoices"
 import { usePaymentsForInvoice, useRecordPayment, useDeletePayment } from "@workspace/services/hooks/use-payments"
+import { useCustomer } from "@workspace/services/hooks/use-customers"
 import { InvoiceStatus } from "@workspace/types"
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
-import { RiArrowLeftLine, RiPrinterLine, RiEyeLine, RiMoneyDollarCircleLine } from "@workspace/ui/icons"
+import {
+  RiArrowLeftLine,
+  RiPrinterLine,
+  RiEyeLine,
+  RiMoneyDollarCircleLine,
+  RiWhatsappLine,
+} from "@workspace/ui/icons"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 import {
@@ -18,6 +25,7 @@ import {
   RecordPaymentDialog,
   type RecordPaymentValues,
 } from "@workspace/ui/components/composed/finance/record-payment-dialog"
+import { SendInvoiceWhatsAppDialog } from "@workspace/ui/components/composed/finance/send-invoice-whatsapp-dialog"
 
 interface InvoiceDetailClientProps {
   invoiceId: string
@@ -50,8 +58,10 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
   const cancelInvoice = useCancelInvoice()
   const recordPayment = useRecordPayment()
   const deletePayment = useDeletePayment()
+  const { data: customer } = useCustomer(invoice?.customerId)
   const [showPreview, setShowPreview] = React.useState(false)
   const [recordOpen, setRecordOpen] = React.useState(false)
+  const [whatsappOpen, setWhatsappOpen] = React.useState(false)
 
   const handlePrint = React.useCallback(() => {
     if (!showPreview) setShowPreview(true)
@@ -189,6 +199,16 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
           >
             <RiPrinterLine className="h-3.5 w-3.5 mr-1.5" /> Print / PDF
           </Button>
+          {invoice.status !== InvoiceStatus.CANCELLED && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setWhatsappOpen(true)}
+              className="h-7 px-3 font-mono text-2xs uppercase tracking-wider border-accent-success/40 text-accent-success hover:bg-accent-success/10 hover:text-accent-success"
+            >
+              <RiWhatsappLine className="h-3.5 w-3.5 mr-1.5" /> Send via WhatsApp
+            </Button>
+          )}
         </div>
       </div>
 
@@ -283,6 +303,24 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
         onOpenChange={setRecordOpen}
         maxAmount={invoice.balance}
         onSubmit={handleRecordPayment}
+      />
+
+      <SendInvoiceWhatsAppDialog
+        open={whatsappOpen}
+        onOpenChange={setWhatsappOpen}
+        defaultPhone={customer?.phone}
+        invoice={{
+          invoiceNumber: invoice.invoiceNumber,
+          awbNumber: invoice.awbNumber,
+          customerName: invoice.customerName,
+          totalAmount: invoice.totalAmount,
+          balance: invoice.balance,
+          dueDate: invoice.dueDate,
+          trackingUrl:
+            typeof window !== "undefined"
+              ? `${window.location.origin}/track/${invoice.awbNumber}`
+              : undefined,
+        }}
       />
 
       {showPreview && printData && (

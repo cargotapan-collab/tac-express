@@ -5,6 +5,10 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { cn } from "@workspace/ui/lib/utils"
+import {
+  SmartAddressFields,
+  type SmartAddressValue,
+} from "@workspace/ui/components/composed/smart-address-fields"
 
 const customerSchema = z.object({
   name: z.string().min(2, "Name required"),
@@ -50,10 +54,47 @@ function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputEleme
 }
 
 export function CustomerForm({ defaultValues, onSubmit, isLoading }: CustomerFormProps) {
-  const { register, handleSubmit, formState: { errors } } = useForm<CustomerFormValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    setValue,
+  } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
     defaultValues,
   })
+
+  // Bridge the SmartAddressFields controlled API to RHF's setValue / watch.
+  // Register hidden inputs for the validated address keys so RHF's resolver
+  // can read them; SmartAddressFields drives state via setValue.
+  React.useEffect(() => {
+    register("addressLine1")
+    register("addressLine2")
+    register("city")
+    register("state")
+    register("zip")
+  }, [register])
+
+  const watched = watch(["addressLine1", "addressLine2", "city", "state", "zip"])
+  const addressValue: SmartAddressValue = {
+    line1: watched[0],
+    line2: watched[1],
+    city: watched[2],
+    state: watched[3],
+    zip: watched[4],
+  }
+
+  const handleAddressChange = React.useCallback(
+    (next: SmartAddressValue) => {
+      setValue("addressLine1", next.line1 ?? "", { shouldDirty: true, shouldValidate: false })
+      setValue("addressLine2", next.line2 ?? "", { shouldDirty: true, shouldValidate: false })
+      setValue("city", next.city ?? "", { shouldDirty: true, shouldValidate: false })
+      setValue("state", next.state ?? "", { shouldDirty: true, shouldValidate: false })
+      setValue("zip", next.zip ?? "", { shouldDirty: true, shouldValidate: false })
+    },
+    [setValue],
+  )
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -71,23 +112,21 @@ export function CustomerForm({ defaultValues, onSubmit, isLoading }: CustomerFor
           <Input {...register("gstin")} placeholder="29ABCDE1234F1Z5" />
         </Field>
       </div>
-      <Field label="Address Line 1" error={errors.addressLine1?.message}>
-        <Input {...register("addressLine1")} placeholder="123, MG Road" />
-      </Field>
-      <Field label="Address Line 2" error={errors.addressLine2?.message}>
-        <Input {...register("addressLine2")} placeholder="Near Town Hall (optional)" />
-      </Field>
-      <div className="grid grid-cols-3 gap-4">
-        <Field label="City" error={errors.city?.message}>
-          <Input {...register("city")} placeholder="Imphal" />
-        </Field>
-        <Field label="State" error={errors.state?.message}>
-          <Input {...register("state")} placeholder="Manipur" />
-        </Field>
-        <Field label="ZIP / Pincode" error={errors.zip?.message}>
-          <Input {...register("zip")} placeholder="795001" />
-        </Field>
-      </div>
+
+      <SmartAddressFields
+        label="Billing address"
+        value={addressValue}
+        onChange={handleAddressChange}
+        idPrefix="customer-addr"
+        errors={{
+          line1: errors.addressLine1?.message,
+          line2: errors.addressLine2?.message,
+          city: errors.city?.message,
+          state: errors.state?.message,
+          zip: errors.zip?.message,
+        }}
+      />
+
       <div className="flex justify-end pt-2">
         <button
           type="submit"

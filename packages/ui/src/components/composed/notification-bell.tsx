@@ -32,9 +32,32 @@ function NotificationBell() {
   const { notifications, markRead, markAllRead, removeNotification } =
     useNotificationStore()
   const [open, setOpen] = React.useState(false)
-  const unreadCount = notifications.filter((n) => !n.read).length
+  // Defer Popover mount until after hydration. The notification store
+  // reads from persisted localStorage on the client (empty on server),
+  // which shifts ancestor hook-call counts between SSR and CSR and
+  // desyncs Radix's `useId()` outputs. Rendering a plain button on
+  // the first pass — with no Radix tree underneath — avoids the
+  // mismatch entirely.
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
+  const unreadCount = notifications.filter((n) => !n.read).length
   const recent = notifications.slice(0, 8)
+
+  if (!mounted) {
+    return (
+      <button
+        data-slot="notifications-trigger"
+        type="button"
+        className="relative flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+        aria-label="Notifications"
+      >
+        <RiNotification3Line className="h-4 w-4" />
+      </button>
+    )
+  }
 
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>

@@ -74,10 +74,6 @@ function DashboardHeader() {
   const segments = getSegments(pathname)
   const [paletteOpen, setPaletteOpen] = React.useState(false)
 
-  if (pathname === "/home") {
-    return <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-  }
-
   return (
     <>
       <header

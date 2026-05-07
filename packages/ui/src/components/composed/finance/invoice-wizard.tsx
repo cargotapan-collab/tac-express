@@ -3,6 +3,10 @@
 import * as React from "react"
 import { cn } from "@workspace/ui/lib/utils"
 import { Button } from "@workspace/ui/components/button"
+import {
+  SmartAddressFields,
+  type SmartAddressValue,
+} from "@workspace/ui/components/composed/smart-address-fields"
 import { WizardStepper, type WizardStep } from "./wizard-stepper"
 import {
   RiArrowLeftLine,
@@ -10,6 +14,25 @@ import {
   RiCalculatorLine,
   RiCheckLine,
 } from "@workspace/ui/icons"
+
+/**
+ * Serialise the SmartAddressFields struct back to the legacy single-string
+ * `billingAddress` shape that downstream invoice persistence + print view
+ * already consume.
+ */
+function joinBillingAddress(parts: {
+  line1?: string
+  city?: string
+  state?: string
+  zip?: string
+}): string {
+  const segments = [
+    parts.line1?.trim(),
+    [parts.city?.trim(), parts.state?.trim()].filter(Boolean).join(", "),
+    parts.zip?.trim(),
+  ].filter((seg): seg is string => Boolean(seg && seg.length > 0))
+  return segments.join(", ")
+}
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -29,7 +52,17 @@ export interface InvoiceWizardState {
   customerId: string
   customerName: string
   customerGstin: string
+  /**
+   * Joined billing address (street, city, state PIN). Auto-derived from the
+   * structured `billing*` fields below; kept as a single string for legacy
+   * consumers (print view, downstream invoice persistence).
+   */
   billingAddress: string
+  /** Structured billing-address parts driven by SmartAddressFields. */
+  billingLine1: string
+  billingCity: string
+  billingState: string
+  billingZip: string
 
   // Cargo / Rate Lookup
   origin: HubCodeLiteral
@@ -62,6 +95,10 @@ export const INITIAL_INVOICE_STATE: InvoiceWizardState = {
   customerName: "",
   customerGstin: "",
   billingAddress: "",
+  billingLine1: "",
+  billingCity: "",
+  billingState: "",
+  billingZip: "",
   origin: "IMPHAL",
   destination: "NEW_DELHI",
   serviceLevel: "STANDARD",
@@ -205,15 +242,36 @@ function PartiesStep({
           />
         </Field>
       </div>
-      <Field label="Billing Address">
-        <textarea
-          value={state.billingAddress}
-          onChange={(e) => onChange({ billingAddress: e.target.value })}
-          rows={3}
-          className={cn(inputClass, "h-auto py-2 resize-none")}
-          placeholder="Street, City, State, PIN"
-        />
-      </Field>
+      <SmartAddressFields
+        label="Billing address"
+        value={
+          {
+            line1: state.billingLine1,
+            city: state.billingCity,
+            state: state.billingState,
+            zip: state.billingZip,
+          } satisfies SmartAddressValue
+        }
+        onChange={(next) => {
+          const nextLine1 = next.line1 ?? ""
+          const nextCity = next.city ?? ""
+          const nextState = next.state ?? ""
+          const nextZip = next.zip ?? ""
+          onChange({
+            billingLine1: nextLine1,
+            billingCity: nextCity,
+            billingState: nextState,
+            billingZip: nextZip,
+            billingAddress: joinBillingAddress({
+              line1: nextLine1,
+              city: nextCity,
+              state: nextState,
+              zip: nextZip,
+            }),
+          })
+        }}
+        idPrefix="invoice-billing"
+      />
     </div>
   )
 }
