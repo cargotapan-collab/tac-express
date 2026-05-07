@@ -161,6 +161,26 @@
   --tw-prose-pre-bg: var(--code-bg);
   --tw-prose-th-borders: var(--border);
   --tw-prose-td-borders: var(--border);
+
+  /* ── TAC Orbital · Telemetry tokens (docs/CHARTS-ORBITAL.md) ──
+     Two-hue maximum per chart. Semantic green/amber/red are reserved
+     exclusively for SLA state (ontime / late / breached). Never use
+     them to communicate "high is good". */
+  --chart-primary: var(--primary);
+  --chart-primary-muted: color-mix(in oklch, var(--primary) 35%, transparent);
+  --chart-axis: var(--muted-foreground);
+  --chart-grid: var(--border);
+  --chart-track: var(--muted);
+
+  --chart-ontime:   oklch(0.72 0.15 152);
+  --chart-late:     oklch(0.78 0.15 75);
+  --chart-breached: oklch(0.62 0.22 25);
+
+  --chart-ramp-1: color-mix(in oklch, var(--primary) 12%, var(--background));
+  --chart-ramp-2: color-mix(in oklch, var(--primary) 28%, var(--background));
+  --chart-ramp-3: color-mix(in oklch, var(--primary) 48%, var(--background));
+  --chart-ramp-4: color-mix(in oklch, var(--primary) 70%, var(--background));
+  --chart-ramp-5: var(--primary);
 }
 
 .dark {
@@ -276,6 +296,13 @@
   --tw-prose-pre-bg: var(--code-bg);
   --tw-prose-th-borders: var(--border);
   --tw-prose-td-borders: var(--border);
+
+  /* ── TAC Orbital · Telemetry tokens (DARK overrides) ──
+     Structural + ramp tokens above auto-track --primary/--background;
+     only the SLA semantic tones need a brighter dark-mode variant. */
+  --chart-ontime:   oklch(0.78 0.16 152);
+  --chart-late:     oklch(0.82 0.16 75);
+  --chart-breached: oklch(0.70 0.22 25);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -307,6 +334,23 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
+  /* ── TAC Orbital telemetry tokens (Tailwind utilities) ──
+     Generates: bg-chart-primary, text-chart-axis, border-chart-grid,
+                fill-chart-ramp-3, stroke-chart-late, etc. */
+  --color-chart-primary:       var(--chart-primary);
+  --color-chart-primary-muted: var(--chart-primary-muted);
+  --color-chart-axis:          var(--chart-axis);
+  --color-chart-grid:          var(--chart-grid);
+  --color-chart-track:         var(--chart-track);
+  --color-chart-ontime:        var(--chart-ontime);
+  --color-chart-late:          var(--chart-late);
+  --color-chart-breached:      var(--chart-breached);
+  --color-chart-ramp-1:        var(--chart-ramp-1);
+  --color-chart-ramp-2:        var(--chart-ramp-2);
+  --color-chart-ramp-3:        var(--chart-ramp-3);
+  --color-chart-ramp-4:        var(--chart-ramp-4);
+  --color-chart-ramp-5:        var(--chart-ramp-5);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -820,6 +864,60 @@
   /* Primary violet glow — dark mode hero headings */
   .text-glow-primary {
     text-shadow: var(--text-glow-primary);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     TAC Orbital · Telemetry typography utilities (docs/CHARTS-ORBITAL.md)
+     Use ONLY inside chart primitives. Companions to the t-* type scale.
+     ══════════════════════════════════════════════════════════════════════ */
+
+  .tac-caption {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;          /* 11px */
+    line-height: 1rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .tac-axis {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;          /* 11px */
+    line-height: 1rem;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    color: var(--chart-axis);
+  }
+
+  .tac-tag {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;           /* 10px */
+    line-height: 0.875rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .tac-readout {
+    font-feature-settings: "tnum" 1, "lnum" 1;
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /* Recharts override — dotted grid + muted cursor for Orbital chart family. */
+  .recharts-tooltip-cursor {
+    fill: var(--chart-track);
+    fill-opacity: 0.4;
+  }
+  .recharts-cartesian-grid line {
+    stroke: var(--chart-grid);
+    stroke-dasharray: 2 2;
+  }
+  .recharts-cartesian-axis-line {
+    stroke: var(--chart-grid);
+  }
+  .recharts-cartesian-axis-tick-line {
+    stroke: var(--chart-grid);
   }
 }
 

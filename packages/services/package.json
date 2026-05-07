@@ -42,6 +42,7 @@
         "./customer.service": "./src/customer.service.ts",
         "./exception.service": "./src/exception.service.ts",
         "./analytics.service": "./src/analytics.service.ts",
+        "./orbital.service": "./src/orbital.service.ts",
         "./admin.service": "./src/admin.service.ts",
         "./scan-sync.service": "./src/scan-sync.service.ts",
         "./rate-card.service": "./src/rate-card.service.ts",

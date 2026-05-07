@@ -54,9 +54,38 @@ Use this skill when you need to **reach for the right token** instead of a raw v
 | `--accent-danger` | `oklch(0.5885 0.2090 24)` | `oklch(0.6368 0.2078 25)` | Delayed / error |
 | `--accent-info` | violet (= primary) | violet (= primary) | Info signal |
 
-### Charts (5-step violet ramp)
+### Charts — TAC Orbital telemetry tokens
 
-`--chart-1` through `--chart-5`. Always step in order to keep series harmonious.
+The Orbital chart system (docs/CHARTS-ORBITAL.md) uses its own token namespace.
+Use these inside any `@workspace/ui/components/charts/*` primitive — never the
+old `--chart-1..5` ramp (kept for backward compat only).
+
+| Token | Use |
+|---|---|
+| `--chart-primary` | Single saturated hue per chart |
+| `--chart-primary-muted` | Optional secondary series — never standalone |
+| `--chart-axis` / `--chart-grid` / `--chart-track` | Structural greys |
+| `--chart-ramp-1..5` | Single-hue intensity ramp (heatmap / density only) |
+| `--chart-ontime` / `--chart-late` / `--chart-breached` | **SLA STATE ONLY** — never decorative |
+
+**Hard rules:** at most two hues per chart; `ontime/late/breached` reserved
+for SLA components; no donuts (use `SegmentBar`); no smooth curves (use
+`stepAfter`); percentage gauges use `ProgressMeter`, not donut rings.
+
+Tailwind utilities: `bg-chart-primary`, `text-chart-axis`, `border-chart-grid`,
+`fill-chart-ramp-3`, `stroke-chart-late`, etc.
+
+### Chart-internal typography utilities
+
+| Class | Purpose |
+|---|---|
+| `tac-caption` | Mono 11px ALL-CAPS — chart frame headers |
+| `tac-tag` | Mono 10px ALL-CAPS — sub-labels, legend entries |
+| `tac-axis` | Mono 11px tabular — axis ticks |
+| `tac-readout` | tnum + lnum — KPI numeric values |
+
+Use these only inside chart primitives — they complement, do not replace,
+the `t-display / t-h1..h4 / t-data / t-overline / t-mono` premium type scale.
 
 ---
 

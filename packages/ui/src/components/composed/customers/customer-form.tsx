@@ -13,6 +13,10 @@ import {
   RiUserLine,
   RiMapPinLine,
 } from "@workspace/ui/icons"
+import {
+  SmartAddressFields,
+  type SmartAddressValue,
+} from "@workspace/ui/components/composed/smart-address-fields"
 
 const customerSchema = z.object({
   name: z.string().min(2, "Name required"),
@@ -184,11 +188,42 @@ export function CustomerForm({
     handleSubmit,
     trigger,
     formState: { errors },
+    watch,
+    setValue,
   } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
     defaultValues,
     mode: "onTouched",
   })
+
+  // Bridge SmartAddressFields (controlled) into RHF's hidden fields.
+  React.useEffect(() => {
+    register("addressLine1")
+    register("addressLine2")
+    register("city")
+    register("state")
+    register("zip")
+  }, [register])
+
+  const watched = watch(["addressLine1", "addressLine2", "city", "state", "zip"])
+  const addressValue: SmartAddressValue = {
+    line1: watched[0],
+    line2: watched[1],
+    city: watched[2],
+    state: watched[3],
+    zip: watched[4],
+  }
+
+  const handleAddressChange = React.useCallback(
+    (next: SmartAddressValue) => {
+      setValue("addressLine1", next.line1 ?? "", { shouldDirty: true, shouldValidate: false })
+      setValue("addressLine2", next.line2 ?? "", { shouldDirty: true, shouldValidate: false })
+      setValue("city", next.city ?? "", { shouldDirty: true, shouldValidate: false })
+      setValue("state", next.state ?? "", { shouldDirty: true, shouldValidate: false })
+      setValue("zip", next.zip ?? "", { shouldDirty: true, shouldValidate: false })
+    },
+    [setValue],
+  )
 
   const isLastStep = step === STEPS.length - 1
   const currentStep = STEPS[step]!
@@ -265,53 +300,19 @@ export function CustomerForm({
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            <Field
-              label="Address Line 1"
-              error={errors.addressLine1?.message}
-            >
-              <Input
-                {...register("addressLine1")}
-                placeholder="123, MG Road"
-                autoComplete="address-line1"
-              />
-            </Field>
-            <Field
-              label="Address Line 2"
-              hint="Landmark, suite, floor (optional)"
-              error={errors.addressLine2?.message}
-            >
-              <Input
-                {...register("addressLine2")}
-                placeholder="Near Town Hall"
-                autoComplete="address-line2"
-              />
-            </Field>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Field label="City" error={errors.city?.message}>
-                <Input
-                  {...register("city")}
-                  placeholder="Imphal"
-                  autoComplete="address-level2"
-                />
-              </Field>
-              <Field label="State" error={errors.state?.message}>
-                <Input
-                  {...register("state")}
-                  placeholder="Manipur"
-                  autoComplete="address-level1"
-                />
-              </Field>
-              <Field label="ZIP / Pincode" error={errors.zip?.message}>
-                <Input
-                  {...register("zip")}
-                  placeholder="795001"
-                  autoComplete="postal-code"
-                  inputMode="numeric"
-                />
-              </Field>
-            </div>
-          </div>
+          <SmartAddressFields
+            label="Billing address"
+            value={addressValue}
+            onChange={handleAddressChange}
+            idPrefix="customer-addr"
+            errors={{
+              line1: errors.addressLine1?.message,
+              line2: errors.addressLine2?.message,
+              city: errors.city?.message,
+              state: errors.state?.message,
+              zip: errors.zip?.message,
+            }}
+          />
         )}
       </div>
 

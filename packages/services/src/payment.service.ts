@@ -46,6 +46,31 @@ function mapPayment(row: Record<string, unknown>): Payment {
   }
 }
 
+// Process-wide cache: once we confirm the deployment is missing the
+// `invoice_payments` table, every subsequent call short-circuits without
+// hitting the network. This kills the noisy 404 spam in the browser console
+// for invoice detail pages until the migration is applied.
+let invoicePaymentsTableMissing = false
+
+/**
+ * Recognise every error shape Supabase returns when the table or RPC is
+ * absent — the regex on `message` alone misses PostgREST's schema-cache
+ * miss text (`"Could not find the table 'public.invoice_payments'…"`).
+ */
+function isMissingInvoicePaymentsRelation(err: {
+  code?: string
+  message?: string
+} | null | undefined): boolean {
+  if (!err) return false
+  if (err.code === "PGRST205" || err.code === "PGRST204" || err.code === "42P01") {
+    return true
+  }
+  const msg = err.message ?? ""
+  return /does not exist|schema cache|could not find the (?:table|relation)|relation .* does not exist/i.test(
+    msg,
+  )
+}
+
 /**
  * Payment service — CRUD for invoice payments. Backed by the `invoice_payments`
  * table which is added in migration 20260501000002 (Phase 4 plan).
@@ -58,21 +83,31 @@ function mapPayment(row: Record<string, unknown>): Payment {
 export function createPaymentService(db: SupabaseClient) {
   return {
     async listForInvoice(invoiceId: string): Promise<Payment[]> {
+      // Short-circuit once we've already learned the table is missing —
+      // avoids issuing repeated 404s for every invoice that loads.
+      if (invoicePaymentsTableMissing) return []
       const { data, error } = await db
         .from("invoice_payments")
         .select("*")
         .eq("invoice_id", invoiceId)
         .order("received_at", { ascending: false })
       if (error) {
-        // Table may not exist yet in early-deploy environments — surface
-        // a friendly empty array rather than crashing the timeline UI.
-        if (/does not exist|relation/i.test(error.message)) return []
+        if (isMissingInvoicePaymentsRelation(error)) {
+          invoicePaymentsTableMissing = true
+          return []
+        }
         throw error
       }
       return (data ?? []).map((row) => mapPayment(row as Record<string, unknown>))
     },
 
     async recordPayment(input: RecordPaymentInput): Promise<Payment> {
+      if (invoicePaymentsTableMissing) {
+        throw new Error(
+          "Payment recording is unavailable: the `invoice_payments` table " +
+            "has not been deployed yet. Apply migration 20260501000002.",
+        )
+      }
       const receivedAt = input.receivedAt ?? new Date().toISOString()
 
       // RPC path: atomic invoice update + payment row.
@@ -103,7 +138,12 @@ export function createPaymentService(db: SupabaseClient) {
         })
         .select("*")
         .single()
-      if (insErr) throw insErr
+      if (insErr) {
+        if (isMissingInvoicePaymentsRelation(insErr)) {
+          invoicePaymentsTableMissing = true
+        }
+        throw insErr
+      }
 
       // Read the invoice to refresh advance + balance + status locally.
       const { data: invRow, error: invErr } = await db
@@ -130,11 +170,18 @@ export function createPaymentService(db: SupabaseClient) {
     },
 
     async deletePayment(id: string): Promise<void> {
+      if (invoicePaymentsTableMissing) return
       const { error } = await db
         .from("invoice_payments")
         .delete()
         .eq("id", id)
-      if (error) throw error
+      if (error) {
+        if (isMissingInvoicePaymentsRelation(error)) {
+          invoicePaymentsTableMissing = true
+          return
+        }
+        throw error
+      }
     },
   }
 }

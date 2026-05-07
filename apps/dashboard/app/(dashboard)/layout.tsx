@@ -42,10 +42,18 @@ export default function DashboardLayout({
           <main className="flex-1 overflow-hidden bg-transparent p-3 md:p-4 lg:p-5 flex flex-col">
           {/* Hardware Viewport Frame (Mission Control Aesthetic) */}
           <div className="flex-1 w-full max-w-control mx-auto tac-fui-border bg-surface shadow-brutal flex flex-col relative overflow-hidden group tac-scanline">
-            {/* FUI Hardware Accents */}
-            <div className="absolute top-0 left-0 w-full h-1 tac-hazard-stripes z-10" />
+            {/* FUI Hardware Accents — symmetric framing: hazard band top + bottom,
+                primary L-brackets on top corners, neutral L-brackets on bottom corners.
+                Band height tuned to 12px so the 10px diagonal stripe pattern reads as a
+                deliberate hazard texture rather than truncated dashes. */}
+            <div className="absolute top-0 left-0 right-0 h-3 tac-hazard-stripes z-10" />
+            <div className="absolute bottom-0 left-0 right-0 h-3 tac-hazard-stripes z-10 opacity-60" />
             <div className="absolute top-0 left-0 w-12 h-0.5 bg-primary z-20 opacity-80" />
             <div className="absolute top-0 left-0 w-0.5 h-12 bg-primary z-20 opacity-80" />
+            <div className="absolute top-0 right-0 w-12 h-0.5 bg-primary z-20 opacity-80" />
+            <div className="absolute top-0 right-0 w-0.5 h-12 bg-primary z-20 opacity-80" />
+            <div className="absolute bottom-0 left-0 w-12 h-0.5 bg-border z-20" />
+            <div className="absolute bottom-0 left-0 w-0.5 h-12 bg-border z-20" />
             <div className="absolute bottom-0 right-0 w-12 h-0.5 bg-border z-20" />
             <div className="absolute bottom-0 right-0 w-0.5 h-12 bg-border z-20" />
             

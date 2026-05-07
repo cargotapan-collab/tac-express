@@ -32,18 +32,20 @@ function NotificationBell() {
   const { notifications, markRead, markAllRead, removeNotification } =
     useNotificationStore()
   const [open, setOpen] = React.useState(false)
+  // Defer Popover mount until after hydration. The notification store
+  // reads from persisted localStorage on the client (empty on server),
+  // which shifts ancestor hook-call counts between SSR and CSR and
+  // desyncs Radix's `useId()` outputs. Rendering a plain button on
+  // the first pass — with no Radix tree underneath — avoids the
+  // mismatch entirely.
   const [mounted, setMounted] = React.useState(false)
-  const unreadCount = notifications.filter((n) => !n.read).length
-
-  const recent = notifications.slice(0, 8)
-
   React.useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Render a static placeholder during SSR / pre-hydration to avoid the
-  // Radix Popover useId mismatch. The popover requires browser-side state
-  // (zustand store, focus management) and isn't useful during SSR.
+  const unreadCount = notifications.filter((n) => !n.read).length
+  const recent = notifications.slice(0, 8)
+
   if (!mounted) {
     return (
       <button

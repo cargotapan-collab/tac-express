@@ -193,6 +193,34 @@ FUI utility classes:
 
 ---
 
+## Charts — TAC Orbital telemetry system
+
+Any chart, KPI tile, sparkline, gauge, or distribution visualisation MUST use
+the Orbital primitives at `@workspace/ui/components/charts`. Do not build
+ad-hoc charts; do not import recharts directly outside this folder.
+
+| Use case | Primitive |
+|---|---|
+| KPI tile (number + spark + delta) | `KpiTile` |
+| Time series (shipments, revenue, volume) | `StepAreaChart` |
+| Composition (status mix, service mix) | `SegmentBar` |
+| Ranking (hubs, customers) | `RankBarChart` |
+| Percentage progress (success rate, growth) | `ProgressMeter` |
+| SLA state per day | `StackedColumnChart` |
+| Origin × destination | `LaneHeatmap` |
+| Universal chart shell | `ChartFrame` |
+| Below-threshold data | `ChartEmptyState` (built into each primitive) |
+
+Data shapes are defined in `@workspace/types/orbital`; produce them via
+`@workspace/services/orbital.service` (or its `useOrbital*` hooks). UI never
+derives chart shapes inline.
+
+**FORBIDDEN charts:** donuts, pies, smooth curves (`type="monotone"`),
+multi-hue categorical palettes. Use `SegmentBar`, `stepAfter`, and the
+single-hue ramp instead. Full spec: `docs/CHARTS-ORBITAL.md`.
+
+---
+
 ## Radix Primitive Mapping
 
 When a Radix primitive exists, wrap it — don't build from scratch:

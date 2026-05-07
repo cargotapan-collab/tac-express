@@ -285,14 +285,16 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
           >
             <RiBarcodeBoxLine className="h-3.5 w-3.5 mr-1.5" /> Print Label
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setWhatsappOpen(true)}
-            className="h-7 px-3 font-mono text-2xs uppercase tracking-wider"
-          >
-            <RiWhatsappLine className="h-3.5 w-3.5 mr-1.5" /> WhatsApp
-          </Button>
+          {invoice.status !== InvoiceStatus.CANCELLED && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setWhatsappOpen(true)}
+              className="h-7 px-3 font-mono text-2xs uppercase tracking-wider border-accent-success/40 text-accent-success hover:bg-accent-success/10 hover:text-accent-success"
+            >
+              <RiWhatsappLine className="h-3.5 w-3.5 mr-1.5" /> Send via WhatsApp
+            </Button>
+          )}
         </div>
       </div>
 

@@ -3,136 +3,61 @@
 import * as React from "react"
 
 import {
-  useAnalyticsSummary,
-  useShipmentTrend,
-  useRevenueTrend,
-  useStatusDistribution,
-  useHubPerformance,
-} from "@workspace/services/hooks/use-analytics"
-import { useShipments } from "@workspace/services/hooks/use-shipments"
-import { useInvoices } from "@workspace/services/hooks/use-invoices"
-import {
-  RevenueTrendChart,
-  ShipmentTrendChart,
-  StatusDistributionChart,
-  HubPerformanceChart,
-  ServiceMixDonut,
-  TopCustomersBar,
-  SlaBreachChart,
-  LaneHeatmap,
-  type ServiceMixDataPoint,
-  type TopCustomerDataPoint,
-  type SlaBreachBucket,
-  type LaneHeatmapCell,
-} from "@workspace/ui/components/composed/charts"
-import { PageHeader } from "@workspace/ui/components/composed/page-header"
-import { KPICard } from "@workspace/ui/components/composed/dashboard/kpi-card"
-import {
-  RiBox3Line,
-  RiExchangeFundsLine,
-  RiCheckLine,
-  RiPlaneLine,
   RiAlertLine,
+  RiBox3Line,
+  RiCheckLine,
+  RiExchangeFundsLine,
+  RiPlaneLine,
   RiTimeLine,
 } from "@workspace/ui/icons"
+import {
+  ChartFrame,
+  KpiTile,
+  LaneHeatmap,
+  ProgressMeter,
+  RankBarChart,
+  SegmentBar,
+  StackedColumnChart,
+  StepAreaChart,
+} from "@workspace/ui/components/charts"
+import { PageHeader } from "@workspace/ui/components/composed/page-header"
+import {
+  useAnalyticsKpis,
+  useHubRank,
+  useLaneHeatmap,
+  useRevenueTrendSeries,
+  useServiceMix,
+  useShipmentTrendSeries,
+  useSlaBreachBuckets,
+  useStatusSegments,
+  useTopCustomers,
+} from "@workspace/services/hooks/use-orbital"
+
+const inr = (n: number) => `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
+const compactInr = (n: number) => {
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`
+  return `₹${n}`
+}
+const formatDay = (s: string | number) => {
+  const d = new Date(s)
+  return d.toLocaleDateString("en-IN", { month: "short", day: "numeric" })
+}
+const formatMonth = (s: string | number) => {
+  const d = new Date(typeof s === "string" ? `${s}-01` : s)
+  return d.toLocaleDateString("en-IN", { month: "short", year: "2-digit" })
+}
 
 export function AnalyticsClient() {
-  const { data: summary, isLoading: loadingSummary } = useAnalyticsSummary()
-  const { data: shipmentTrend } = useShipmentTrend(30)
-  const { data: revenueTrend } = useRevenueTrend(6)
-  const { data: statusDist } = useStatusDistribution()
-  const { data: hubPerf } = useHubPerformance()
-
-  // Derived chart inputs — pulled from the underlying shipment + invoice
-  // queries the dashboard already issues, no new analytics RPCs required.
-  const { data: shipments = [] } = useShipments({ pageSize: 500 })
-  const { data: invoices = [] } = useInvoices({})
-
-  const serviceMix = React.useMemo<ServiceMixDataPoint[]>(() => {
-    const counts: Record<string, ServiceMixDataPoint> = {}
-    for (const s of shipments) {
-      const key = (s as unknown as { serviceLevel?: string }).serviceLevel ?? "STANDARD"
-      counts[key] ??= {
-        key,
-        label: key.charAt(0) + key.slice(1).toLowerCase(),
-        value: 0,
-        revenue: 0,
-      }
-      counts[key].value += 1
-    }
-    return Object.values(counts)
-  }, [shipments])
-
-  const topCustomers = React.useMemo<TopCustomerDataPoint[]>(() => {
-    const byCustomer = new Map<
-      string,
-      { name: string; revenue: number; count: number }
-    >()
-    for (const inv of invoices) {
-      const id = inv.customerId ?? "unknown"
-      const cur = byCustomer.get(id) ?? {
-        name: inv.customerName ?? "—",
-        revenue: 0,
-        count: 0,
-      }
-      cur.revenue += inv.totalAmount ?? 0
-      cur.count += 1
-      byCustomer.set(id, cur)
-    }
-    return Array.from(byCustomer.entries()).map(([customerId, v]) => ({
-      customerId,
-      customerName: v.name,
-      value: v.revenue,
-      secondary: v.count,
-    }))
-  }, [invoices])
-
-  const slaBuckets = React.useMemo<SlaBreachBucket[]>(() => {
-    if (!shipmentTrend) return []
-    // Heuristic v1 — until SLA tables ship in Phase 6.5, derive on-time vs
-    // late vs breached from the shipmentTrend series. Phase 6.5 replaces this
-    // with real `sla_breaches` data.
-    return shipmentTrend.slice(-12).map((d) => {
-      const total = d.shipments ?? 0
-      const delivered = d.delivered ?? 0
-      const late = Math.max(0, total - delivered) // rough proxy
-      const breached = Math.round(late * 0.2)
-      return {
-        bucket: d.date.slice(5),
-        onTime: delivered,
-        late: Math.max(0, late - breached),
-        breached,
-      }
-    })
-  }, [shipmentTrend])
-
-  const laneOrigins = React.useMemo(() => {
-    const set = new Set<string>()
-    shipments.forEach((s) => set.add(s.originHub))
-    return Array.from(set)
-  }, [shipments])
-  const laneDestinations = React.useMemo(() => {
-    const set = new Set<string>()
-    shipments.forEach((s) => set.add(s.destHub))
-    return Array.from(set)
-  }, [shipments])
-  const laneCells = React.useMemo<LaneHeatmapCell[]>(() => {
-    const map = new Map<string, LaneHeatmapCell>()
-    for (const s of shipments) {
-      const key = `${s.originHub}-${s.destHub}`
-      const cur = map.get(key) ?? {
-        origin: s.originHub,
-        destination: s.destHub,
-        value: 0,
-      }
-      cur.value += 1
-      map.set(key, cur)
-    }
-    return Array.from(map.values())
-  }, [shipments])
-
-  const fmt = (n: number) =>
-    `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
+  const { data: kpis } = useAnalyticsKpis()
+  const { data: shipmentTrend = [] } = useShipmentTrendSeries(30)
+  const { data: revenueTrend = [] } = useRevenueTrendSeries(6)
+  const { data: statusSegments = [] } = useStatusSegments()
+  const { data: hubRank = [] } = useHubRank()
+  const { data: serviceMix = [] } = useServiceMix()
+  const { data: topCustomers = [] } = useTopCustomers(10)
+  const { data: slaBuckets = [] } = useSlaBreachBuckets(30)
+  const { data: laneHeatmap } = useLaneHeatmap()
 
   return (
     <div className="space-y-6">
@@ -142,149 +67,140 @@ export function AnalyticsClient() {
         description="Operations overview across all hubs"
       />
 
-      {loadingSummary ? (
-        <div className="grid grid-cols-3 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-20 animate-pulse border border-border bg-card"
-            />
-          ))}
-        </div>
-      ) : summary ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          <KPICard
-            label="Total Shipments"
-            value={summary.totalShipments.toLocaleString()}
-            icon={<RiBox3Line className="h-4 w-4" />}
-          />
-          <KPICard
-            label="Total Revenue"
-            value={fmt(summary.totalRevenue)}
-            icon={<RiExchangeFundsLine className="h-4 w-4" />}
-            accent="success"
-          />
-          <KPICard
-            label="Delivered"
-            value={summary.deliveredCount.toLocaleString()}
-            deltaLabel={`${summary.totalShipments > 0 ? Math.round((summary.deliveredCount / summary.totalShipments) * 100) : 0}% delivery rate`}
-            icon={<RiCheckLine className="h-4 w-4" />}
-            accent="success"
-            delta="positive"
-          />
-          <KPICard
-            label="In Transit"
-            value={summary.inTransitCount.toLocaleString()}
-            icon={<RiPlaneLine className="h-4 w-4" />}
-            accent="warning"
-          />
-          <KPICard
-            label="Open Exceptions"
-            value={summary.exceptionCount.toLocaleString()}
-            deltaLabel={
-              summary.exceptionCount > 0 ? "Needs attention" : "All clear"
-            }
-            icon={<RiAlertLine className="h-4 w-4" />}
-            accent={summary.exceptionCount > 0 ? "danger" : "primary"}
-            delta={summary.exceptionCount > 0 ? "negative" : "neutral"}
-          />
-          <KPICard
-            label="Avg Delivery Days"
-            value={
-              summary.avgDeliveryDays > 0
-                ? `${summary.avgDeliveryDays}d`
-                : "N/A"
-            }
-            icon={<RiTimeLine className="h-4 w-4" />}
-          />
-        </div>
-      ) : null}
+      {/* KPI grid · row 1 */}
+      <section
+        aria-label="Primary indicators"
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        <KpiTile
+          caption="Total shipments"
+          icon={RiBox3Line}
+          value={kpis ? kpis.totalShipments.value.toLocaleString() : "—"}
+          spark={kpis?.totalShipments.spark}
+          delta={kpis?.totalShipments.delta}
+        />
+        <KpiTile
+          caption="Total revenue"
+          icon={RiExchangeFundsLine}
+          value={kpis ? inr(kpis.totalRevenue.value) : "—"}
+          spark={kpis?.totalRevenue.spark}
+          delta={kpis?.totalRevenue.delta}
+        />
+        <KpiTile
+          caption="Delivered"
+          icon={RiCheckLine}
+          value={kpis ? kpis.delivered.value.toLocaleString() : "—"}
+          sublabel={
+            kpis
+              ? `${Math.round(kpis.delivered.rate * 100)}% delivery rate`
+              : undefined
+          }
+          spark={kpis?.delivered.spark}
+        />
+      </section>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        {shipmentTrend && shipmentTrend.length > 0 && (
-          <ChartCard title="Shipment Trend · 30 days">
-            <ShipmentTrendChart
-              data={shipmentTrend.map((d) => ({
-                date: d.date,
-                shipments: d.shipments,
-                delivered: d.delivered,
-              }))}
-            />
-          </ChartCard>
-        )}
-        {revenueTrend && revenueTrend.length > 0 && (
-          <ChartCard title="Revenue Trend · 6 months">
-            <RevenueTrendChart data={revenueTrend} />
-          </ChartCard>
-        )}
-        {statusDist && statusDist.length > 0 && (
-          <ChartCard title="Status Distribution">
-            <StatusDistributionChart
-              data={statusDist.map((d) => ({
-                status: d.status,
-                count: d.count,
-                label: d.label,
-              }))}
-            />
-          </ChartCard>
-        )}
-        {hubPerf && hubPerf.length > 0 && (
-          <ChartCard title="Hub Performance">
-            <HubPerformanceChart
-              data={hubPerf.map((d) => ({
-                hub: d.hub,
-                dispatched: d.dispatched,
-                delivered: d.delivered,
-              }))}
-            />
-          </ChartCard>
-        )}
-        {serviceMix.length > 0 && (
-          <ChartCard title="Service Mix">
-            <ServiceMixDonut data={serviceMix} />
-          </ChartCard>
-        )}
-        {topCustomers.length > 0 && (
-          <ChartCard title="Top Customers · revenue">
-            <TopCustomersBar data={topCustomers} />
-          </ChartCard>
-        )}
-        {slaBuckets.length > 0 && (
-          <div className="lg:col-span-2">
-            <ChartCard title="SLA breach distribution">
-              <SlaBreachChart data={slaBuckets} />
-            </ChartCard>
-          </div>
-        )}
-        {laneCells.length > 0 && (
-          <div className="lg:col-span-2">
-            <ChartCard title="Lane heatmap · origin × destination">
-              <LaneHeatmap
-                origins={laneOrigins}
-                destinations={laneDestinations}
-                cells={laneCells}
-              />
-            </ChartCard>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
+      {/* KPI grid · row 2 */}
+      <section
+        aria-label="Operational indicators"
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        <KpiTile
+          caption="In transit"
+          icon={RiPlaneLine}
+          value={kpis ? kpis.inTransit.value.toLocaleString() : "—"}
+          spark={kpis?.inTransit.spark}
+        />
+        <KpiTile
+          caption="Open exceptions"
+          icon={RiAlertLine}
+          value={kpis ? kpis.openExceptions.value.toLocaleString() : "—"}
+          sublabel={
+            kpis && kpis.openExceptions.value === 0 ? "All clear" : undefined
+          }
+        />
+        <KpiTile
+          caption="Avg delivery days"
+          icon={RiTimeLine}
+          value={
+            kpis?.avgDeliveryDays.value !== null &&
+            kpis?.avgDeliveryDays.value !== undefined
+              ? `${kpis.avgDeliveryDays.value}d`
+              : "N/A"
+          }
+        />
+      </section>
 
-function ChartCard({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="tac-fui-panel space-y-3 bg-card p-5">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        {title}
-      </p>
-      {children}
+      {/* Time-series row */}
+      <section className="grid gap-4 lg:grid-cols-2">
+        <ChartFrame caption="Shipment trend · 30 days">
+          <StepAreaChart
+            data={shipmentTrend}
+            labels={{ y: "Shipments", y2: "Delivered" }}
+            formatX={formatDay}
+            formatY={(v) => v.toLocaleString()}
+          />
+        </ChartFrame>
+
+        <ChartFrame caption="Revenue trend · 6 months">
+          <StepAreaChart
+            data={revenueTrend}
+            labels={{ y: "Revenue" }}
+            formatX={formatMonth}
+            formatY={compactInr}
+            formatTooltipValue={(v) => inr(v)}
+          />
+        </ChartFrame>
+      </section>
+
+      {/* Composition + ranking row */}
+      <section className="grid gap-4 lg:grid-cols-2">
+        <ChartFrame caption="Status distribution">
+          <SegmentBar segments={statusSegments} />
+        </ChartFrame>
+
+        <ChartFrame caption="Hub performance">
+          <RankBarChart items={hubRank} />
+        </ChartFrame>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <ChartFrame caption="Service mix">
+          <SegmentBar segments={serviceMix} />
+        </ChartFrame>
+
+        <ChartFrame caption="Top customers · revenue">
+          <RankBarChart items={topCustomers} formatValue={inr} />
+        </ChartFrame>
+      </section>
+
+      {/* Delivery success — Progress meter complements the SLA bucket chart */}
+      {kpis && kpis.totalShipments.value > 0 && (
+        <section className="grid gap-4 lg:grid-cols-2">
+          <ChartFrame caption="Delivery success">
+            <ProgressMeter
+              caption="Delivered on commit"
+              value={Math.round(kpis.delivered.rate * 100)}
+              max={100}
+              target={85}
+              sublabel={`${kpis.delivered.value.toLocaleString()} of ${kpis.totalShipments.value.toLocaleString()} delivered`}
+            />
+          </ChartFrame>
+
+          <ChartFrame
+            caption="SLA breach distribution"
+            footer="Tones: green = ontime, amber = late, red = breached"
+          >
+            <StackedColumnChart data={slaBuckets} formatX={formatDay} />
+          </ChartFrame>
+        </section>
+      )}
+
+      {/* Lane heatmap */}
+      {laneHeatmap && (
+        <ChartFrame caption="Lane heatmap · origin × destination">
+          <LaneHeatmap {...laneHeatmap} />
+        </ChartFrame>
+      )}
     </div>
   )
 }
