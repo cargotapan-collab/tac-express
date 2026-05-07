@@ -5,6 +5,8 @@ description: Drive a GitHub PR end-to-end from open to merged with the rigour of
 
 # PR Review & Merge Workflow
 
+> **⚠ DRAFT — DO NOT BANK.** This skill is unvalidated as of 2026-05-08. Phase 0a's closed-loop check is broken on squash-merged PRs (Co-Authored-By trailers erased; `git log` sees a clean human author and the gate doesn't fire). Tracked: issue #20. Until Phase 0a is rewritten to use `mcp__github__list_commits` and the operator-assertion is promoted to required, treat this file as reference material, not an authoritative review process.
+
 > **Purpose.** Take a PR from "open" to "merged" with the rigour of the
 > May-2026 four-round baseline (PR #8): every finding gets an actual code
 > change, every deferral gets a tracked issue, and the merge button is
