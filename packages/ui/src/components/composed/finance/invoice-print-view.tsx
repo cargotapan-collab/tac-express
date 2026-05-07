@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { cn } from "@workspace/ui/lib/utils"
+import { AwbBarcode } from "../shipments/awb-barcode"
 
 export interface InvoicePrintData {
   invoiceNumber: string
@@ -13,10 +14,16 @@ export interface InvoicePrintData {
   awbNumber: string
   customerName: string
   customerGstin?: string
+  customerPhone?: string
+  customerEmail?: string
+  /** Short reference shown next to the customer block (e.g. internal customer ID). */
+  customerId?: string
   billingAddress?: string
 
   baseFreight: number
   docketCharge: number
+  pickupCharge?: number
+  packingCharge?: number
   fuelSurcharge: number
   handlingFee: number
   insurance: number
@@ -27,11 +34,30 @@ export interface InvoicePrintData {
   igst: number
   totalTax: number
   totalAmount: number
+  /** When provided, balance due = totalAmount - advancePaid. Defaults to totalAmount. */
+  advancePaid?: number
 
   notes?: string
   companyName?: string
   companyAddress?: string
   companyGstin?: string
+  companyPhone?: string
+  companyEmail?: string
+  companyId?: string
+
+  /** Optional consignee block (shipment delivery address). */
+  shipToName?: string
+  shipToAddress?: string
+
+  /**
+   * Terms & conditions block variant.
+   * - `'numbered'` — 7 single-line clauses (~75 words). Default. Best for
+   *   invoice footer where vertical space allows a structured list.
+   * - `'paragraph'` — single dense paragraph (~115 words). Use when the
+   *   footer is tight (e.g. multi-page invoice with notes).
+   * - `'none'` — omit the block (digital previews / drafts).
+   */
+  terms?: "numbered" | "paragraph" | "none"
 }
 
 interface InvoicePrintViewProps {
@@ -43,218 +69,485 @@ function formatINR(n: number): string {
   return `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-function formatDate(iso?: string): string {
+/** Short numeric date — `04. 05. 2026`, mirroring the reference invoice. */
+function formatDateShort(iso?: string): string {
   if (!iso) return "—"
   try {
-    return new Date(iso).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
+    const d = new Date(iso)
+    const dd = String(d.getDate()).padStart(2, "0")
+    const mm = String(d.getMonth() + 1).padStart(2, "0")
+    const yyyy = d.getFullYear()
+    return `${dd}. ${mm}. ${yyyy}`
   } catch {
     return iso
   }
 }
 
-const COMPANY = {
+/**
+ * TAC Express standard terms & conditions — printed verbatim on every
+ * invoice for legal compliance under Indian carriage law (Carriage by
+ * Road Act, 2007 § 16; Indian Contract Act, 1872 § 170 lien provisions).
+ *
+ * Two render variants are supported via the `terms` prop:
+ * - `TERMS_NUMBERED`: 7 enumerated clauses (~75 words; ~7 lines at 7pt)
+ * - `TERMS_PARAGRAPH`: single dense paragraph (~115 words; ~3-4 lines)
+ *
+ * Both convey the same legal substance — pick based on footer space.
+ */
+const TERMS_NUMBERED: readonly string[] = [
+  "Consignor must accurately declare contents, value, and weight at booking; misdeclaration voids carrier liability.",
+  "Liability for loss/damage is capped at ₹150/kg unless higher value is declared and risk surcharge paid at booking.",
+  "Illegal, contraband, hazardous (IMDG/IATA), fragile, electronic, and high-value goods move at consignor's risk unless insured at booking.",
+  "Consignments must be collected within 7 days of arrival; storage at ₹55/day + GST accrues from day 22.",
+  "Goods are classified unclaimed after 45 days and disposable after 100 days at carrier's discretion under lien (Indian Contract Act, 1872).",
+  "Carrier not liable for delay or loss caused by force majeure — natural disasters, strikes, civil unrest, regulatory action, or network disruption.",
+  "Governed by Indian law; exclusive jurisdiction of New Delhi courts; claims must be filed in writing within 6 months per Carriage by Road Act, 2007.",
+] as const
+
+const TERMS_PARAGRAPH =
+  "By booking with TAC Express, the consignor agrees: contents, value, and weight must be accurately declared at booking — misdeclaration voids carrier liability; compensation for loss or damage is capped at ₹150/kg unless a higher value is declared and risk surcharge paid; illegal, contraband, hazardous (IMDG/IATA), fragile, electronic, and high-value goods move at consignor's risk unless insured at booking; consignments must be collected within 7 days of arrival, with storage at ₹55/day + GST from day 22, classified unclaimed after 45 days, and disposable after 100 days at the carrier's discretion under lien (Indian Contract Act, 1872); the carrier is not liable for delay or loss from force majeure events; all disputes are governed by Indian law, subject to exclusive jurisdiction of New Delhi courts, with claims to be filed within 6 months per the Carriage by Road Act, 2007."
+
+const COMPANY_DEFAULTS = {
   name: "TAC Express Logistics Pvt. Ltd.",
   address: "Imphal, Manipur, India",
   gstin: "14AAAAA0000A1Z5",
-}
+  phone: "+91 385 000 0000",
+  email: "ops@tacexpress.in",
+  id: "TAC-EXP-2026",
+  // Bank details rendered in the footer "Bank information" block.
+  bank: {
+    iban: "IN08 0100 0001 0751 3385 0223",
+    swift: "TACBINBB001",
+    accountNumber: "234-5133850247/023",
+  },
+} as const
 
+/**
+ * Tax invoice rendered in a TAC Express take on the minimal-violet reference:
+ *
+ *   ┌─[gray header]──────────────────────────────────────┐
+ *   │ │T│  COMPANY INFO                       Invoice    │
+ *   │ │A│  ID + GSTIN                                    │
+ *   │ │C│                                                │
+ *   │ │ │  Bill to:               Invoice number:        │
+ *   │ │ │  CUSTOMER NAME          #INV-2026-01014       │
+ *   │ │ │  contact info           date                   │
+ *   ├─┴─┴────────────────────────────────────────────────┤
+ *   │ ┃ Service description   Qty  Price   Total        │
+ *   │ ┃ ──────────────────────────────────────────       │
+ *   │ ┃ Base Freight           1   ₹...   ₹...           │
+ *   │ ┃ ...                                              │
+ *   │ ┃ Balance due:                       ₹X            │
+ *   │ ┃ Due date:                          DD. MM. YYYY  │
+ *   │ ┃                                                  │
+ *   │ ┃ Bank information:        Invoiced by TAC :       │
+ *   │ ┃ IBAN ...                       _________________ │
+ *   └───────────────────────────────────────────────────┘
+ */
 const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>(
   function InvoicePrintView({ data, className }, ref) {
-    const companyName = data.companyName ?? COMPANY.name
-    const companyAddress = data.companyAddress ?? COMPANY.address
-    const companyGstin = data.companyGstin ?? COMPANY.gstin
+    const company = {
+      name: data.companyName ?? COMPANY_DEFAULTS.name,
+      address: data.companyAddress ?? COMPANY_DEFAULTS.address,
+      gstin: data.companyGstin ?? COMPANY_DEFAULTS.gstin,
+      phone: data.companyPhone ?? COMPANY_DEFAULTS.phone,
+      email: data.companyEmail ?? COMPANY_DEFAULTS.email,
+      id: data.companyId ?? COMPANY_DEFAULTS.id,
+    }
+
+    const pickupCharge = data.pickupCharge ?? 0
+    const packingCharge = data.packingCharge ?? 0
+    const advancePaid = data.advancePaid ?? 0
+
+    // Build the line-items array — quantity is cosmetic (always 1 for our
+    // single-shipment invoices) but the column matches the reference layout.
+    const lines = [
+      { label: "Base Freight", value: data.baseFreight, show: true },
+      { label: "Docket Charge", value: data.docketCharge, show: data.docketCharge > 0 },
+      { label: "Pickup Charge", value: pickupCharge, show: pickupCharge > 0 },
+      { label: "Packing Charge", value: packingCharge, show: packingCharge > 0 },
+      { label: "Fuel Surcharge", value: data.fuelSurcharge, show: data.fuelSurcharge > 0 },
+      { label: "Handling Fee", value: data.handlingFee, show: data.handlingFee > 0 },
+      { label: "Insurance", value: data.insurance, show: data.insurance > 0 },
+    ].filter((l) => l.show)
 
     const subtotal =
       data.baseFreight +
       data.docketCharge +
+      pickupCharge +
+      packingCharge +
       data.fuelSurcharge +
       data.handlingFee +
       data.insurance
     const taxable = Math.max(0, subtotal - data.discount)
+    const balanceDue = Math.max(0, data.totalAmount - advancePaid)
 
     return (
       <div
         ref={ref}
         data-slot="invoice-print-view"
         className={cn(
-          "bg-card text-foreground p-10 mx-auto max-w-3xl border border-border shadow-brutal",
-          "font-sans text-sm",
-          "print:border-0 print:shadow-none print:p-6 print:max-w-none",
+          "mx-auto max-w-3xl bg-card text-foreground shadow-brutal border border-border",
+          "font-sans text-sm overflow-hidden",
+          "print:border-0 print:shadow-none print:max-w-none",
+          // One-page-fit: with @page A4 and 12mm margins the printable area is
+          // ~273mm tall. Constrain the card so it never spills onto a second
+          // page; combined with the tight section margins below, the layout
+          // sits comfortably within a single sheet even with the full T&Cs
+          // block, notes, and tax rows.
+          "print:max-h-[273mm] print:overflow-hidden",
+          // Force light-mode rendering so the design reads predictably on
+          // any printer regardless of the user's app theme.
+          "[color-scheme:light]",
           className
         )}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between pb-6 border-b-2 border-foreground">
-          <div className="flex flex-col gap-1">
-            <h1 className="font-serif text-2xl font-bold text-foreground leading-tight">
-              {companyName}
-            </h1>
-            <p className="text-xs text-muted-foreground">{companyAddress}</p>
-            <p className="font-mono text-xs text-muted-foreground">
-              GSTIN: {companyGstin}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground mb-1">
-              Tax Invoice
-            </p>
-            <p className="font-mono text-lg font-bold text-foreground">
-              {data.invoiceNumber}
-            </p>
-            <p className="font-mono text-2xs uppercase tracking-widest mt-2 text-muted-foreground">
-              Status: <span className="text-foreground">{data.status}</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Meta */}
-        <div className="grid grid-cols-3 gap-4 py-5 border-b border-border">
-          <div>
-            <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground mb-1">
-              Invoice Date
-            </p>
-            <p className="text-foreground">{formatDate(data.createdAt)}</p>
-          </div>
-          <div>
-            <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground mb-1">
-              Due Date
-            </p>
-            <p className="text-foreground">{formatDate(data.dueDate)}</p>
-          </div>
-          <div>
-            <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground mb-1">
-              Payment Mode
-            </p>
-            <p className="font-mono text-foreground">{data.paymentMode}</p>
-          </div>
-        </div>
-
-        {/* Bill To */}
-        <div className="grid grid-cols-2 gap-6 py-5 border-b border-border">
-          <div>
-            <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground mb-2">
-              Bill To
-            </p>
-            <p className="font-semibold text-foreground">{data.customerName}</p>
-            {data.billingAddress && (
-              <p className="text-xs text-muted-foreground whitespace-pre-line mt-1">
-                {data.billingAddress}
-              </p>
-            )}
-            {data.customerGstin && (
-              <p className="font-mono text-xs text-muted-foreground mt-1">
-                GSTIN: {data.customerGstin}
-              </p>
-            )}
-          </div>
-          <div>
-            <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground mb-2">
-              Against AWB
-            </p>
-            <p className="font-mono text-lg font-bold text-foreground">
-              {data.awbNumber}
-            </p>
-          </div>
-        </div>
-
-        {/* Line Items */}
-        <table className="w-full mt-5 border-collapse">
-          <thead>
-            <tr className="border-b-2 border-foreground">
-              <th className="text-left font-mono text-2xs uppercase tracking-widest text-muted-foreground py-2">
-                Description
-              </th>
-              <th className="text-right font-mono text-2xs uppercase tracking-widest text-muted-foreground py-2">
-                Amount
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {[
-              { label: "Base Freight", value: data.baseFreight },
-              { label: "Docket Charge", value: data.docketCharge },
-              { label: "Fuel Surcharge", value: data.fuelSurcharge },
-              { label: "Handling Fee", value: data.handlingFee },
-              { label: "Insurance", value: data.insurance },
-              { label: "Discount", value: -data.discount },
-            ].map((line) => (
-              <tr key={line.label}>
-                <td className="py-2 text-foreground">{line.label}</td>
-                <td className="py-2 text-right font-mono tabular-nums text-foreground">
-                  {formatINR(line.value)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {/* Totals */}
-        <div className="mt-5 ml-auto w-full max-w-xs space-y-1.5">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span className="font-mono tabular-nums">{formatINR(subtotal)}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Discount</span>
-            <span className="font-mono tabular-nums">−{formatINR(data.discount)}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Taxable Amount</span>
-            <span className="font-mono tabular-nums">{formatINR(taxable)}</span>
-          </div>
-          {data.cgst > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">CGST (9%)</span>
-              <span className="font-mono tabular-nums">{formatINR(data.cgst)}</span>
-            </div>
-          )}
-          {data.sgst > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">SGST (9%)</span>
-              <span className="font-mono tabular-nums">{formatINR(data.sgst)}</span>
-            </div>
-          )}
-          {data.igst > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">IGST (18%)</span>
-              <span className="font-mono tabular-nums">{formatINR(data.igst)}</span>
-            </div>
-          )}
-          <div className="flex items-center justify-between pt-2 border-t-2 border-foreground">
-            <span className="font-mono text-2xs uppercase tracking-widest font-semibold">
-              Total Payable
-            </span>
-            <span className="font-mono text-xl font-bold tabular-nums">
-              {formatINR(data.totalAmount)}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* GRAY HEADER ZONE — compact to fit A4 in one page */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        <div className="relative bg-muted/40 print:bg-zinc-100 px-8 pt-5 pb-4">
+          {/* Vertical brand strip on far left */}
+          <div
+            aria-hidden="true"
+            className="absolute left-2.5 top-0 bottom-0 flex items-center"
+          >
+            <span
+              className="font-sans font-bold text-[13px] tracking-[0.2em] uppercase text-primary print:text-violet-600 leading-none whitespace-nowrap"
+              style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+            >
+              {company.name.split(" ")[0] ?? "TAC"}&nbsp;Express
             </span>
           </div>
-        </div>
 
-        {/* Notes */}
-        {data.notes && (
-          <div className="mt-8 pt-4 border-t border-border">
-            <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground mb-1">
-              Notes
-            </p>
-            <p className="text-xs text-muted-foreground whitespace-pre-line">
-              {data.notes}
+          {/* Top: company contact info | Invoice headline */}
+          <div className="flex items-start justify-between gap-6 pl-7">
+            <div className="space-y-0.5">
+              <p className="font-sans font-semibold text-[13px] leading-tight text-foreground">
+                {company.name}
+              </p>
+              <p className="font-sans text-[11px] leading-tight text-foreground/80">
+                {company.address}
+              </p>
+              <p className="font-mono text-[10.5px] leading-tight text-foreground/80">
+                Tel: {company.phone} · E-mail: {company.email}
+              </p>
+              <p className="font-mono text-[10.5px] leading-tight pt-0.5">
+                <span className="font-bold text-foreground">ID:</span>{" "}
+                <span className="text-foreground/90">{company.id}</span>
+                {"  ·  "}
+                <span className="font-bold text-foreground">GSTIN:</span>{" "}
+                <span className="text-foreground/90">{company.gstin}</span>
+              </p>
+            </div>
+
+            <p className="font-sans font-light text-[24px] leading-none text-primary print:text-violet-600 tracking-tight shrink-0">
+              Invoice
             </p>
           </div>
-        )}
 
-        {/* Footer */}
-        <div className="mt-8 pt-4 border-t border-border text-center">
-          <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
-            Computer-generated invoice — no signature required
-          </p>
+          {/* Bill to / Invoice number two-column block */}
+          <div className="grid grid-cols-2 gap-6 mt-4 pl-7">
+            <div className="space-y-1">
+              <p className="font-sans font-bold text-[10px] uppercase tracking-[0.04em] text-foreground">
+                Bill to:
+              </p>
+              <p className="font-mono font-bold text-[17px] leading-tight tracking-tight text-foreground uppercase">
+                {data.customerName}
+              </p>
+              <div className="font-mono text-[10.5px] leading-snug text-foreground/80 space-y-0 pt-0.5">
+                {data.customerPhone && <p>Tel: {data.customerPhone}</p>}
+                {data.customerEmail && <p>E-mail: {data.customerEmail}</p>}
+                {data.billingAddress && (
+                  <p className="whitespace-pre-line break-words">
+                    Address: {data.billingAddress}
+                  </p>
+                )}
+                {data.customerGstin && (
+                  <p>
+                    <span className="font-bold">GSTIN:</span> {data.customerGstin}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-sans font-bold text-[10px] uppercase tracking-[0.04em] text-foreground">
+                Invoice number:
+              </p>
+              <p className="font-sans font-bold text-[19px] leading-tight tracking-tight text-foreground">
+                #{data.invoiceNumber.replace(/^INV-?/i, "")}
+              </p>
+              <p className="font-mono text-[10.5px] leading-snug text-foreground/80 pt-0.5">
+                {company.address.split(",")[0]} · {formatDateShort(data.createdAt)}
+              </p>
+              {data.awbNumber && (
+                <p className="font-mono text-[10.5px] leading-snug text-foreground/80">
+                  AWB: <span className="font-bold">{data.awbNumber}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* WHITE BODY ZONE — compact to fit one A4 page    */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        <div className="relative bg-card print:bg-white px-8 pt-5 pb-6">
+          {/* Vertical violet accent bar on left edge of the body */}
+          <div
+            aria-hidden="true"
+            className="absolute left-2.5 top-5 bottom-6 w-[3px] bg-primary print:bg-violet-600"
+          />
+
+          <div className="pl-5">
+            {/* Service table */}
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-foreground/15">
+                  <th className="text-left font-sans font-bold text-[11.5px] py-1.5 pr-2">
+                    Service description
+                  </th>
+                  <th className="text-right font-sans font-bold text-[11.5px] py-1.5 px-2 w-20">
+                    Quantity
+                  </th>
+                  <th className="text-right font-sans font-bold text-[11.5px] py-1.5 px-2 w-24">
+                    Price
+                  </th>
+                  <th className="text-right font-sans font-bold text-[11.5px] py-1.5 pl-2 w-24">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {lines.map((line) => (
+                  <tr key={line.label} className="border-b border-foreground/10">
+                    <td className="py-1.5 pr-2 font-mono text-[11.5px] text-foreground">
+                      {line.label}
+                    </td>
+                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/80">
+                      1
+                    </td>
+                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/80">
+                      {formatINR(line.value)}
+                    </td>
+                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-[11.5px] text-foreground">
+                      {formatINR(line.value)}
+                    </td>
+                  </tr>
+                ))}
+
+                {data.discount > 0 && (
+                  <tr className="border-b border-foreground/10">
+                    <td className="py-1.5 pr-2 font-mono text-[11.5px] text-foreground">
+                      Discount
+                    </td>
+                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/80">
+                      1
+                    </td>
+                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/80">
+                      −{formatINR(data.discount)}
+                    </td>
+                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-[11.5px] text-foreground">
+                      −{formatINR(data.discount)}
+                    </td>
+                  </tr>
+                )}
+
+                {/* Tax rows roll into the table for visual consistency */}
+                {(data.cgst > 0 || data.sgst > 0 || data.igst > 0) && (
+                  <tr className="border-b border-foreground/10">
+                    <td className="py-1.5 pr-2 font-mono text-[11.5px] text-foreground/70">
+                      Taxable Amount
+                    </td>
+                    <td className="py-1.5 px-2" />
+                    <td className="py-1.5 px-2" />
+                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/70">
+                      {formatINR(taxable)}
+                    </td>
+                  </tr>
+                )}
+                {data.cgst > 0 && (
+                  <tr className="border-b border-foreground/10">
+                    <td className="py-1.5 pr-2 font-mono text-[11.5px] text-foreground/70">
+                      CGST (9%)
+                    </td>
+                    <td className="py-1.5 px-2" />
+                    <td className="py-1.5 px-2" />
+                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/70">
+                      {formatINR(data.cgst)}
+                    </td>
+                  </tr>
+                )}
+                {data.sgst > 0 && (
+                  <tr className="border-b border-foreground/10">
+                    <td className="py-1.5 pr-2 font-mono text-[11.5px] text-foreground/70">
+                      SGST (9%)
+                    </td>
+                    <td className="py-1.5 px-2" />
+                    <td className="py-1.5 px-2" />
+                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/70">
+                      {formatINR(data.sgst)}
+                    </td>
+                  </tr>
+                )}
+                {data.igst > 0 && (
+                  <tr className="border-b border-foreground/10">
+                    <td className="py-1.5 pr-2 font-mono text-[11.5px] text-foreground/70">
+                      IGST (18%)
+                    </td>
+                    <td className="py-1.5 px-2" />
+                    <td className="py-1.5 px-2" />
+                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/70">
+                      {formatINR(data.igst)}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            {/* Balance due / Due date — violet right-aligned values */}
+            <div className="mt-3 space-y-1">
+              <div className="flex items-baseline justify-between">
+                <span className="font-sans font-bold text-[12px] text-foreground">
+                  Balance due:
+                </span>
+                <span className="font-mono font-bold text-[15px] tabular-nums text-primary print:text-violet-600">
+                  {formatINR(balanceDue)}
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between">
+                <span className="font-sans font-bold text-[12px] text-foreground">
+                  Due date:
+                </span>
+                <span className="font-mono font-bold text-[13px] tabular-nums text-primary print:text-violet-600">
+                  {data.dueDate
+                    ? formatDateShort(data.dueDate)
+                    : formatDateShort(
+                        // Default 30-day terms when no due date set
+                        (() => {
+                          try {
+                            const d = new Date(data.createdAt)
+                            d.setDate(d.getDate() + 30)
+                            return d.toISOString()
+                          } catch {
+                            return undefined
+                          }
+                        })()
+                      )}
+                </span>
+              </div>
+            </div>
+
+            {/* Bank info / Signature footer */}
+            <div className="mt-5 grid grid-cols-2 gap-6 [page-break-inside:avoid]">
+              <div className="space-y-1">
+                <p className="font-sans font-bold text-[10px] uppercase tracking-[0.04em] text-foreground">
+                  Bank information:
+                </p>
+                <div className="font-mono text-[10.5px] leading-tight text-primary print:text-violet-600 space-y-0 pt-0.5">
+                  <p>
+                    <span className="font-bold">IBAN:</span> {COMPANY_DEFAULTS.bank.iban}
+                  </p>
+                  <p>
+                    <span className="font-bold">SWIFT:</span> {COMPANY_DEFAULTS.bank.swift}
+                  </p>
+                  <p>
+                    <span className="font-bold">A/C:</span> {COMPANY_DEFAULTS.bank.accountNumber}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-end">
+                <p className="font-sans font-bold text-[10px] uppercase tracking-[0.04em] text-foreground self-end">
+                  Invoiced by {company.name.split(" ").slice(0, 2).join(" ")}:
+                </p>
+                <div className="w-full max-w-[14rem] border-b border-foreground/40 mt-7" />
+              </div>
+            </div>
+
+            {/* Optional notes block */}
+            {data.notes && (
+              <div className="mt-4 pt-2 border-t border-foreground/10 [page-break-inside:avoid]">
+                <p className="font-sans font-bold text-[10px] uppercase tracking-[0.04em] text-foreground mb-0.5">
+                  Notes:
+                </p>
+                <p className="font-mono text-[10.5px] leading-tight text-foreground/80 whitespace-pre-line">
+                  {data.notes}
+                </p>
+              </div>
+            )}
+
+            {/* Terms & Conditions — legal compliance fine print */}
+            <TermsBlock variant={data.terms ?? "numbered"} />
+
+            {/* AWB barcode for parcel-side reconciliation */}
+            {data.awbNumber && data.awbNumber !== "—" && (
+              <div className="mt-4 pt-2 border-t border-foreground/10 flex items-end justify-between gap-6 [page-break-inside:avoid]">
+                <div className="flex flex-col items-start gap-0.5">
+                  <p className="font-sans font-bold text-[9px] uppercase tracking-[0.18em] text-foreground/60">
+                    Tracking
+                  </p>
+                  <AwbBarcode value={data.awbNumber} height={32} barWidth={1.2} showText={false} />
+                  <p className="font-mono text-[10.5px] font-bold tracking-[0.16em] tabular-nums text-foreground">
+                    {data.awbNumber}
+                  </p>
+                </div>
+                <p className="font-mono text-[8.5px] uppercase tracking-[0.2em] text-foreground/50 text-right">
+                  Computer-generated invoice<br />No signature required
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     )
   }
 )
+
+/* ════════════════════════════════════════════════════════════════════════ */
+/*  TermsBlock                                                               */
+/*                                                                           */
+/*  Renders the standard TAC Express terms & conditions at the foot of the  */
+/*  invoice. Two render variants:                                            */
+/*                                                                           */
+/*  - "numbered": 7-clause enumerated list — best for invoice footers with   */
+/*    headroom. Each clause sits on its own line with a tabular-nums index.  */
+/*  - "paragraph": single dense block — best when the footer is tight       */
+/*    (e.g. when there are long shipment notes above).                       */
+/*  - "none": skip the block entirely (digital previews / drafts).           */
+/*                                                                           */
+/*  Typography is intentionally hairline (7.5px) with 85% opacity so the     */
+/*  block reads as legal fine-print without competing with the main          */
+/*  invoice content above it.                                                */
+/* ════════════════════════════════════════════════════════════════════════ */
+
+function TermsBlock({ variant }: { variant: "numbered" | "paragraph" | "none" }) {
+  if (variant === "none") return null
+
+  return (
+    <section className="mt-3 pt-2 border-t border-foreground [page-break-inside:avoid]">
+      <p className="font-sans font-bold text-[9px] uppercase tracking-[0.22em] text-foreground mb-1">
+        Terms &amp; Conditions
+      </p>
+
+      {variant === "numbered" ? (
+        <ol className="space-y-0.5 text-[7.5px] leading-snug text-foreground/85">
+          {TERMS_NUMBERED.map((clause, i) => (
+            <li key={i} className="flex gap-1.5">
+              <span className="font-mono font-bold tabular-nums shrink-0 w-3 text-foreground/70">
+                {i + 1}.
+              </span>
+              <span className="break-words">{clause}</span>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-[7.5px] leading-snug text-foreground/85 text-justify">
+          {TERMS_PARAGRAPH}
+        </p>
+      )}
+    </section>
+  )
+}
 
 export { InvoicePrintView }

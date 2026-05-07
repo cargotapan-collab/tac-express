@@ -25,6 +25,8 @@ interface AgingBucketsProps {
   /** Optional click handler; receives the bucket so the consumer can apply
    * a list-page filter (e.g. setFilter({ aging: '31-60' })). */
   onSelect?: (bucket: AgingBucket) => void
+  /** Currently active bucket label — for visual selection state. */
+  activeLabel?: string
   className?: string
 }
 
@@ -64,12 +66,14 @@ export function AgingBuckets({
   locale = "en-IN",
   currency = "INR",
   onSelect,
+  activeLabel,
   className,
 }: AgingBucketsProps) {
   const buckets = React.useMemo(() => computeAging(invoices), [invoices])
   const totalOutstanding = buckets
     .filter((b) => b.label !== "Current")
     .reduce((s, b) => s + b.total, 0)
+  const grandTotal = buckets.reduce((s, b) => s + b.total, 0)
 
   const fmt = React.useMemo(
     () =>
@@ -84,26 +88,50 @@ export function AgingBuckets({
   return (
     <section
       data-slot="aging-buckets"
-      className={cn("space-y-3", className)}
+      className={cn(
+        "tac-fui-panel relative",
+        className
+      )}
     >
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Receivables aging
-        </h2>
-        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Outstanding{" "}
-          <span className="font-heading text-base font-semibold text-foreground">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="inline-block h-3 w-1 bg-primary"
+          />
+          <h2 className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground">
+            Receivables aging
+          </h2>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            · {invoices.length} invoice{invoices.length === 1 ? "" : "s"}
+          </span>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            Outstanding
+          </span>
+          <span
+            className={cn(
+              "font-heading text-lg font-semibold tabular-nums tracking-tight",
+              totalOutstanding > 0 ? "text-destructive" : "text-foreground"
+            )}
+          >
             {fmt.format(totalOutstanding)}
           </span>
-        </p>
+        </div>
       </header>
 
-      <dl className="grid grid-cols-2 gap-px bg-border/40 lg:grid-cols-5">
+      <dl
+        role="list"
+        className="grid grid-cols-2 gap-px bg-border lg:grid-cols-5"
+      >
         {buckets.map((b) => (
           <BucketTile
             key={b.label}
             bucket={b}
             fmt={fmt}
+            grandTotal={grandTotal}
+            isActive={activeLabel === b.label}
             onSelect={onSelect ? () => onSelect(b) : undefined}
           />
         ))}
@@ -115,38 +143,105 @@ export function AgingBuckets({
 function BucketTile({
   bucket,
   fmt,
+  grandTotal,
+  isActive,
   onSelect,
 }: {
   bucket: AgingBucket
   fmt: Intl.NumberFormat
+  grandTotal: number
+  isActive: boolean
   onSelect?: () => void
 }) {
+  const sharePct = grandTotal > 0 ? Math.round((bucket.total / grandTotal) * 100) : 0
+  const isCritical = bucket.tone === "critical"
+
+  const accentClass = cn(
+    bucket.tone === "ok" && "text-primary",
+    bucket.tone === "warning" && "text-accent-warning",
+    bucket.tone === "danger" && "text-destructive",
+    bucket.tone === "critical" && "text-destructive"
+  )
+
+  const railClass = cn(
+    "absolute inset-y-0 left-0 w-[3px]",
+    bucket.tone === "ok" && "bg-primary/40",
+    bucket.tone === "warning" && "bg-accent-warning/50",
+    bucket.tone === "danger" && "bg-destructive/60",
+    bucket.tone === "critical" && "bg-destructive"
+  )
+
   const Inner = (
     <div
       className={cn(
-        "flex h-full flex-col gap-1 bg-background p-4 transition-colors",
-        onSelect && "cursor-pointer hover:bg-muted/40",
-        bucket.tone === "warning" && "border-l-2 border-l-status-warning/30",
-        bucket.tone === "danger" && "border-l-2 border-l-destructive/40",
-        bucket.tone === "critical" && "border-l-2 border-l-destructive"
+        "relative flex h-full flex-col gap-1.5 bg-card px-4 py-3 transition-colors",
+        onSelect && "cursor-pointer hover:bg-primary-soft",
+        isActive && "bg-primary-subtle"
       )}
     >
-      <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-        {bucket.label} {bucket.label !== "Current" ? "days" : ""}
-      </p>
+      <span aria-hidden="true" className={railClass} />
+
+      <div className="flex items-baseline justify-between gap-2 pl-2">
+        <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          {bucket.label}
+          {bucket.label !== "Current" && (
+            <span className="ml-1 font-normal opacity-70">days</span>
+          )}
+        </p>
+        {bucket.count > 0 && (
+          <span
+            className={cn(
+              "font-mono text-[9px] font-semibold uppercase tracking-widest tabular-nums",
+              accentClass
+            )}
+            aria-label={`${sharePct} percent of total`}
+          >
+            {sharePct}%
+          </span>
+        )}
+      </div>
+
       <p
         className={cn(
-          "mt-0.5 font-heading text-lg font-semibold tracking-tight",
-          bucket.tone === "warning" && "text-status-warning",
-          bucket.tone === "danger" && "text-destructive",
-          bucket.tone === "critical" && "text-destructive font-black"
+          "pl-2 font-heading text-lg font-semibold tracking-tight tabular-nums",
+          bucket.count === 0 && "text-muted-foreground/50",
+          bucket.count > 0 && bucket.tone === "ok" && "text-foreground",
+          bucket.count > 0 && bucket.tone === "warning" && "text-accent-warning",
+          bucket.count > 0 && bucket.tone === "danger" && "text-destructive",
+          bucket.count > 0 && isCritical && "text-destructive font-bold"
         )}
       >
         {fmt.format(bucket.total)}
       </p>
-      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        {bucket.count} invoice{bucket.count === 1 ? "" : "s"}
-      </p>
+
+      <div className="flex items-center justify-between gap-2 pl-2">
+        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+          {bucket.count} invoice{bucket.count === 1 ? "" : "s"}
+        </p>
+        {isActive && (
+          <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-primary">
+            ● filter
+          </span>
+        )}
+      </div>
+
+      {grandTotal > 0 && (
+        <div
+          aria-hidden="true"
+          className="mt-1 ml-2 h-px w-full bg-border/50"
+        >
+          <div
+            className={cn(
+              "h-px transition-[width]",
+              bucket.tone === "ok" && "bg-primary/40",
+              bucket.tone === "warning" && "bg-accent-warning",
+              bucket.tone === "danger" && "bg-destructive/70",
+              isCritical && "bg-destructive"
+            )}
+            style={{ width: `${sharePct}%` }}
+          />
+        </div>
+      )}
     </div>
   )
 
@@ -154,8 +249,11 @@ function BucketTile({
     <button
       type="button"
       onClick={onSelect}
-      className="text-left"
-      aria-label={`Filter to ${bucket.label} aging bucket`}
+      aria-pressed={isActive}
+      aria-label={`Filter to ${bucket.label} aging bucket — ${bucket.count} invoice${
+        bucket.count === 1 ? "" : "s"
+      }`}
+      className="text-left focus-visible:outline-none focus-visible:tac-focus-premium"
     >
       {Inner}
     </button>

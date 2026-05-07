@@ -5,6 +5,10 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { cn } from "@workspace/ui/lib/utils"
+import {
+  SmartAddressFields,
+  type SmartAddressValue,
+} from "@workspace/ui/components/composed/smart-address-fields"
 
 const createShipmentSchema = z.object({
   senderName: z.string().min(2, "Name required"),
@@ -80,10 +84,60 @@ function CreateShipmentForm({ onSubmit, isLoading, className }: CreateShipmentFo
     formState: { errors },
     trigger,
     getValues,
+    watch,
+    setValue,
   } = useForm<CreateShipmentInput>({
     resolver: zodResolver(createShipmentSchema),
     mode: "onBlur",
   })
+
+  // Bridge SmartAddressFields (controlled) into the flat schema fields.
+  React.useEffect(() => {
+    register("senderAddress")
+    register("senderCity")
+    register("senderState")
+    register("senderPincode")
+    register("receiverAddress")
+    register("receiverCity")
+    register("receiverState")
+    register("receiverPincode")
+  }, [register])
+
+  const sw = watch([
+    "senderAddress",
+    "senderCity",
+    "senderState",
+    "senderPincode",
+    "receiverAddress",
+    "receiverCity",
+    "receiverState",
+    "receiverPincode",
+  ])
+  const senderAddr: SmartAddressValue = {
+    line1: sw[0],
+    city: sw[1],
+    state: sw[2],
+    zip: sw[3],
+  }
+  const receiverAddr: SmartAddressValue = {
+    line1: sw[4],
+    city: sw[5],
+    state: sw[6],
+    zip: sw[7],
+  }
+
+  const setSenderAddr = (next: SmartAddressValue) => {
+    setValue("senderAddress", next.line1 ?? "", { shouldDirty: true })
+    setValue("senderCity", next.city ?? "", { shouldDirty: true })
+    setValue("senderState", next.state ?? "", { shouldDirty: true })
+    setValue("senderPincode", next.zip ?? "", { shouldDirty: true })
+  }
+  const setReceiverAddr = (next: SmartAddressValue) => {
+    setValue("receiverAddress", next.line1 ?? "", { shouldDirty: true })
+    setValue("receiverCity", next.city ?? "", { shouldDirty: true })
+    setValue("receiverState", next.state ?? "", { shouldDirty: true })
+    setValue("receiverPincode", next.zip ?? "", { shouldDirty: true })
+  }
 
   const stepFields: (keyof CreateShipmentInput)[][] = [
     ["senderName", "senderPhone", "senderAddress", "senderCity", "senderState", "senderPincode"],
@@ -141,49 +195,55 @@ function CreateShipmentForm({ onSubmit, isLoading, className }: CreateShipmentFo
       <form onSubmit={handleSubmit(onSubmit)}>
         {/* Step 0 — Sender */}
         {step === 0 && (
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label="Full Name" error={errors.senderName?.message}>
-              <input {...register("senderName")} className={inputClass} placeholder="John Doe" />
-            </FormField>
-            <FormField label="Phone" error={errors.senderPhone?.message}>
-              <input {...register("senderPhone")} className={inputClass} placeholder="9876543210" />
-            </FormField>
-            <FormField label="Address" error={errors.senderAddress?.message} >
-              <input {...register("senderAddress")} className={inputClass} placeholder="Street address" />
-            </FormField>
-            <FormField label="City" error={errors.senderCity?.message}>
-              <input {...register("senderCity")} className={inputClass} placeholder="Mumbai" />
-            </FormField>
-            <FormField label="State" error={errors.senderState?.message}>
-              <input {...register("senderState")} className={inputClass} placeholder="Maharashtra" />
-            </FormField>
-            <FormField label="Pincode" error={errors.senderPincode?.message}>
-              <input {...register("senderPincode")} className={inputClass} placeholder="400001" maxLength={6} />
-            </FormField>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Full Name" error={errors.senderName?.message}>
+                <input {...register("senderName")} className={inputClass} placeholder="John Doe" />
+              </FormField>
+              <FormField label="Phone" error={errors.senderPhone?.message}>
+                <input {...register("senderPhone")} className={inputClass} placeholder="9876543210" />
+              </FormField>
+            </div>
+            <SmartAddressFields
+              label="Sender address"
+              value={senderAddr}
+              onChange={setSenderAddr}
+              hideLine2
+              idPrefix="sender-addr"
+              errors={{
+                line1: errors.senderAddress?.message,
+                city: errors.senderCity?.message,
+                state: errors.senderState?.message,
+                zip: errors.senderPincode?.message,
+              }}
+            />
           </div>
         )}
 
         {/* Step 1 — Receiver */}
         {step === 1 && (
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label="Full Name" error={errors.receiverName?.message}>
-              <input {...register("receiverName")} className={inputClass} placeholder="Jane Doe" />
-            </FormField>
-            <FormField label="Phone" error={errors.receiverPhone?.message}>
-              <input {...register("receiverPhone")} className={inputClass} placeholder="9876543210" />
-            </FormField>
-            <FormField label="Address" error={errors.receiverAddress?.message}>
-              <input {...register("receiverAddress")} className={inputClass} placeholder="Street address" />
-            </FormField>
-            <FormField label="City" error={errors.receiverCity?.message}>
-              <input {...register("receiverCity")} className={inputClass} placeholder="Imphal" />
-            </FormField>
-            <FormField label="State" error={errors.receiverState?.message}>
-              <input {...register("receiverState")} className={inputClass} placeholder="Manipur" />
-            </FormField>
-            <FormField label="Pincode" error={errors.receiverPincode?.message}>
-              <input {...register("receiverPincode")} className={inputClass} placeholder="795001" maxLength={6} />
-            </FormField>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Full Name" error={errors.receiverName?.message}>
+                <input {...register("receiverName")} className={inputClass} placeholder="Jane Doe" />
+              </FormField>
+              <FormField label="Phone" error={errors.receiverPhone?.message}>
+                <input {...register("receiverPhone")} className={inputClass} placeholder="9876543210" />
+              </FormField>
+            </div>
+            <SmartAddressFields
+              label="Receiver address"
+              value={receiverAddr}
+              onChange={setReceiverAddr}
+              hideLine2
+              idPrefix="receiver-addr"
+              errors={{
+                line1: errors.receiverAddress?.message,
+                city: errors.receiverCity?.message,
+                state: errors.receiverState?.message,
+                zip: errors.receiverPincode?.message,
+              }}
+            />
           </div>
         )}
 

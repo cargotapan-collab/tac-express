@@ -1,41 +1,116 @@
 "use client"
 
 import * as React from "react"
+import * as Sentry from "@sentry/nextjs"
 import { useRouter } from "next/navigation"
 import { useInvoice, useIssueInvoice, useMarkPaid, useCancelInvoice } from "@workspace/services/hooks/use-invoices"
 import { usePaymentsForInvoice, useRecordPayment, useDeletePayment } from "@workspace/services/hooks/use-payments"
+import { useSendInvoiceWhatsapp, useWhatsappTest } from "@workspace/services/hooks/use-whatsapp"
+import { PaymentResponseLostError } from "@workspace/services/payment.service"
 import { InvoiceStatus } from "@workspace/types"
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
-import { RiArrowLeftLine, RiPrinterLine, RiEyeLine, RiMoneyDollarCircleLine } from "@workspace/ui/icons"
+import {
+  RiArrowLeftLine,
+  RiPrinterLine,
+  RiEyeLine,
+  RiMoneyDollarCircleLine,
+  RiBarcodeBoxLine,
+  RiWhatsappLine,
+} from "@workspace/ui/icons"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
-import {
-  InvoicePrintView,
-  type InvoicePrintData,
-} from "@workspace/ui/components/composed/finance/invoice-print-view"
+import { InvoiceStatusBadge } from "@workspace/ui/components/composed/finance/invoice-status-badge"
 import { PaymentTimeline } from "@workspace/ui/components/composed/finance/payment-timeline"
 import {
   RecordPaymentDialog,
   type RecordPaymentValues,
 } from "@workspace/ui/components/composed/finance/record-payment-dialog"
+import {
+  SendWhatsAppDialog,
+  type SendWhatsAppValues,
+  type WhatsappTestStatus,
+} from "@workspace/ui/components/composed/finance/send-whatsapp-dialog"
 
 interface InvoiceDetailClientProps {
   invoiceId: string
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "text-muted-foreground border-border",
-  ISSUED: "text-accent-warning border-accent-warning/30 bg-accent-warning/5",
-  PAID: "text-primary border-primary/30 bg-primary/5",
-  OVERDUE: "text-destructive border-destructive/30 bg-destructive/5",
-  CANCELLED: "text-muted-foreground border-border",
+interface ParsedNotes {
+  freeText?: string
+  remarks?: string
+  bookingDate?: string
+  natureOfQuantity?: string
+  declaredValue?: string
+  consignor?: { name?: string; phone?: string; address?: string }
+  consignee?: { name?: string; phone?: string; address?: string }
+  billingAddress?: string
+  actualWeightKg?: string | number
+  externalAwbNumber?: string
 }
 
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
+function parseNotes(raw?: string): ParsedNotes | null {
+  if (!raw) return null
+  const trimmed = raw.trim()
+  if (!trimmed.startsWith("{")) return { freeText: raw }
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>
+    return {
+      freeText: typeof parsed.notes === "string" ? parsed.notes : undefined,
+      remarks: typeof parsed.remarks === "string" ? parsed.remarks : undefined,
+      bookingDate: typeof parsed.bookingDate === "string" ? parsed.bookingDate : undefined,
+      natureOfQuantity:
+        typeof parsed.natureOfQuantity === "string" ? parsed.natureOfQuantity : undefined,
+      declaredValue:
+        typeof parsed.declaredValue === "string" ? parsed.declaredValue : undefined,
+      consignor: parsed.consignor as ParsedNotes["consignor"],
+      consignee: parsed.consignee as ParsedNotes["consignee"],
+      billingAddress:
+        typeof parsed.billingAddress === "string" ? parsed.billingAddress : undefined,
+      actualWeightKg: parsed.actualWeightKg as ParsedNotes["actualWeightKg"],
+      externalAwbNumber:
+        typeof parsed.externalAwbNumber === "string" ? parsed.externalAwbNumber : undefined,
+    }
+  } catch {
+    return { freeText: raw }
+  }
+}
+
+function Row({ label, value, accent }: { label: string; value: React.ReactNode; accent?: boolean }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-border last:border-b-0">
-      <span className="font-mono text-2xs uppercase tracking-wider text-muted-foreground">{label}</span>
-      <span className="font-mono text-sm text-foreground">{value}</span>
+    <div className="flex items-center justify-between gap-4 border-b border-border/60 py-2 last:border-b-0">
+      <span className="font-mono text-2xs uppercase tracking-[0.16em] text-muted-foreground">
+        {label}
+      </span>
+      <span
+        className={cn(
+          "font-mono text-sm tabular-nums text-foreground",
+          accent && "text-primary"
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  )
+}
+
+function Field({
+  label,
+  value,
+  className,
+}: {
+  label: string
+  value?: React.ReactNode
+  className?: string
+}) {
+  if (value === undefined || value === null || value === "") return null
+  return (
+    <div className={cn("space-y-1", className)}>
+      <p className="font-mono text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="font-mono text-xs text-foreground whitespace-pre-line break-words">
+        {value}
+      </p>
     </div>
   )
 }
@@ -50,41 +125,13 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
   const cancelInvoice = useCancelInvoice()
   const recordPayment = useRecordPayment()
   const deletePayment = useDeletePayment()
-  const [showPreview, setShowPreview] = React.useState(false)
+  const sendWhatsapp = useSendInvoiceWhatsapp()
   const [recordOpen, setRecordOpen] = React.useState(false)
+  const [whatsappOpen, setWhatsappOpen] = React.useState(false)
+  // Pre-flight WPBox config check — only fires when the dialog opens.
+  const whatsappTest = useWhatsappTest(whatsappOpen)
 
-  const handlePrint = React.useCallback(() => {
-    if (!showPreview) setShowPreview(true)
-    // Wait for the print view to mount before triggering print dialog
-    setTimeout(() => window.print(), 200)
-  }, [showPreview])
-
-  const printData: InvoicePrintData | null = React.useMemo(() => {
-    if (!invoice) return null
-    return {
-      invoiceNumber: invoice.invoiceNumber,
-      status: invoice.status,
-      createdAt: invoice.createdAt,
-      dueDate: invoice.dueDate,
-      paymentMode: invoice.paymentMode,
-      awbNumber: invoice.awbNumber,
-      customerName: invoice.customerName,
-      customerGstin: invoice.customerGstin,
-      billingAddress: undefined,
-      baseFreight: invoice.baseFreight,
-      docketCharge: invoice.docketCharge,
-      fuelSurcharge: invoice.fuelSurcharge,
-      handlingFee: invoice.handlingFee,
-      insurance: invoice.insurance,
-      discount: invoice.discount,
-      cgst: invoice.tax.cgst ?? 0,
-      sgst: invoice.tax.sgst ?? 0,
-      igst: invoice.tax.igst ?? 0,
-      totalTax: invoice.tax.total,
-      totalAmount: invoice.totalAmount,
-      notes: invoice.notes,
-    }
-  }, [invoice])
+  const parsedNotes = React.useMemo(() => parseNotes(invoice?.notes), [invoice?.notes])
 
   async function handleIssue() {
     try {
@@ -104,6 +151,41 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
     }
   }
 
+  async function handleSendWhatsapp(values: SendWhatsAppValues) {
+    try {
+      const result = await sendWhatsapp.mutateAsync({
+        invoiceId,
+        phone: values.phone,
+        mode: values.mode,
+        templateName: values.templateName,
+        templateLanguage: values.templateLanguage,
+        templateParams: values.templateParams,
+      })
+
+      // Direct mode: be honest about WhatsApp's 24h policy. The API
+      // returns success + a real WAMID even when delivery silently
+      // fails for cold contacts. Template mode: delivery is real.
+      const phoneOut = result.phone ?? values.phone
+      const invNo = result.invoiceNumber ?? invoice?.invoiceNumber ?? ""
+      const isDirect = (result.mode ?? values.mode) === "direct"
+      const wamidTag = result.wamid
+        ? ` · WAMID ${result.wamid.slice(0, 22)}…`
+        : ""
+
+      addNotification({
+        type: "success",
+        title: isDirect ? "WhatsApp queued" : "Template sent",
+        message: isDirect
+          ? `Invoice ${invNo} accepted by WhatsApp for ${phoneOut}${wamidTag}. Delivery requires recipient to have messaged you in the last 24h — switch to Template mode for guaranteed delivery.`
+          : `Template delivered to ${phoneOut} for invoice ${invNo}${wamidTag}.`,
+      })
+      setWhatsappOpen(false)
+    } catch (err) {
+      // Re-throw so the dialog can surface the error inline.
+      throw err instanceof Error ? err : new Error(String(err))
+    }
+  }
+
   async function handleRecordPayment(values: RecordPaymentValues) {
     try {
       await recordPayment.mutateAsync({
@@ -120,6 +202,47 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
         message: `₹${values.amount.toLocaleString("en-IN")} via ${values.method.replace(/_/g, " ").toLowerCase()}.`,
       })
     } catch (err) {
+      // Special-case the "RPC succeeded but response was empty" branch.
+      // The server-side mutation has already happened — the user MUST
+      // refresh, NOT retry. We discriminate by `code` for bundle safety
+      // across package boundaries; instanceof is a redundant inner guard.
+      const isResponseLost =
+        (err instanceof PaymentResponseLostError) ||
+        (typeof err === "object" &&
+          err !== null &&
+          (err as { code?: unknown }).code === "PAYMENT_RESPONSE_LOST")
+
+      if (isResponseLost) {
+        // High-severity capture: this indicates an RPC contract bug
+        // (returning null on success) and ops needs to know within
+        // minutes, not at month-end reconciliation. The Sentry tags
+        // make it filterable and grouping-friendly.
+        Sentry.captureException(err, {
+          level: "error",
+          tags: {
+            module: "finance",
+            kind: "payment_response_lost",
+            invoice_id: invoiceId,
+          },
+          extra: {
+            invoiceNumber: invoice?.invoiceNumber,
+            amount: values.amount,
+            method: values.method,
+            userId: invoice?.createdBy,
+          },
+        })
+        addNotification({
+          type: "warning",
+          title: "Payment recorded — verify before retrying",
+          message:
+            "The payment was saved on the server, but we did not receive " +
+            "a confirmation row. Refresh the invoice to verify the entry " +
+            "appears. Do NOT click Record Payment again — that would " +
+            "create a duplicate.",
+        })
+        return
+      }
+
       addNotification({
         type: "error",
         title: "Payment failed",
@@ -155,11 +278,21 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
     )
   }
 
-  const fmt = (n: number) => `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`
+  const fmt = (n: number) => `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+  const subtotal =
+    invoice.baseFreight +
+    invoice.docketCharge +
+    invoice.pickupCharge +
+    invoice.packingCharge +
+    invoice.fuelSurcharge +
+    invoice.handlingFee +
+    invoice.insurance
+  const taxable = Math.max(0, subtotal - invoice.discount)
 
   return (
     <div className="max-w-4xl space-y-6">
-      <div className="flex items-center justify-between pb-5 border-b border-border">
+      <div className="flex items-center justify-between gap-3 border-b border-border pb-5">
         <Button
           variant="ghost"
           size="sm"
@@ -170,64 +303,188 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
           Finance
         </Button>
         <div className="flex items-center gap-2">
-          <span className={cn("font-mono text-2xs uppercase tracking-wider border px-2 py-0.5", STATUS_COLORS[invoice.status] ?? "text-muted-foreground border-border")}>
-            {invoice.status}
-          </span>
+          <InvoiceStatusBadge status={invoice.status} />
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowPreview((p) => !p)}
+            onClick={() => window.open(`/print/invoice/${invoiceId}`, "_blank")}
             className="h-7 px-3 font-mono text-2xs uppercase tracking-wider"
           >
-            <RiEyeLine className="h-3.5 w-3.5 mr-1.5" /> {showPreview ? "Hide" : "Preview"}
+            <RiEyeLine className="h-3.5 w-3.5 mr-1.5" /> Preview
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={handlePrint}
+            onClick={() => window.open(`/print/invoice/${invoiceId}?print=1`, "_blank")}
             className="h-7 px-3 font-mono text-2xs uppercase tracking-wider"
           >
             <RiPrinterLine className="h-3.5 w-3.5 mr-1.5" /> Print / PDF
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(`/print/invoice-label/${invoiceId}?print=1`, "_blank")}
+            className="h-7 px-3 font-mono text-2xs uppercase tracking-wider"
+          >
+            <RiBarcodeBoxLine className="h-3.5 w-3.5 mr-1.5" /> Print Label
+          </Button>
+          {invoice.status !== InvoiceStatus.CANCELLED && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setWhatsappOpen(true)}
+              className="h-7 px-3 font-mono text-2xs uppercase tracking-wider border-accent-success/40 text-accent-success hover:bg-accent-success/10 hover:text-accent-success"
+            >
+              <RiWhatsappLine className="h-3.5 w-3.5 mr-1.5" /> Send via WhatsApp
+            </Button>
+          )}
         </div>
       </div>
 
-      <div className="border border-border bg-card p-4 space-y-1">
-        <div className="flex items-start justify-between pb-3 border-b border-border">
-          <div>
-            <p className="font-mono text-xs text-muted-foreground">Invoice</p>
-            <p className="font-mono text-xl font-bold text-primary uppercase tracking-wider">{invoice.invoiceNumber}</p>
+      <div className="tac-fui-panel space-y-4 p-4">
+        {/* Header strip */}
+        <div className="flex items-start justify-between gap-4 border-b border-border pb-3">
+          <div className="space-y-0.5">
+            <p className="font-mono text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+              Invoice
+            </p>
+            <p className="font-mono text-xl font-bold uppercase tracking-wider text-primary">
+              {invoice.invoiceNumber}
+            </p>
           </div>
-          <div className="text-right space-y-0.5">
-            <p className="font-mono text-xs text-muted-foreground">AWB: {invoice.awbNumber}</p>
+          <div className="space-y-0.5 text-right">
+            <p className="font-mono text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+              AWB
+            </p>
+            <p className="font-mono text-sm font-semibold text-foreground">
+              {invoice.awbNumber || "—"}
+            </p>
             {invoice.issuedAt && (
               <p className="font-mono text-2xs text-muted-foreground">
-                Issued: {new Date(invoice.issuedAt).toLocaleDateString("en-IN")}
+                Issued {new Date(invoice.issuedAt).toLocaleDateString("en-IN")}
               </p>
             )}
           </div>
         </div>
-        <Row label="Customer" value={invoice.customerName} />
-        {invoice.customerGstin && <Row label="GSTIN" value={invoice.customerGstin} />}
-        <Row label="Payment Mode" value={invoice.paymentMode} />
-        <Row label="Base Freight" value={fmt(invoice.baseFreight)} />
-        {invoice.fuelSurcharge > 0 && <Row label="Fuel Surcharge" value={fmt(invoice.fuelSurcharge)} />}
-        {invoice.handlingFee > 0 && <Row label="Handling Fee" value={fmt(invoice.handlingFee)} />}
-        {invoice.insurance > 0 && <Row label="Insurance" value={fmt(invoice.insurance)} />}
-        {invoice.discount > 0 && <Row label="Discount" value={`- ${fmt(invoice.discount)}`} />}
-        <Row label="Tax" value={fmt(invoice.tax.total)} />
-        <div className="flex items-center justify-between pt-2">
-          <span className="font-mono text-sm uppercase tracking-wider font-bold text-foreground">Total</span>
-          <span className="font-mono text-xl font-bold text-primary">{fmt(invoice.totalAmount)}</span>
+
+        {/* Charges breakdown */}
+        <div className="space-y-0">
+          <Row label="Customer" value={invoice.customerName} />
+          {invoice.customerGstin && <Row label="GSTIN" value={invoice.customerGstin} />}
+          <Row label="Payment Mode" value={invoice.paymentMode} />
+          <Row label="Base Freight" value={fmt(invoice.baseFreight)} />
+          {invoice.docketCharge > 0 && <Row label="Docket Charge" value={fmt(invoice.docketCharge)} />}
+          {invoice.pickupCharge > 0 && <Row label="Pickup Charge" value={fmt(invoice.pickupCharge)} />}
+          {invoice.packingCharge > 0 && <Row label="Packing Charge" value={fmt(invoice.packingCharge)} />}
+          {invoice.fuelSurcharge > 0 && <Row label="Fuel Surcharge" value={fmt(invoice.fuelSurcharge)} />}
+          {invoice.handlingFee > 0 && <Row label="Handling Fee" value={fmt(invoice.handlingFee)} />}
+          {invoice.insurance > 0 && <Row label="Insurance" value={fmt(invoice.insurance)} />}
+          <Row label="Subtotal" value={fmt(subtotal)} />
+          {invoice.discount > 0 && <Row label="Discount" value={`− ${fmt(invoice.discount)}`} />}
+          {invoice.discount > 0 && <Row label="Taxable" value={fmt(taxable)} />}
+          {(invoice.tax.cgst ?? 0) > 0 && (
+            <Row label="CGST" value={fmt(invoice.tax.cgst ?? 0)} />
+          )}
+          {(invoice.tax.sgst ?? 0) > 0 && (
+            <Row label="SGST" value={fmt(invoice.tax.sgst ?? 0)} />
+          )}
+          {(invoice.tax.igst ?? 0) > 0 && (
+            <Row label="IGST" value={fmt(invoice.tax.igst ?? 0)} />
+          )}
         </div>
-        {invoice.advancePaid > 0 && (
-          <Row label="Advance Paid" value={fmt(invoice.advancePaid)} />
-        )}
-        <Row label="Balance Due" value={<span className={invoice.balance > 0 ? "text-accent-warning font-semibold" : "text-primary"}>{fmt(invoice.balance)}</span>} />
-        {invoice.notes && <Row label="Notes" value={invoice.notes} />}
+
+        {/* Total band */}
+        <div className="flex items-center justify-between border-t-2 border-foreground/80 pt-3">
+          <span className="font-mono text-sm font-bold uppercase tracking-[0.18em] text-foreground">
+            Total
+          </span>
+          <span className="font-heading text-2xl font-bold tabular-nums text-primary">
+            {fmt(invoice.totalAmount)}
+          </span>
+        </div>
+
+        {/* Settlement band */}
+        <div className="space-y-0 border-t border-dashed border-border pt-2">
+          {invoice.advancePaid > 0 && (
+            <Row label="Advance Paid" value={`− ${fmt(invoice.advancePaid)}`} />
+          )}
+          <Row
+            label="Balance Due"
+            value={
+              <span
+                className={cn(
+                  "font-semibold",
+                  invoice.balance > 0 ? "text-accent-warning" : "text-primary"
+                )}
+              >
+                {fmt(invoice.balance)}
+              </span>
+            }
+          />
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 justify-end">
+      {/* Booking metadata (parsed from notes JSON) */}
+      {parsedNotes && (parsedNotes.consignor || parsedNotes.consignee || parsedNotes.bookingDate) && (
+        <section className="tac-fui-panel space-y-4 p-4">
+          <div className="flex items-center gap-2">
+            <span aria-hidden className="inline-block h-3 w-1 bg-primary" />
+            <h2 className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground">
+              Shipment metadata
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Field label="Booking date" value={parsedNotes.bookingDate} />
+            <Field label="Nature of goods" value={parsedNotes.natureOfQuantity} />
+            <Field label="Declared value" value={parsedNotes.declaredValue} />
+            <Field
+              label="Actual weight"
+              value={
+                parsedNotes.actualWeightKg !== undefined && parsedNotes.actualWeightKg !== ""
+                  ? `${parsedNotes.actualWeightKg} kg`
+                  : undefined
+              }
+            />
+            <Field label="External AWB" value={parsedNotes.externalAwbNumber} />
+            <Field label="Billing address" value={parsedNotes.billingAddress} />
+          </div>
+
+          {(parsedNotes.consignor || parsedNotes.consignee) && (
+            <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
+              {parsedNotes.consignor && (
+                <div className="space-y-1.5">
+                  <p className="font-mono text-2xs font-semibold uppercase tracking-[0.18em] text-primary">
+                    Consignor
+                  </p>
+                  <Field label="Name" value={parsedNotes.consignor.name} />
+                  <Field label="Phone" value={parsedNotes.consignor.phone} />
+                  <Field label="Address" value={parsedNotes.consignor.address} />
+                </div>
+              )}
+              {parsedNotes.consignee && (
+                <div className="space-y-1.5">
+                  <p className="font-mono text-2xs font-semibold uppercase tracking-[0.18em] text-primary">
+                    Consignee
+                  </p>
+                  <Field label="Name" value={parsedNotes.consignee.name} />
+                  <Field label="Phone" value={parsedNotes.consignee.phone} />
+                  <Field label="Address" value={parsedNotes.consignee.address} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {(parsedNotes.freeText || parsedNotes.remarks) && (
+            <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
+              <Field label="Notes" value={parsedNotes.freeText} />
+              <Field label="Remarks" value={parsedNotes.remarks} />
+            </div>
+          )}
+        </section>
+      )}
+
+      <div className="flex items-center justify-end gap-2">
         {invoice.status === InvoiceStatus.DRAFT && (
           <Button
             onClick={handleIssue}
@@ -285,16 +542,22 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
         onSubmit={handleRecordPayment}
       />
 
-      {showPreview && printData && (
-        <div className="pt-6 border-t border-dashed border-border print:pt-0 print:border-0">
-          <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground mb-3 print:hidden">
-            Print Preview
-          </p>
-          <div id="invoice-print-target">
-            <InvoicePrintView data={printData} />
-          </div>
-        </div>
-      )}
+      <SendWhatsAppDialog
+        open={whatsappOpen}
+        onOpenChange={setWhatsappOpen}
+        customerName={invoice.customerName}
+        defaultPhone={parsedNotes?.consignor?.phone ?? parsedNotes?.consignee?.phone ?? ""}
+        invoiceNumber={invoice.invoiceNumber}
+        totalAmount={invoice.totalAmount}
+        awbNumber={invoice.awbNumber ?? undefined}
+        onSubmit={handleSendWhatsapp}
+        isSubmitting={sendWhatsapp.isPending}
+        testStatus={whatsappTest.data}
+        testLoading={whatsappTest.isLoading || whatsappTest.isFetching}
+        onRetryTest={() => {
+          void whatsappTest.refetch()
+        }}
+      />
 
     </div>
   )

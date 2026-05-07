@@ -41,6 +41,22 @@ export const authRateLimit = redis
     })
   : null
 
+/**
+ * WhatsApp / Lemin AI send-template rate limit. Each delivered message is
+ * billed by Meta + WPBox, so the cap protects against runaway loops, hostile
+ * scripts, and accidental abuse from a compromised or curious user.
+ *
+ * 30 requests / minute / authenticated user identifier.
+ */
+export const whatsappRateLimit = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(30, "1 m"),
+      analytics: true,
+      prefix: "ratelimit:whatsapp",
+    })
+  : null
+
 /** Result type returned to middleware. */
 export interface RateLimitResult {
   success: boolean
@@ -69,4 +85,11 @@ export async function checkAuth(
 ): Promise<RateLimitResult> {
   if (!authRateLimit) return noopResult
   return authRateLimit.limit(identifier)
+}
+
+export async function checkWhatsApp(
+  identifier: string
+): Promise<RateLimitResult> {
+  if (!whatsappRateLimit) return noopResult
+  return whatsappRateLimit.limit(identifier)
 }

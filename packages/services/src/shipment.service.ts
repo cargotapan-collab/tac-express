@@ -79,6 +79,21 @@ export function createShipmentService(db: SupabaseClient) {
     },
 
     /**
+     * Reserve a fresh AWB number from the server-side `generate_awb_number()`
+     * RPC. Used by the invoice-create wizard to pre-fill the AWB field so the
+     * user never has to type one. The DB function guarantees uniqueness via a
+     * sequence + prefix (e.g. `TAC26043010002`).
+     */
+    async generateAwbNumber(): Promise<string> {
+      const { data, error } = await db.rpc("generate_awb_number")
+      if (error) throw error
+      if (typeof data !== "string" || !data) {
+        throw new Error("generate_awb_number returned an empty value")
+      }
+      return data
+    },
+
+    /**
      * Bulk-create shipments. Tries `bulk_create_shipments` RPC first
      * (validation + atomic batch); falls back to a chunked .insert() if
      * the RPC isn't deployed yet. Returns per-row outcome so the UI can

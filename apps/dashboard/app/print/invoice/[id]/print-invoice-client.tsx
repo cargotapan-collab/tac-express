@@ -16,11 +16,20 @@ import { RiArrowLeftLine } from "@workspace/ui/icons"
 
 interface PrintInvoiceClientProps {
   data: InvoicePrintData
+  /** When true, the browser print dialog is triggered automatically after the page mounts. */
+  autoPrint?: boolean
 }
 
-export function PrintInvoiceClient({ data }: PrintInvoiceClientProps) {
+export function PrintInvoiceClient({ data, autoPrint }: PrintInvoiceClientProps) {
   const router = useRouter()
   const ref = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    if (!autoPrint) return
+    // Allow the page to fully paint before triggering the OS print dialog.
+    const t = setTimeout(() => window.print(), 400)
+    return () => clearTimeout(t)
+  }, [autoPrint])
 
   return (
     <div className="min-h-screen bg-background p-6">

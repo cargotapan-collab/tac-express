@@ -32,9 +32,32 @@ function NotificationBell() {
   const { notifications, markRead, markAllRead, removeNotification } =
     useNotificationStore()
   const [open, setOpen] = React.useState(false)
-  const unreadCount = notifications.filter((n) => !n.read).length
+  // Defer Popover mount until after hydration. The notification store
+  // reads from persisted localStorage on the client (empty on server),
+  // which shifts ancestor hook-call counts between SSR and CSR and
+  // desyncs Radix's `useId()` outputs. Rendering a plain button on
+  // the first pass — with no Radix tree underneath — avoids the
+  // mismatch entirely.
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
+  const unreadCount = notifications.filter((n) => !n.read).length
   const recent = notifications.slice(0, 8)
+
+  if (!mounted) {
+    return (
+      <button
+        data-slot="notifications-trigger"
+        type="button"
+        className="relative flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+        aria-label="Notifications"
+      >
+        <RiNotification3Line className="h-4 w-4" />
+      </button>
+    )
+  }
 
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
@@ -49,7 +72,7 @@ function NotificationBell() {
           {unreadCount > 0 && (
             <span
               className={cn(
-                "absolute top-0.5 right-0.5 min-w-[14px] h-[14px] px-1",
+                "absolute top-0.5 right-0.5 min-w-3.5 h-3.5 px-1",
                 "flex items-center justify-center",
                 "font-mono text-2xs font-bold tabular-nums",
                 "bg-destructive text-destructive-foreground",
@@ -69,7 +92,7 @@ function NotificationBell() {
           align="end"
           sideOffset={8}
           className={cn(
-            "z-50 w-[360px] bg-card border border-border shadow-brutal",
+            "z-50 w-90 bg-card border border-border shadow-brutal",
             "data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-top-2",
             "data-closed:animate-out data-closed:fade-out-0"
           )}
@@ -122,16 +145,12 @@ function NotificationBell() {
                         ? "text-destructive"
                         : "text-muted-foreground"
 
-                const content = (
-                  <div
-                    className={cn(
-                      "flex items-start gap-3 px-4 py-3 transition-colors",
-                      !n.read ? "bg-primary/5" : "hover:bg-accent/50"
-                    )}
-                    onClick={() => {
-                      if (!n.read) markRead(n.id)
-                    }}
-                  >
+                // Main row body. Rendered inside either a Link (when n.link
+                // is set) or a <button> (otherwise) so keyboard users can
+                // activate it. Dismiss is a SIBLING — never nest a <button>
+                // inside an <a>; it's invalid HTML and breaks focus order.
+                const mainBody = (
+                  <>
                     <Icon
                       className={cn("h-4 w-4 shrink-0 mt-0.5", iconColor)}
                       aria-hidden="true"
@@ -162,34 +181,49 @@ function NotificationBell() {
                         aria-hidden="true"
                       />
                     )}
+                  </>
+                )
+
+                const handleActivate = () => {
+                  if (!n.read) markRead(n.id)
+                }
+
+                return (
+                  <li
+                    key={n.id}
+                    className={cn(
+                      "flex items-start gap-3 px-4 py-3 transition-colors",
+                      !n.read ? "bg-primary/5" : "hover:bg-accent/50"
+                    )}
+                  >
+                    {n.link ? (
+                      <Link
+                        href={n.link}
+                        onClick={() => {
+                          handleActivate()
+                          setOpen(false)
+                        }}
+                        className="flex flex-1 min-w-0 items-start gap-3 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        {mainBody}
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleActivate}
+                        className="flex flex-1 min-w-0 items-start gap-3 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        {mainBody}
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        e.preventDefault()
-                        removeNotification(n.id)
-                      }}
+                      onClick={() => removeNotification(n.id)}
                       className="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50 hover:text-destructive transition-colors"
                       aria-label={`Dismiss ${n.title}`}
                     >
                       <RiCloseLine className="h-3.5 w-3.5" />
                     </button>
-                  </div>
-                )
-
-                return (
-                  <li key={n.id}>
-                    {n.link ? (
-                      <Link
-                        href={n.link}
-                        onClick={() => setOpen(false)}
-                        className="block"
-                      >
-                        {content}
-                      </Link>
-                    ) : (
-                      content
-                    )}
                   </li>
                 )
               })}

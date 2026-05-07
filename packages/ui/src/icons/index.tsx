@@ -16,6 +16,7 @@ import {
   RiUserLine,
   RiCheckboxCircleLine,
   RiErrorWarningLine,
+  RiLoader4Line,
   RiCloseCircleLine,
   RiArrowRightLine,
   RiArrowLeftLine,
@@ -89,6 +90,7 @@ import {
   RiHistoryLine,
   RiKey2Line,
   RiSendPlaneLine,
+  RiWhatsappLine,
   RiHome2Line,
   RiShipLine,
   RiLeafLine,
@@ -137,7 +139,9 @@ import {
   RiBrushLine,
   RiTaskLine,
   RiArchiveLine,
+  RiSignalWifiErrorLine,
 } from "@remixicon/react"
+export type { RemixiconComponentType } from "@remixicon/react"
 
 export {
   RiSubtractLine,
@@ -186,6 +190,7 @@ export {
   RiBrushLine,
   RiTaskLine,
   RiArchiveLine,
+  RiSignalWifiErrorLine,
 }
 
 // Create a mapping of keys to Remix Icons, enforcing standard naming
@@ -302,6 +307,7 @@ export {
   RiUserLine,
   RiCheckboxCircleLine,
   RiErrorWarningLine,
+  RiLoader4Line,
   RiCloseCircleLine,
   RiArrowRightLine,
   RiArrowLeftLine,
@@ -375,6 +381,7 @@ export {
   RiHistoryLine,
   RiKey2Line,
   RiSendPlaneLine,
+  RiWhatsappLine,
   RiHome2Line,
   RiShipLine,
   RiLeafLine,
