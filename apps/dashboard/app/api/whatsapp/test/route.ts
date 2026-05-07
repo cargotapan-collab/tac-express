@@ -1,6 +1,11 @@
+import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
+import { getServerAuth } from "@workspace/auth/server"
+import { isManagerOrAbove } from "@workspace/auth/rbac"
+import { UserRole } from "@workspace/types"
 import { createWhatsAppServiceFromEnv } from "@workspace/services/whatsapp.service"
+import { checkWhatsApp } from "@/lib/rate-limit"
 
 /**
  * GET /api/whatsapp/test
@@ -11,6 +16,10 @@ import { createWhatsAppServiceFromEnv } from "@workspace/services/whatsapp.servi
  * The dialog uses this to:
  *   - Show a status pill BEFORE the user clicks Send
  *   - Populate the template dropdown when "Send as template" is selected
+ *
+ * Auth:
+ *   - Requires authenticated user
+ *   - Role: MANAGER or above (template catalog reveals operational metadata)
  *
  * Response shape:
  *   { ok, configured, connected, error?, templates? }
@@ -29,6 +38,44 @@ interface TemplateSummary {
 }
 
 export async function GET() {
+  /* ── 0. Authn + Authz ── */
+  const cookieStore = await cookies()
+  const auth = getServerAuth(cookieStore)
+  const user = await auth.getUser().catch(() => null)
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  const role =
+    (user.user_metadata?.role as UserRole | undefined) ??
+    (user.app_metadata?.role as UserRole | undefined)
+  if (!role || !isManagerOrAbove(role)) {
+    return NextResponse.json(
+      { error: "Insufficient permissions. Requires MANAGER or above." },
+      { status: 403 },
+    )
+  }
+
+  /* ── 0a. Per-user rate limit (shares the WhatsApp bucket with /send-invoice) ── */
+  const rl = await checkWhatsApp(`user:${user.id}`)
+  if (!rl.success) {
+    return NextResponse.json(
+      {
+        error: "Too many requests. Try again in a minute.",
+        limit: rl.limit,
+        remaining: rl.remaining,
+        reset: rl.reset,
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": String(rl.limit),
+          "X-RateLimit-Remaining": String(rl.remaining),
+          "X-RateLimit-Reset": String(rl.reset),
+        },
+      },
+    )
+  }
+
   /* ── 1. Config check ── */
   let svc
   try {

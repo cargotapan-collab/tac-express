@@ -46,11 +46,28 @@ function mapPayment(row: Record<string, unknown>): Payment {
   }
 }
 
-// Process-wide cache: once we confirm the deployment is missing the
-// `invoice_payments` table, every subsequent call short-circuits without
-// hitting the network. This kills the noisy 404 spam in the browser console
-// for invoice detail pages until the migration is applied.
-let invoicePaymentsTableMissing = false
+/**
+ * Time-bounded cache: once we confirm the deployment is missing the
+ * `invoice_payments` table, every subsequent call within the TTL window
+ * short-circuits without hitting the network. This kills the noisy 404
+ * spam in the browser console while still letting the cache lapse so a
+ * fresh deploy of the migration self-heals without a process restart.
+ *
+ * We intentionally avoid a permanent module-level boolean — on the Node
+ * runtime that pins the flag for the lifetime of the server process and
+ * silently disables payment recording for every tenant once any single
+ * caller hits a schema-cache miss.
+ */
+const RELATION_MISSING_TTL_MS = 60_000
+let invoicePaymentsRelationMissingUntil = 0
+
+function markRelationMissing(): void {
+  invoicePaymentsRelationMissingUntil = Date.now() + RELATION_MISSING_TTL_MS
+}
+
+function isRelationMissing(): boolean {
+  return Date.now() < invoicePaymentsRelationMissingUntil
+}
 
 /**
  * Recognise every error shape Supabase returns when the table or RPC is
@@ -85,7 +102,7 @@ export function createPaymentService(db: SupabaseClient) {
     async listForInvoice(invoiceId: string): Promise<Payment[]> {
       // Short-circuit once we've already learned the table is missing —
       // avoids issuing repeated 404s for every invoice that loads.
-      if (invoicePaymentsTableMissing) return []
+      if (isRelationMissing()) return []
       const { data, error } = await db
         .from("invoice_payments")
         .select("*")
@@ -93,7 +110,7 @@ export function createPaymentService(db: SupabaseClient) {
         .order("received_at", { ascending: false })
       if (error) {
         if (isMissingInvoicePaymentsRelation(error)) {
-          invoicePaymentsTableMissing = true
+          markRelationMissing()
           return []
         }
         throw error
@@ -102,7 +119,7 @@ export function createPaymentService(db: SupabaseClient) {
     },
 
     async recordPayment(input: RecordPaymentInput): Promise<Payment> {
-      if (invoicePaymentsTableMissing) {
+      if (isRelationMissing()) {
         throw new Error(
           "Payment recording is unavailable: the `invoice_payments` table " +
             "has not been deployed yet. Apply migration 20260501000002.",
@@ -124,7 +141,14 @@ export function createPaymentService(db: SupabaseClient) {
         return mapPayment(rpc.data as Record<string, unknown>)
       }
 
-      // Fallback: best-effort two-step.
+      // ⚠ Fallback: best-effort, NOT atomic. Two concurrent calls for the
+      // same invoice will both read the same `advance_paid` and both write
+      // `oldAdvance + ownAmount`, swallowing one of the increments. Apply
+      // migration `20260501000002_add_record_invoice_payment_rpc.sql` so the
+      // RPC path above is taken — it locks the invoice row inside a single
+      // transaction. We keep this fallback only so the dashboard stays
+      // functional during the brief deploy window where the table exists
+      // but the RPC has not been refreshed in PostgREST's schema cache yet.
       const { data: insRow, error: insErr } = await db
         .from("invoice_payments")
         .insert({
@@ -140,7 +164,7 @@ export function createPaymentService(db: SupabaseClient) {
         .single()
       if (insErr) {
         if (isMissingInvoicePaymentsRelation(insErr)) {
-          invoicePaymentsTableMissing = true
+          markRelationMissing()
         }
         throw insErr
       }
@@ -170,14 +194,14 @@ export function createPaymentService(db: SupabaseClient) {
     },
 
     async deletePayment(id: string): Promise<void> {
-      if (invoicePaymentsTableMissing) return
+      if (isRelationMissing()) return
       const { error } = await db
         .from("invoice_payments")
         .delete()
         .eq("id", id)
       if (error) {
         if (isMissingInvoicePaymentsRelation(error)) {
-          invoicePaymentsTableMissing = true
+          markRelationMissing()
           return
         }
         throw error

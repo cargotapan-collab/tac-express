@@ -104,7 +104,7 @@ function DashboardHeader() {
         </nav>
 
         {/* Search */}
-        <div className="relative hidden sm:block" style={{ width: 260 }}>
+        <div className="relative hidden w-65 sm:block">
           <RiSearchLine
             className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none"
             aria-hidden="true"
@@ -116,16 +116,15 @@ function DashboardHeader() {
             onClick={() => setPaletteOpen(true)}
             className={cn(
               "h-8 w-full cursor-pointer pl-8 pr-14 rounded-none",
-              "border border-border bg-surface text-sm text-muted-foreground",
+              "border border-border bg-surface text-sm font-sans tracking-tight text-muted-foreground",
               "placeholder:text-muted-foreground/60",
               "hover:border-primary hover:bg-primary/5 transition-all tac-fui-hover",
               "focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary focus:shadow-brutal"
             )}
-            style={{ font: "400 13px var(--font-sans)", letterSpacing: "-0.01em" }}
             aria-label="Open search"
           />
           <kbd
-            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-5 min-w-[1.625rem] items-center justify-center gap-px whitespace-nowrap border border-border bg-background px-1.5 font-mono text-[10px] font-medium leading-none tracking-tight text-muted-foreground"
+            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-5 min-w-6 items-center justify-center gap-px whitespace-nowrap border border-border bg-background px-1.5 font-mono text-2xs font-medium leading-none tracking-tight text-muted-foreground"
             aria-hidden="true"
           >
             <span>⌘</span>

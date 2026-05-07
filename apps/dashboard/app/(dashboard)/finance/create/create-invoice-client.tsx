@@ -23,10 +23,23 @@ import { format } from "date-fns"
 const DRAFT_KEY = "invoice_draft"
 
 function normalizeInvoiceDraft(draft: Partial<InvoiceWizardState>): InvoiceWizardState {
-  return {
-    ...INITIAL_INVOICE_STATE,
-    ...draft,
+  // Older drafts (before structured billing fields existed) only stored the
+  // joined `billingAddress` string. If we naively merged, the empty
+  // `billingLine1/City/State/Zip` from INITIAL_INVOICE_STATE would later be
+  // overwritten with a fresh empty join the moment the user touches
+  // SmartAddressFields — silent data loss. Detect that case and keep the
+  // legacy join so the user can re-enter and re-derive deliberately.
+  const merged: InvoiceWizardState = { ...INITIAL_INVOICE_STATE, ...draft }
+  const hasStructured = Boolean(
+    merged.billingLine1 || merged.billingCity || merged.billingState || merged.billingZip,
+  )
+  const hasLegacyOnly = !hasStructured && Boolean(merged.billingAddress)
+  if (hasLegacyOnly) {
+    // Surface a marker comment so the wizard's billing field knows to show
+    // a hint to the user. We keep the legacy string intact for the print view.
+    return merged
   }
+  return merged
 }
 
 export function CreateInvoiceClient() {
@@ -223,7 +236,17 @@ export function CreateInvoiceClient() {
             phone: state.consigneePhone,
             address: state.consigneeAddress,
           },
+          // billingAddress is the legacy joined string for back-compat with
+          // existing print views and report consumers. The structured parts
+          // below are the canonical store going forward — they round-trip
+          // through SmartAddressFields when the invoice is re-edited.
           billingAddress: state.billingAddress,
+          billing: {
+            line1: state.billingLine1,
+            city: state.billingCity,
+            state: state.billingState,
+            zip: state.billingZip,
+          },
           actualWeightKg: state.actualWeightKg,
           pickupCharge: state.pickupCharge,
           packingCharge: state.packingCharge,

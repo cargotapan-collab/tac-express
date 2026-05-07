@@ -1,22 +1,30 @@
 import { cookies } from "next/headers"
 import { NextResponse, type NextRequest } from "next/server"
+import { z } from "zod"
 
+import { getServerAuth } from "@workspace/auth/server"
+import { isManagerOrAbove } from "@workspace/auth/rbac"
+import { UserRole } from "@workspace/types"
 import { createInvoiceServerService } from "@workspace/services/server"
 import {
   createWhatsAppServiceFromEnv,
   normalizePhone,
   type WhatsAppTemplateComponent,
 } from "@workspace/services/whatsapp.service"
+import { checkWhatsApp } from "@/lib/rate-limit"
 
 /**
  * POST /api/whatsapp/send-invoice
  *
  * Sends a WhatsApp summary message for an invoice to the customer.
+ * Requires:
+ *   - Authenticated user (Supabase session)
+ *   - Role: MANAGER or above (Finance / WhatsApp messages cost money)
  *
- * Body:
+ * Body (validated by zod):
  *   {
- *     invoiceId: string,                  // required
- *     phone?:    string,                  // optional override
+ *     invoiceId: string,                  // required, UUID
+ *     phone?:    string,                  // optional override (E.164 / 10-digit IN)
  *     mode?:     "direct" | "template",   // default: "direct"
  *
  *     // Required when mode === "template":
@@ -38,14 +46,35 @@ import {
  *      already exist and be APPROVED in your LeminAi dashboard.
  */
 
-interface RequestBody {
-  invoiceId?: string
-  phone?: string
-  mode?: "direct" | "template"
-  templateName?: string
-  templateLanguage?: string
-  templateParams?: Array<{ text: string }>
-}
+/* ── Request schema (zod) ─────────────────────────────────────────────────
+ * One source of truth for the body shape. The discriminated union ensures
+ * `templateName` / `templateLanguage` are required when mode === "template"
+ * without having to write that check by hand.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+const TemplateParamSchema = z.object({
+  text: z.string().min(1).max(1024),
+})
+
+const BaseBodySchema = z.object({
+  invoiceId: z.string().min(1, "invoiceId is required"),
+  phone: z.string().max(20).optional(),
+})
+
+const DirectModeSchema = BaseBodySchema.extend({
+  mode: z.literal("direct").optional(),
+})
+
+const TemplateModeSchema = BaseBodySchema.extend({
+  mode: z.literal("template"),
+  templateName: z.string().min(1, "templateName is required for template mode"),
+  templateLanguage: z
+    .string()
+    .min(1, "templateLanguage is required for template mode"),
+  templateParams: z.array(TemplateParamSchema).max(20).optional(),
+})
+
+const RequestBodySchema = z.union([DirectModeSchema, TemplateModeSchema])
 
 interface InvoiceLike {
   invoiceNumber: string
@@ -58,53 +87,88 @@ interface InvoiceLike {
   paymentMode: string
 }
 
+/** Maximum allowed length of `invoice.notes` we will attempt to JSON.parse.
+ *  Higher than realistic but caps event-loop blocking from a hostile/oversize
+ *  notes blob. */
+const MAX_NOTES_BYTES = 64 * 1024
+
 export async function POST(req: NextRequest) {
-  let body: RequestBody
+  /* ─── 0. Authn + Authz ─── */
+  const cookieStore = await cookies()
+  const auth = getServerAuth(cookieStore)
+  const user = await auth.getUser().catch(() => null)
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  // user_metadata.role is the canonical place for role per existing usage.
+  const role =
+    (user.user_metadata?.role as UserRole | undefined) ??
+    (user.app_metadata?.role as UserRole | undefined)
+  if (!role || !isManagerOrAbove(role)) {
+    return NextResponse.json(
+      {
+        error:
+          "Insufficient permissions. Sending invoices via WhatsApp requires MANAGER or above.",
+      },
+      { status: 403 },
+    )
+  }
+
+  /* ─── 0a. Per-user rate limit ─── */
+  const rl = await checkWhatsApp(`user:${user.id}`)
+  if (!rl.success) {
+    return NextResponse.json(
+      {
+        error: "Too many requests. Try again in a minute.",
+        limit: rl.limit,
+        remaining: rl.remaining,
+        reset: rl.reset,
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": String(rl.limit),
+          "X-RateLimit-Remaining": String(rl.remaining),
+          "X-RateLimit-Reset": String(rl.reset),
+        },
+      },
+    )
+  }
+
+  /* ─── 1. Parse + validate body ─── */
+  let parsed: z.infer<typeof RequestBodySchema>
   try {
-    body = (await req.json()) as RequestBody
-  } catch {
+    const raw = await req.json()
+    parsed = RequestBodySchema.parse(raw)
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid request body", issues: err.issues },
+        { status: 400 },
+      )
+    }
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
-  if (!body.invoiceId || typeof body.invoiceId !== "string") {
-    return NextResponse.json({ error: "invoiceId is required" }, { status: 400 })
-  }
+  const mode: "direct" | "template" =
+    parsed.mode === "template" ? "template" : "direct"
 
-  const mode: "direct" | "template" = body.mode === "template" ? "template" : "direct"
-
-  /* Validate template fields when in template mode */
-  if (mode === "template") {
-    if (!body.templateName) {
-      return NextResponse.json(
-        { error: "templateName is required for template mode" },
-        { status: 400 }
-      )
-    }
-    if (!body.templateLanguage) {
-      return NextResponse.json(
-        { error: "templateLanguage is required for template mode" },
-        { status: 400 }
-      )
-    }
-  }
-
-  /* ─── 1. Load invoice (RLS-checked via cookie-bound Supabase) ─── */
-  const cookieStore = await cookies()
+  /* ─── 2. Load invoice (RLS-checked via cookie-bound Supabase) ─── */
   const invoiceService = createInvoiceServerService(cookieStore)
   const invoice = (await invoiceService
-    .getInvoiceById(body.invoiceId)
+    .getInvoiceById(parsed.invoiceId)
     .catch(() => null)) as InvoiceLike | null
 
   if (!invoice) {
     return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
   }
 
-  /* ─── 2. Resolve phone — override > consignor > consignee ─── */
-  const rawPhone = body.phone ?? extractPhoneFromInvoice(invoice)
+  /* ─── 3. Resolve phone — override > consignor > consignee ─── */
+  const rawPhone = parsed.phone ?? extractPhoneFromInvoice(invoice)
   if (!rawPhone) {
     return NextResponse.json(
       { error: "No phone number found for this invoice" },
-      { status: 422 }
+      { status: 422 },
     )
   }
 
@@ -112,11 +176,11 @@ export async function POST(req: NextRequest) {
   if (!phone) {
     return NextResponse.json(
       { error: `Phone "${rawPhone}" could not be normalized to E.164` },
-      { status: 400 }
+      { status: 400 },
     )
   }
 
-  /* ─── 3. Build the WhatsApp service from env ─── */
+  /* ─── 4. Build the WhatsApp service from env ─── */
   let svc
   try {
     svc = createWhatsAppServiceFromEnv()
@@ -127,22 +191,24 @@ export async function POST(req: NextRequest) {
           err instanceof Error ? err.message : String(err)
         }`,
       },
-      { status: 503 }
+      { status: 503 },
     )
   }
 
-  /* ─── 4. Dispatch — direct or template ─── */
-  console.log(
-    `[whatsapp] sending invoice ${invoice.invoiceNumber} → ${phone} (mode=${mode})`
-  )
+  /* ─── 5. Dispatch — direct or template ─── */
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `[whatsapp] sending invoice ${invoice.invoiceNumber} → ${phone} (mode=${mode}, by=${user.id})`,
+    )
+  }
 
   const result =
-    mode === "template"
+    parsed.mode === "template"
       ? await svc.sendTemplate({
           phone,
-          templateName: body.templateName!,
-          templateLanguage: body.templateLanguage!,
-          components: buildTemplateComponents(body.templateParams, invoice),
+          templateName: parsed.templateName,
+          templateLanguage: parsed.templateLanguage,
+          components: buildTemplateComponents(parsed.templateParams, invoice),
         })
       : await svc.sendMessage({
           phone,
@@ -152,15 +218,17 @@ export async function POST(req: NextRequest) {
         })
 
   if (!result.ok) {
-    console.error(
-      `[whatsapp] send failed for ${invoice.invoiceNumber} → ${phone} (mode=${mode}):`,
-      {
-        error: result.error,
-        status: result.status,
-        attempted: result.attemptedFormats,
-        rawResponse: result.rawResponse?.slice(0, 200),
-      }
-    )
+    if (process.env.NODE_ENV !== "production") {
+      console.error(
+        `[whatsapp] send failed for ${invoice.invoiceNumber} → ${phone} (mode=${mode}):`,
+        {
+          error: result.error,
+          status: result.status,
+          attempted: result.attemptedFormats,
+          rawResponse: result.rawResponse?.slice(0, 200),
+        },
+      )
+    }
     return NextResponse.json(
       {
         error: result.error,
@@ -169,17 +237,19 @@ export async function POST(req: NextRequest) {
         attemptedFormats: result.attemptedFormats,
         mode,
       },
-      { status: 502 }
+      { status: 502 },
     )
   }
 
-  /* ─── 5. Extract WAMID for success surfacing ─── */
+  /* ─── 6. Extract WAMID for success surfacing ─── */
   const wamid = extractWamid(result.data)
 
-  console.log(
-    `[whatsapp] send OK for ${invoice.invoiceNumber} → ${phone} (mode=${mode})`,
-    { wamid }
-  )
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `[whatsapp] send OK for ${invoice.invoiceNumber} → ${phone} (mode=${mode})`,
+      { wamid },
+    )
+  }
 
   return NextResponse.json({
     ok: true,
@@ -197,6 +267,8 @@ export async function POST(req: NextRequest) {
 
 function extractPhoneFromInvoice(invoice: InvoiceLike): string | null {
   if (!invoice.notes) return null
+  // Cap to avoid event-loop block from an oversized notes blob.
+  if (invoice.notes.length > MAX_NOTES_BYTES) return null
   const trimmed = invoice.notes.trim()
   if (!trimmed.startsWith("{")) return null
   try {
@@ -257,7 +329,7 @@ function buildInvoiceMessage(invoice: InvoiceLike): string {
  */
 function buildTemplateComponents(
   params: Array<{ text: string }> | undefined,
-  invoice: InvoiceLike
+  invoice: InvoiceLike,
 ): WhatsAppTemplateComponent[] {
   const formatINR = (n: number) =>
     `₹${Number(n).toLocaleString("en-IN", {

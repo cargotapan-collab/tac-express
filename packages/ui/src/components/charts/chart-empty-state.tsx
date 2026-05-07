@@ -1,5 +1,5 @@
 import * as React from "react"
-import { RiSignalWifiErrorLine } from "@remixicon/react"
+import { RiSignalWifiErrorLine } from "../../icons"
 import { cn } from "../../lib/utils"
 
 export interface ChartEmptyStateProps {
