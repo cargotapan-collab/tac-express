@@ -105,7 +105,24 @@ interface InvoiceLike {
 const MAX_NOTES_BYTES = 64 * 1024
 
 export async function POST(req: NextRequest) {
-  /* ─── 0. Authn + Authz ─── */
+  /* ─── 0. Server-side kill switch ───────────────────────────────────
+   * Set `WHATSAPP_ENABLED=true` to permit sends. Any other value (unset,
+   * "false", typo) returns 503 immediately. This exists so when (not if)
+   * Lemin AI changes their template schema, has an outage, or we need
+   * to halt sends for any other operational reason, we flip a single
+   * env var instead of redeploying. Tracked: issue #12 (DB-backed
+   * follow-up for non-redeploy toggling). */
+  if (process.env.WHATSAPP_ENABLED !== "true") {
+    return NextResponse.json(
+      {
+        error:
+          "WhatsApp sending is disabled. Set WHATSAPP_ENABLED=true to enable.",
+      },
+      { status: 503 },
+    )
+  }
+
+  /* ─── 1. Authn + Authz ─── */
   const cookieStore = await cookies()
   const auth = getServerAuth(cookieStore)
   const user = await auth.getUser().catch(() => null)
@@ -182,6 +199,22 @@ export async function POST(req: NextRequest) {
    * the invoice's notes JSON. body.phone is only honored if it normalises
    * to one of these — otherwise the caller must explicitly opt in via
    * `overridePhone: true` AND hold role >= ADMIN.
+   *
+   * ⚠ TRUST BOUNDARY:
+   *   - `customer.phone` comes from the `customers` table, which only
+   *     ADMIN/MANAGER roles can write to. Trustworthy.
+   *   - `notes.consignor.phone` / `notes.consignee.phone` are written
+   *     into `notes` JSON by ANY operator that creates an invoice
+   *     (including the same MANAGER calling this endpoint).
+   *
+   * That means a manager who creates an invoice can effectively
+   * pre-load the allow-list with whatever number they want, then send
+   * to it without using the override. This is much narrower than the
+   * original IDOR (it's a manager, not anonymous; the phone is on a
+   * real invoice they authored), but real. Do NOT widen the allow-list
+   * to include other operator-written fields without re-evaluating
+   * this trust boundary. If we ever want to send to an arbitrary
+   * number, USE the override path — that's why it exists.
    */
   const customerService = createCustomerServerService(cookieStore)
   const customer = invoice.customerId

@@ -395,12 +395,19 @@ export function createWhatsAppServiceFromEnv(): WhatsAppService {
  * Normalize a free-form phone string to the digits-only format the WPBox
  * API expects (country code + national number, no `+`, no spaces).
  *
- * - Strips all non-digit characters
- * - 10 digits → prepends `defaultCountryCode` (default: India "91")
- * - 11 digits starting with `0` → strips the leading 0, prepends country code
- * - 12-13 digits already containing the country code → returned as-is
+ * Canonical Indian form: `91` + 10-digit subscriber number = 12 digits total.
  *
- * Returns `null` if no plausible phone number can be derived.
+ * Recognised input shapes (assumes default country code "91"):
+ * - `9876543210`           → `919876543210`   (bare 10-digit national)
+ * - `09876543210`          → `919876543210`   (national with trunk-zero)
+ * - `919876543210`         → `919876543210`   (already canonical)
+ * - `+91 98765 43210`      → `919876543210`   (after non-digit strip)
+ * - `+91 0 9876543210`     → `919876543210`   (operator prefix +0 stripped)
+ *
+ * Returns `null` if no plausible Indian phone can be derived. Used as the
+ * comparison key for the WhatsApp IDOR allow-list — a bug here can either
+ * accept illegitimate sends or reject legitimate ones, so the function
+ * stays defensive about ambiguous inputs.
  */
 export function normalizePhone(
   input: string,
@@ -410,21 +417,34 @@ export function normalizePhone(
   const digits = input.replace(/\D/g, "")
   if (!digits) return null
 
-  // Already includes country code (10-digit national + 2-digit country)
-  if (digits.length === 12 && digits.startsWith(defaultCountryCode)) return digits
-  if (digits.length === 13 && digits.startsWith(defaultCountryCode)) return digits
+  // Canonical: 12-digit (country code + 10-digit subscriber).
+  if (digits.length === 12 && digits.startsWith(defaultCountryCode)) {
+    return digits
+  }
 
-  // National number with a leading 0 (Indian local format)
+  // 13-digit form is almost always `91` + spurious trunk-zero + 10-digit
+  // subscriber (the user typed `+91 0 …`). Strip the zero rather than
+  // returning the malformed value — otherwise this number compares !=
+  // the canonical one and breaks the allow-list. Reject anything else.
+  if (digits.length === 13 && digits.startsWith(defaultCountryCode)) {
+    if (digits[2] === "0") {
+      return defaultCountryCode + digits.slice(3)
+    }
+    return null
+  }
+
+  // National number with leading trunk-zero.
   if (digits.length === 11 && digits.startsWith("0")) {
     return defaultCountryCode + digits.slice(1)
   }
 
-  // Bare 10-digit national number — assume default country
+  // Bare 10-digit national number — assume default country.
   if (digits.length === 10) {
     return defaultCountryCode + digits
   }
 
-  // 11-digit Indian mobile without leading zero (e.g. user typed extra digit)
-  // — reject rather than guess
+  // Anything else (8-digit landlines, 11-digit no-zero, 14-digit garbage,
+  // non-IN country codes) is rejected — the caller MUST surface a clear
+  // error rather than guess.
   return null
 }

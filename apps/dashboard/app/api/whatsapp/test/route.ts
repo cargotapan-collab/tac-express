@@ -38,7 +38,23 @@ interface TemplateSummary {
 }
 
 export async function GET() {
-  /* ── 0. Authn + Authz ── */
+  /* ── 0. Server-side kill switch (matches /send-invoice). ───────────
+   * Set `WHATSAPP_ENABLED=true` to permit calls. Any other value returns
+   * 503 immediately. The dialog reads the 503 status and surfaces a
+   * "WhatsApp disabled" pill so users don't try to send. Tracked: #12. */
+  if (process.env.WHATSAPP_ENABLED !== "true") {
+    return NextResponse.json(
+      {
+        ok: false,
+        configured: false,
+        connected: false,
+        error: "WhatsApp sending is disabled. Set WHATSAPP_ENABLED=true to enable.",
+      },
+      { status: 503 },
+    )
+  }
+
+  /* ── 1. Authn + Authz ── */
   const cookieStore = await cookies()
   const auth = getServerAuth(cookieStore)
   const user = await auth.getUser().catch(() => null)
