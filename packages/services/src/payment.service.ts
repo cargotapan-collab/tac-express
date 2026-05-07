@@ -209,6 +209,22 @@ export function createPaymentService(db: SupabaseClient) {
         })
       }
 
+      // RPC errored. The fallback INSERT path is ONLY appropriate for
+      // "function not found" / schema-cache-miss errors — i.e. the RPC
+      // genuinely isn't deployed yet (issue #9). For ANY other RPC error
+      // (constraint violation, RLS denied, invoice-not-found, transaction
+      // rollback, network error) the fallback would either:
+      //   (a) duplicate work the RPC partially completed, OR
+      //   (b) succeed where the RPC was correctly rejecting the operation,
+      //       silently bypassing business rules / RLS that the RPC enforced.
+      //
+      // Both outcomes corrupt data. So we narrow the fallback to the
+      // missing-relation case explicitly and re-throw everything else
+      // (Macroscope High finding, PR #8 commit 9547758 follow-up).
+      if (!isMissingInvoicePaymentsRelation(rpc.error)) {
+        throw rpc.error
+      }
+
       // ⚠ TEMPORARY FALLBACK — Tracking issue: #9
       //
       // The two-step `insert + read invoice + update` path below is NOT
