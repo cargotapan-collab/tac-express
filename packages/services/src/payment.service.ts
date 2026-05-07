@@ -147,8 +147,27 @@ export function createPaymentService(db: SupabaseClient) {
         p_received_at: receivedAt,
         p_attachment_path: input.attachmentPath ?? null,
       })
-      if (!rpc.error && rpc.data) {
-        return mapPayment(rpc.data as Record<string, unknown>)
+      if (!rpc.error) {
+        // RPC succeeded. THREE outcomes from here, ALL must avoid the
+        // fallback INSERT below — the RPC has already inserted + locked
+        // + updated balance, so re-running the fallback would duplicate
+        // the row and double-increment `advance_paid` (Macroscope finding,
+        // PR #8). Distinguish by whether we got a row back to map or not.
+        if (rpc.data) {
+          return mapPayment(rpc.data as Record<string, unknown>)
+        }
+        // RPC succeeded but returned null/undefined. The mutation has
+        // happened on the server (SECURITY DEFINER + transaction); we
+        // just lost the response shape. We THROW rather than fall
+        // through, so the caller surfaces a clear "refresh to see your
+        // payment" error instead of writing a duplicate. Acceptance
+        // criteria for issue #9 will tighten the RPC's return contract;
+        // in the meantime this preserves data integrity.
+        throw new Error(
+          "Payment was recorded on the server but the response was empty. " +
+            "Refresh the invoice to see the new entry. If the payment does " +
+            "not appear, contact support — do NOT retry from the dialog.",
+        )
       }
 
       // ⚠ TEMPORARY FALLBACK — Tracking issue: #9
