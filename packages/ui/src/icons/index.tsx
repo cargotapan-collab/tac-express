@@ -139,7 +139,6 @@ import {
   RiBrushLine,
   RiTaskLine,
   RiArchiveLine,
-  RiWhatsappLine,
 } from "@remixicon/react"
 
 export {
@@ -189,7 +188,6 @@ export {
   RiBrushLine,
   RiTaskLine,
   RiArchiveLine,
-  RiWhatsappLine,
 }
 
 // Create a mapping of keys to Remix Icons, enforcing standard naming
