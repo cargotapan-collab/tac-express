@@ -40,6 +40,7 @@
         "./manifest.service": "./src/manifest.service.ts",
         "./invoice.service": "./src/invoice.service.ts",
         "./customer.service": "./src/customer.service.ts",
+        "./payment.service": "./src/payment.service.ts",
         "./exception.service": "./src/exception.service.ts",
         "./analytics.service": "./src/analytics.service.ts",
         "./orbital.service": "./src/orbital.service.ts",

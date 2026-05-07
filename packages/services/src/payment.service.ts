@@ -1,5 +1,43 @@
 import type { SupabaseClient } from "@workspace/database/supabase.types"
 
+/**
+ * Thrown when the `record_invoice_payment` RPC returned `error = null` but
+ * also `data = null/undefined`. The server-side mutation has already
+ * happened (RPC runs inside a transaction with SECURITY DEFINER); the
+ * client just lost the response shape — likely an RLS filter on the
+ * returning row, an RPC that returned `void`, or a network framing issue.
+ *
+ * This error MUST NOT be confused with a generic mutation failure. The
+ * caller should:
+ *   - NOT retry the operation (the payment already exists on the server;
+ *     retrying creates a duplicate)
+ *   - surface a clear "refresh to verify" message to the operator
+ *   - report to error tracking (Sentry) with high severity since this
+ *     indicates a server-contract issue worth investigating
+ *
+ * Discriminate via `.code === "PAYMENT_RESPONSE_LOST"` for bundle-safety
+ * across package boundaries; `instanceof PaymentResponseLostError` also
+ * works inside the same bundle.
+ */
+export class PaymentResponseLostError extends Error {
+  readonly code = "PAYMENT_RESPONSE_LOST" as const
+  readonly invoiceId: string
+  readonly amount: number
+  readonly receivedAt: string
+
+  constructor(input: { invoiceId: string; amount: number; receivedAt: string }) {
+    super(
+      "Payment was recorded on the server but the response was empty. " +
+        "Refresh the invoice to see the new entry. If the payment does " +
+        "not appear, contact support — do NOT retry from the dialog.",
+    )
+    this.name = "PaymentResponseLostError"
+    this.invoiceId = input.invoiceId
+    this.amount = input.amount
+    this.receivedAt = input.receivedAt
+  }
+}
+
 export type PaymentMethod =
   | "CASH"
   | "UPI"
@@ -158,16 +196,17 @@ export function createPaymentService(db: SupabaseClient) {
         }
         // RPC succeeded but returned null/undefined. The mutation has
         // happened on the server (SECURITY DEFINER + transaction); we
-        // just lost the response shape. We THROW rather than fall
-        // through, so the caller surfaces a clear "refresh to see your
-        // payment" error instead of writing a duplicate. Acceptance
+        // just lost the response shape. We THROW a typed error rather
+        // than fall through, so the caller can surface a clear "refresh
+        // to verify" message AND report to error tracking with high
+        // severity (this indicates a server-contract issue). Acceptance
         // criteria for issue #9 will tighten the RPC's return contract;
         // in the meantime this preserves data integrity.
-        throw new Error(
-          "Payment was recorded on the server but the response was empty. " +
-            "Refresh the invoice to see the new entry. If the payment does " +
-            "not appear, contact support — do NOT retry from the dialog.",
-        )
+        throw new PaymentResponseLostError({
+          invoiceId: input.invoiceId,
+          amount: input.amount,
+          receivedAt,
+        })
       }
 
       // ⚠ TEMPORARY FALLBACK — Tracking issue: #9
