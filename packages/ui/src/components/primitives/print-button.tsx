@@ -71,6 +71,12 @@ export const PRINT_PAGE_SIZES = {
   Thermal4x6: "@page { size: 4in 6in; margin: 0; }",
   ThermalShipping:
     "@page { size: 4in 6in; margin: 0; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }",
+  /**
+   * 3:1 landscape adhesive label (6" × 2"). Default for the redesigned
+   * `ShippingLabel` — wide hangtag-style format with consignee + barcode.
+   */
+  Thermal6x2:
+    "@page { size: 6in 2in; margin: 0; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }",
   Letter: "@page { size: Letter portrait; margin: 12mm; }",
 } as const
 

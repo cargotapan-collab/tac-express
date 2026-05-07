@@ -1,10 +1,32 @@
 import type { Metadata } from "next"
-import { InvoiceDetailClient } from "./invoice-detail-client"
+import { cookies } from "next/headers"
 
-export const metadata: Metadata = { title: "Invoice Detail | TAC Express" }
+import { createInvoiceServerService } from "@workspace/services/server"
+
+import { InvoiceDetailClient } from "./invoice-detail-client"
 
 interface Props {
   params: Promise<{ id: string }>
+}
+
+/**
+ * Title every invoice with its invoice number so browser tabs read
+ * "INV-2026-01014 · …" — easy to identify at a glance when several
+ * invoice tabs are open.
+ */
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params
+  const cookieStore = await cookies()
+  const invoiceService = createInvoiceServerService(cookieStore)
+  const invoice = await invoiceService.getInvoiceById(id).catch(() => null)
+
+  if (!invoice) {
+    return { title: "Invoice · TAC Express" }
+  }
+  return {
+    title: `${invoice.invoiceNumber} · ${invoice.customerName} · TAC Express`,
+    description: `Tax invoice ${invoice.invoiceNumber} for ${invoice.customerName}`,
+  }
 }
 
 export default async function InvoiceDetailPage({ params }: Props) {

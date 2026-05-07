@@ -15,7 +15,7 @@ export function createInvoiceService(db: SupabaseClient) {
         .order("created_at", { ascending: false })
         .limit(filters.pageSize ?? 50)
 
-      if (filters.status?.length) query = query.in("status", filters.status)
+      if (filters.status?.length) query = query.in("status", filters.status.map(toDbInvoiceStatus))
       if (filters.search) {
         query = query.or(`invoice_number.ilike.%${filters.search}%,awb_number.ilike.%${filters.search}%`)
       }
@@ -38,11 +38,25 @@ export function createInvoiceService(db: SupabaseClient) {
     },
 
     async createInvoice(input: CreateInvoiceDbInput): Promise<Invoice> {
+      const awbNumber = input.awb_number?.trim().toUpperCase() || null
+      const customerId = input.customer_id || null
+      const shipment = awbNumber
+        ? await findShipmentForInvoice(db, awbNumber)
+        : null
+      const customerExists = customerId
+        ? await customerExistsForInvoice(db, customerId)
+        : false
       const payload: CreateInvoiceDbInput = {
         ...input,
-        status: InvoiceStatus.DRAFT,
-        awb_number: input.awb_number?.trim() || null,
-        customer_id: input.customer_id || null,
+        status: toDbInvoiceStatus(InvoiceStatus.DRAFT),
+        payment_mode: toDbPaymentMode(input.payment_mode),
+        awb_number: shipment?.awb_number ?? null,
+        shipment_id: input.shipment_id ?? shipment?.id ?? null,
+        customer_id: customerExists ? customerId : null,
+        notes: mergeInvoiceNotes(input.notes, {
+          externalAwbNumber: shipment ? undefined : awbNumber,
+          invalidCustomerId: customerExists ? undefined : customerId,
+        }),
       }
       const { data, error } = await db
         .from("invoices")
@@ -56,27 +70,27 @@ export function createInvoiceService(db: SupabaseClient) {
     async issueInvoice(id: string): Promise<void> {
       const { error } = await db
         .from("invoices")
-        .update({ status: InvoiceStatus.ISSUED, issued_at: new Date().toISOString() })
+        .update({ status: toDbInvoiceStatus(InvoiceStatus.ISSUED), issued_at: new Date().toISOString() })
         .eq("id", id)
-        .eq("status", InvoiceStatus.DRAFT)
+        .eq("status", toDbInvoiceStatus(InvoiceStatus.DRAFT))
       if (error) throw error
     },
 
     async markPaid(id: string, paidAt?: string): Promise<void> {
       const { error } = await db
         .from("invoices")
-        .update({ status: InvoiceStatus.PAID, paid_at: paidAt ?? new Date().toISOString() })
+        .update({ status: toDbInvoiceStatus(InvoiceStatus.PAID), paid_at: paidAt ?? new Date().toISOString() })
         .eq("id", id)
-        .eq("status", InvoiceStatus.ISSUED)
+        .eq("status", toDbInvoiceStatus(InvoiceStatus.ISSUED))
       if (error) throw error
     },
 
     async cancelInvoice(id: string): Promise<void> {
       const { error } = await db
         .from("invoices")
-        .update({ status: InvoiceStatus.CANCELLED })
+        .update({ status: toDbInvoiceStatus(InvoiceStatus.CANCELLED) })
         .eq("id", id)
-        .in("status", [InvoiceStatus.DRAFT, InvoiceStatus.ISSUED])
+        .in("status", [toDbInvoiceStatus(InvoiceStatus.DRAFT), toDbInvoiceStatus(InvoiceStatus.ISSUED)])
       if (error) throw error
     },
 
@@ -84,10 +98,92 @@ export function createInvoiceService(db: SupabaseClient) {
       const { count, error } = await db
         .from("invoices")
         .select("*", { count: "exact", head: true })
-        .eq("status", InvoiceStatus.OVERDUE)
+        .eq("status", toDbInvoiceStatus(InvoiceStatus.OVERDUE))
       if (error) throw error
       return count ?? 0
     },
+  }
+}
+
+async function findShipmentForInvoice(
+  db: SupabaseClient,
+  awbNumber: string
+): Promise<{ id: string; awb_number: string } | null> {
+  const { data, error } = await db
+    .from("shipments")
+    .select("id, awb_number")
+    .eq("awb_number", awbNumber)
+    .maybeSingle()
+
+  if (error) throw error
+  return data as { id: string; awb_number: string } | null
+}
+
+/** RFC-4122 UUID regex — PostgREST rejects non-UUID values with 400. */
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+async function customerExistsForInvoice(
+  db: SupabaseClient,
+  customerId: string
+): Promise<boolean> {
+  // Guard: never send a malformed UUID to PostgREST — it returns 400.
+  if (!UUID_RE.test(customerId)) return false
+
+  const { data, error } = await db
+    .from("customers")
+    .select("id")
+    .eq("id", customerId)
+    .maybeSingle()
+
+  if (error) throw error
+  return Boolean(data)
+}
+
+function toDbInvoiceStatus(status: unknown): string {
+  if (typeof status !== "string") return InvoiceStatus.DRAFT
+  return status.toUpperCase()
+}
+
+function toDbPaymentMode(mode: unknown): string {
+  if (mode === "topay") return "TO_PAY"
+  if (mode === "credit") return "TBB"
+  if (mode === "prepaid") return "PAID"
+  if (typeof mode === "string") return mode.toUpperCase()
+  return "TO_PAY"
+}
+
+function toDomainInvoiceStatus(status: unknown): string {
+  if (typeof status !== "string") return InvoiceStatus.DRAFT
+  return status.toUpperCase()
+}
+
+function toDomainPaymentMode(mode: unknown): string {
+  if (mode === "topay") return "TO_PAY"
+  if (mode === "credit") return "TBB"
+  if (mode === "prepaid") return "PAID"
+  if (typeof mode === "string") return mode.toUpperCase()
+  return "PAID"
+}
+
+function mergeInvoiceNotes(
+  notes: string | null | undefined,
+  metadata: Record<string, string | null | undefined>
+): string | null {
+  const entries = Object.entries(metadata).filter(([, value]) => Boolean(value))
+  if (!entries.length) return notes ?? null
+
+  try {
+    const parsed = notes ? JSON.parse(notes) as Record<string, unknown> : {}
+    return JSON.stringify({
+      ...parsed,
+      ...Object.fromEntries(entries),
+    })
+  } catch {
+    return JSON.stringify({
+      notes,
+      ...Object.fromEntries(entries),
+    })
   }
 }
 
@@ -100,8 +196,8 @@ function mapInvoice(row: Record<string, unknown>): Invoice {
     customerId: row.customer_id,
     customerName: row.customer_name ?? "",
     customerGstin: row.customer_gstin,
-    status: row.status,
-    paymentMode: row.payment_mode,
+    status: toDomainInvoiceStatus(row.status),
+    paymentMode: toDomainPaymentMode(row.payment_mode),
     baseFreight: (row.base_freight as number) ?? 0,
     docketCharge: (row.docket_charge as number) ?? 0,
     pickupCharge: (row.pickup_charge as number) ?? 0,

@@ -129,9 +129,11 @@ function DashboardHeader() {
             aria-label="Open search"
           />
           <kbd
-            className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 border border-border bg-background px-1 t-mono-sm text-muted-foreground"
+            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-5 min-w-[1.625rem] items-center justify-center gap-px whitespace-nowrap border border-border bg-background px-1.5 font-mono text-[10px] font-medium leading-none tracking-tight text-muted-foreground"
+            aria-hidden="true"
           >
-            ⌘K
+            <span>⌘</span>
+            <span>K</span>
           </kbd>
         </div>
 

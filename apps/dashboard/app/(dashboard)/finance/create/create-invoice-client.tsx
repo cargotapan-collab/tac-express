@@ -3,7 +3,9 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useCreateInvoice } from "@workspace/services/hooks/use-invoices"
+import { useCustomers } from "@workspace/services/hooks/use-customers"
 import { useRateLookupMutation } from "@workspace/services/hooks/use-rate-cards"
+import { useGenerateAwbNumber } from "@workspace/services/hooks/use-shipments"
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
 import { PaymentMode } from "@workspace/types"
 import {
@@ -11,6 +13,7 @@ import {
   INITIAL_INVOICE_STATE,
   computeInvoiceTotals,
   type InvoiceWizardState,
+  type ComboboxOption,
 } from "@workspace/ui/components/composed/finance/invoice-wizard"
 import { PageHeader } from "@workspace/ui/components/composed/page-header"
 import { useFormAutosave } from "@workspace/ui/hooks/use-form-autosave"
@@ -19,11 +22,30 @@ import { format } from "date-fns"
 
 const DRAFT_KEY = "invoice_draft"
 
+function normalizeInvoiceDraft(draft: Partial<InvoiceWizardState>): InvoiceWizardState {
+  return {
+    ...INITIAL_INVOICE_STATE,
+    ...draft,
+  }
+}
+
 export function CreateInvoiceClient() {
   const router = useRouter()
   const addNotification = useNotificationStore((s) => s.addNotification)
   const createInvoice = useCreateInvoice()
   const rateLookup = useRateLookupMutation()
+  const generateAwb = useGenerateAwbNumber()
+  const { data: customerList } = useCustomers({ pageSize: 200 })
+
+  const customerOptions: ComboboxOption[] = React.useMemo(
+    () =>
+      (customerList ?? []).map((c) => ({
+        value: c.id,
+        label: c.name,
+        meta: c.gstin ?? c.phone,
+      })),
+    [customerList]
+  )
 
   const [state, setState] = React.useState<InvoiceWizardState>(INITIAL_INVOICE_STATE)
   const [currentIndex, setCurrentIndex] = React.useState(0)
@@ -49,21 +71,57 @@ export function CreateInvoiceClient() {
   })
 
   // On mount: check for an existing draft and prompt the user to restore it.
+  // If no draft is restored AND the AWB is still empty, auto-reserve a fresh
+  // AWB number from the server so the user never has to type one.
   React.useEffect(() => {
     const draft = autosave.readDraft()
+    let restored = false
     if (draft && !restorePromptShown) {
       setRestorePromptShown(true)
       const shouldRestore = window.confirm(
         "We found an unfinished invoice draft from a previous session. Restore it?"
       )
       if (shouldRestore) {
-        setState(draft)
+        setState(normalizeInvoiceDraft(draft))
+        restored = true
       } else {
         autosave.clearDraft()
       }
     }
+
+    if (!restored) {
+      generateAwb
+        .mutateAsync()
+        .then((awb) => setState((prev) => (prev.awbNumber ? prev : { ...prev, awbNumber: awb })))
+        .catch((err) => {
+          addNotification({
+            type: "warning",
+            title: "Couldn't auto-generate AWB",
+            message: String(err),
+          })
+        })
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  /** Reserve a fresh AWB and overwrite the current value (used by the ↻ button). */
+  async function handleRegenerateAwb() {
+    try {
+      const awb = await generateAwb.mutateAsync()
+      patchState({ awbNumber: awb })
+      addNotification({
+        type: "success",
+        title: "New AWB reserved",
+        message: awb,
+      })
+    } catch (err) {
+      addNotification({
+        type: "error",
+        title: "Could not regenerate AWB",
+        message: String(err),
+      })
+    }
+  }
 
   async function handleRateLookup() {
     const weight = parseFloat(state.weightKg)
@@ -95,6 +153,8 @@ export function CreateInvoiceClient() {
       const fuelSurcharge =
         Math.round((weight * rate.ratePerKg * rate.fuelSurchargePct) / 100 * 100) / 100
       patchState({
+        // Keep ratePerKg in sync so the CargoStep preview reflects the resolved card rate.
+        ratePerKg: rate.ratePerKg,
         baseFreight,
         docketCharge: rate.docketCharge,
         fuelSurcharge,
@@ -117,7 +177,7 @@ export function CreateInvoiceClient() {
   }
 
   async function handleSubmit() {
-    const totals = computeInvoiceTotals(state)
+    const totals = computeInvoiceTotals(state, (state.gstRate ?? 18) / 100)
     try {
       // NOTE: `billing_address` was previously sent here but the `invoices`
       // table has no such column — the value was being silently dropped by
@@ -131,11 +191,14 @@ export function CreateInvoiceClient() {
         customer_gstin: state.customerGstin || null,
         payment_mode: state.paymentMode as PaymentMode,
         base_freight: state.baseFreight,
+        pickup_charge: state.pickupCharge,
+        packing_charge: state.packingCharge,
         docket_charge: state.docketCharge,
         fuel_surcharge: state.fuelSurcharge,
         handling_fee: state.handlingFee,
         insurance: state.insurance,
         discount: state.discount,
+        advance_paid: state.advancePaidAmount,
         tax: {
           cgst: totals.gst / 2,
           sgst: totals.gst / 2,
@@ -143,8 +206,29 @@ export function CreateInvoiceClient() {
           total: totals.gst,
         },
         total_amount: totals.total,
-        balance: totals.total,
-        notes: state.notes || null,
+        balance: totals.balance,
+        notes: JSON.stringify({
+          notes: state.notes,
+          remarks: state.remarks,
+          bookingDate: state.bookingDate,
+          natureOfQuantity: state.natureOfQuantity,
+          declaredValue: state.declaredValue,
+          consignor: {
+            name: state.consignorName,
+            phone: state.consignorPhone,
+            address: state.consignorAddress,
+          },
+          consignee: {
+            name: state.consigneeName,
+            phone: state.consigneePhone,
+            address: state.consigneeAddress,
+          },
+          billingAddress: state.billingAddress,
+          actualWeightKg: state.actualWeightKg,
+          pickupCharge: state.pickupCharge,
+          packingCharge: state.packingCharge,
+          advancePaidAmount: state.advancePaidAmount,
+        }),
       })
       const inv = invoice as unknown as Record<string, unknown>
       autosave.clearDraft()
@@ -213,6 +297,9 @@ export function CreateInvoiceClient() {
         onSubmit={handleSubmit}
         isSubmitting={createInvoice.isPending}
         onCancel={() => router.back()}
+        customerOptions={customerOptions}
+        onRegenerateAwb={handleRegenerateAwb}
+        isGeneratingAwb={generateAwb.isPending}
       />
     </div>
   )

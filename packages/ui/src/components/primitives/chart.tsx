@@ -39,6 +39,42 @@ function useChart() {
   return context
 }
 
+/**
+ * Deterministic chart-ID generator. Hashes the keys + colors + theme
+ * values of a `ChartConfig` to produce a stable string that's safe for
+ * use as a `data-chart` attribute and CSS selector across SSR/CSR.
+ *
+ * Two charts with identical configs intentionally collide — that's the
+ * desired behaviour, since their generated CSS rules would be identical
+ * anyway. The hash only needs to differ when the *generated CSS* would
+ * differ (i.e. different keys or different color values).
+ */
+function hashChartConfig(config: ChartConfig): string {
+  const seed = Object.entries(config)
+    .map(([key, item]) => {
+      const color = (item as { color?: string }).color ?? ""
+      const theme = (item as { theme?: Record<string, string> }).theme
+      const themeStr = theme
+        ? Object.keys(theme)
+            .sort()
+            .map((t) => `${t}=${theme[t]}`)
+            .join("|")
+        : ""
+      return `${key}|${color}|${themeStr}`
+    })
+    .sort()
+    .join(",")
+
+  // FNV-1a 32-bit. Deterministic per input → identical hash on
+  // server and client renders.
+  let h = 2166136261 >>> 0
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i)
+    h = Math.imul(h, 16777619) >>> 0
+  }
+  return h.toString(36)
+}
+
 function ChartContainer({
   id,
   className,
@@ -56,8 +92,24 @@ function ChartContainer({
     height: number
   }
 }) {
-  const uniqueId = React.useId()
-  const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`
+  /**
+   * Why not `React.useId()`? — In a deeply nested SSR tree (this codebase
+   * has several client islands feeding the home dashboard), `useId()` can
+   * desync between server and client renders if any earlier branch
+   * conditionally renders extra hooks. That manifests as a hydration
+   * mismatch on the `data-chart` attribute (and the `<style>` content),
+   * exactly what we hit here.
+   *
+   * Instead, derive the ID from the config itself. The `data-chart`
+   * attribute is purely a CSS-scoping handle for the `--color-*`
+   * variables; two charts with identical configs would emit identical
+   * CSS rules anyway, so a stable shared ID is safe and avoids the
+   * `useId()` desync entirely.
+   */
+  const chartId = React.useMemo(
+    () => `chart-${id ?? hashChartConfig(config)}`,
+    [id, config]
+  )
 
   return (
     <ChartContext.Provider value={{ config }}>

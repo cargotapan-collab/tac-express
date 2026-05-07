@@ -4,6 +4,20 @@ import * as React from "react"
 import { cn } from "@workspace/ui/lib/utils"
 import { UserRole } from "@workspace/types"
 import { Button } from "@workspace/ui/components/button"
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@workspace/ui/components/primitives/table"
 
 export interface StaffProfile {
   id: string
@@ -38,6 +52,97 @@ interface StaffTableProps {
 }
 
 export function StaffTable({ staff, onRoleChange, onToggleActive, isLoading }: StaffTableProps) {
+  const columns = React.useMemo<ColumnDef<StaffProfile>[]>(() => [
+    {
+      accessorKey: "name",
+      header: "Name",
+      cell: ({ row }) => (
+        <span className="font-mono text-sm uppercase tracking-wider text-foreground">
+          {row.original.name || "—"}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {row.original.email}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "role",
+      header: "Role",
+      cell: ({ row }) => {
+        const s = row.original
+        if (onRoleChange) {
+          return (
+            <select
+              value={s.role}
+              onChange={(e) => onRoleChange(s.id, e.target.value as UserRole)}
+              className="h-7 border border-border bg-background font-mono text-2xs uppercase tracking-wider text-foreground px-1.5 focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              {Object.values(UserRole).map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          )
+        }
+        return (
+          <span className={cn("font-mono text-2xs uppercase tracking-wider border px-1.5 py-0.5", ROLE_COLORS[s.role] ?? "text-muted-foreground border-border")}>
+            {s.role}
+          </span>
+        )
+      },
+    },
+    {
+      accessorKey: "hubCode",
+      header: "Hub",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {row.original.hubCode ?? "—"}
+        </span>
+      ),
+    },
+    {
+      id: "status",
+      header: () => <div className="text-right">Status</div>,
+      cell: ({ row }) => {
+        const s = row.original
+        return (
+          <div className="flex items-center justify-end">
+            {onToggleActive ? (
+              <Button
+                variant={s.isActive ? "default" : "outline"}
+                size="sm"
+                onClick={() => onToggleActive(s.id, !s.isActive)}
+                className={cn(
+                  "font-mono text-2xs uppercase tracking-wider px-2 py-0.5 h-auto",
+                  s.isActive
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {s.isActive ? "Active" : "Inactive"}
+              </Button>
+            ) : (
+              <span className={cn("font-mono text-2xs uppercase tracking-wider border px-1.5 py-0.5", s.isActive ? "text-primary border-primary/30" : "text-muted-foreground border-border")}>
+                {s.isActive ? "Active" : "Inactive"}
+              </span>
+            )}
+          </div>
+        )
+      },
+    },
+  ], [onRoleChange, onToggleActive])
+
+  const table = useReactTable({
+    data: staff,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  })
+
   if (isLoading) {
     return (
       <div className="bg-card p-5 space-y-2 tac-fui-panel">
@@ -49,59 +154,50 @@ export function StaffTable({ staff, onRoleChange, onToggleActive, isLoading }: S
   }
 
   return (
-    <div className="tac-fui-border overflow-hidden">
-      <div className="bg-muted/50 grid grid-cols-[1fr_auto_auto_auto_auto] gap-0 px-3 py-2">
-        {["Name", "Email", "Role", "Hub", "Status"].map((h) => (
-          <span key={h} className="font-mono text-2xs uppercase tracking-wider text-muted-foreground">{h}</span>
-        ))}
-      </div>
-      <div className="divide-y divide-border">
-        {staff.map((s) => (
-          <div key={s.id} className={cn("grid grid-cols-[1fr_auto_auto_auto_auto] gap-0 px-3 py-2.5 items-center hover:bg-muted/30 transition-colors", !s.isActive && "opacity-50")}>
-            <span className="font-mono text-sm uppercase tracking-wider text-foreground">{s.name || "—"}</span>
-            <span className="font-mono text-xs text-muted-foreground px-3">{s.email}</span>
-            <div className="px-3">
-              {onRoleChange ? (
-                <select
-                  value={s.role}
-                  onChange={(e) => onRoleChange(s.id, e.target.value as UserRole)}
-                  className="h-7 border border-border bg-background font-mono text-2xs uppercase tracking-wider text-foreground px-1.5 focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                  {Object.values(UserRole).map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-              ) : (
-                <span className={cn("font-mono text-2xs uppercase tracking-wider border px-1.5 py-0.5", ROLE_COLORS[s.role] ?? "text-muted-foreground border-border")}>
-                  {s.role}
-                </span>
-              )}
-            </div>
-            <span className="font-mono text-xs text-muted-foreground px-3">{s.hubCode ?? "—"}</span>
-            <div className="flex items-center justify-end">
-              {onToggleActive ? (
-                <Button
-                  variant={s.isActive ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => onToggleActive(s.id, !s.isActive)}
-                  className={cn(
-                    "font-mono text-2xs uppercase tracking-wider px-2 py-0.5 h-auto",
-                    s.isActive
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {s.isActive ? "Active" : "Inactive"}
-                </Button>
-              ) : (
-                <span className={cn("font-mono text-2xs uppercase tracking-wider border px-1.5 py-0.5", s.isActive ? "text-primary border-primary/30" : "text-muted-foreground border-border")}>
-                  {s.isActive ? "Active" : "Inactive"}
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="tac-fui-panel overflow-hidden @container" data-density="compact">
+      <Table>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                return (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                )
+              })}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows?.length ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow
+                key={row.id}
+                data-state={row.getIsSelected() && "selected"}
+                className={cn(!row.original.isActive && "opacity-50")}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="h-24 text-center">
+                <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">No staff members found.</p>
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
   )
 }

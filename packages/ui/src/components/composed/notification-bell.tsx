@@ -32,9 +32,30 @@ function NotificationBell() {
   const { notifications, markRead, markAllRead, removeNotification } =
     useNotificationStore()
   const [open, setOpen] = React.useState(false)
+  const [mounted, setMounted] = React.useState(false)
   const unreadCount = notifications.filter((n) => !n.read).length
 
   const recent = notifications.slice(0, 8)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Render a static placeholder during SSR / pre-hydration to avoid the
+  // Radix Popover useId mismatch. The popover requires browser-side state
+  // (zustand store, focus management) and isn't useful during SSR.
+  if (!mounted) {
+    return (
+      <button
+        data-slot="notifications-trigger"
+        type="button"
+        className="relative flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+        aria-label="Notifications"
+      >
+        <RiNotification3Line className="h-4 w-4" />
+      </button>
+    )
+  }
 
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>

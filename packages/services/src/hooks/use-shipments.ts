@@ -30,6 +30,16 @@ export function useShipment(id: string) {
   })
 }
 
+/**
+ * Mutation that reserves a fresh AWB number via the server-side RPC.
+ * Used by the invoice-create wizard to auto-fill the AWB field on mount.
+ */
+export function useGenerateAwbNumber() {
+  return useMutation({
+    mutationFn: () => shipmentService.generateAwbNumber(),
+  })
+}
+
 export function useShipmentByAwb(awb: string) {
   return useQuery({
     queryKey: ["shipment-awb", awb],
