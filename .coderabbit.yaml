@@ -44,6 +44,11 @@ reviews:
     drafts: false
     base_branches:
       - main
+      # Review-style PRs are opened against pinned baseline refs so the diff
+      # captures a full session's worth of work without conflicting with main
+      # (which already contains those commits). Without this entry, CodeRabbit
+      # silently skips the PR and the team falls back to manual @coderabbitai.
+      - "baseline/.*"
 
   # AGGRESSIVE path filters — keep review scoped to actual application code.
   # Lines starting with `!` exclude paths from review.

@@ -40,6 +40,7 @@
         "./manifest.service": "./src/manifest.service.ts",
         "./invoice.service": "./src/invoice.service.ts",
         "./customer.service": "./src/customer.service.ts",
+        "./payment.service": "./src/payment.service.ts",
         "./exception.service": "./src/exception.service.ts",
         "./analytics.service": "./src/analytics.service.ts",
         "./orbital.service": "./src/orbital.service.ts",
@@ -48,6 +49,10 @@
         "./rate-card.service": "./src/rate-card.service.ts",
         "./public-tracking.service": "./src/public-tracking.service.ts",
         "./whatsapp.service": "./src/whatsapp.service.ts",
+        "./invoice-draft.service": "./src/invoice-draft.service.ts",
+        "./pdf/invoice-pdf": "./src/pdf/invoice-pdf.tsx",
+        "./pdf/invoice-pdf-token": "./src/pdf/invoice-pdf-token.ts",
+        "./pdf/qr": "./src/pdf/qr.ts",
         "./server": "./src/server.ts"
     }
 }

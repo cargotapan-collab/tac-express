@@ -1,10 +1,12 @@
 "use client"
 
 import * as React from "react"
+import * as Sentry from "@sentry/nextjs"
 import { useRouter } from "next/navigation"
 import { useInvoice, useIssueInvoice, useMarkPaid, useCancelInvoice } from "@workspace/services/hooks/use-invoices"
 import { usePaymentsForInvoice, useRecordPayment, useDeletePayment } from "@workspace/services/hooks/use-payments"
 import { useSendInvoiceWhatsapp, useWhatsappTest } from "@workspace/services/hooks/use-whatsapp"
+import { PaymentResponseLostError } from "@workspace/services/payment.service"
 import { InvoiceStatus } from "@workspace/types"
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
 import {
@@ -158,6 +160,9 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
         templateName: values.templateName,
         templateLanguage: values.templateLanguage,
         templateParams: values.templateParams,
+        templateMediaUrl: values.templateMediaUrl,
+        templateMediaFilename: values.templateMediaFilename,
+        templateMediaKind: values.templateMediaKind,
       })
 
       // Direct mode: be honest about WhatsApp's 24h policy. The API
@@ -200,6 +205,47 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
         message: `₹${values.amount.toLocaleString("en-IN")} via ${values.method.replace(/_/g, " ").toLowerCase()}.`,
       })
     } catch (err) {
+      // Special-case the "RPC succeeded but response was empty" branch.
+      // The server-side mutation has already happened — the user MUST
+      // refresh, NOT retry. We discriminate by `code` for bundle safety
+      // across package boundaries; instanceof is a redundant inner guard.
+      const isResponseLost =
+        (err instanceof PaymentResponseLostError) ||
+        (typeof err === "object" &&
+          err !== null &&
+          (err as { code?: unknown }).code === "PAYMENT_RESPONSE_LOST")
+
+      if (isResponseLost) {
+        // High-severity capture: this indicates an RPC contract bug
+        // (returning null on success) and ops needs to know within
+        // minutes, not at month-end reconciliation. The Sentry tags
+        // make it filterable and grouping-friendly.
+        Sentry.captureException(err, {
+          level: "error",
+          tags: {
+            module: "finance",
+            kind: "payment_response_lost",
+            invoice_id: invoiceId,
+          },
+          extra: {
+            invoiceNumber: invoice?.invoiceNumber,
+            amount: values.amount,
+            method: values.method,
+            userId: invoice?.createdBy,
+          },
+        })
+        addNotification({
+          type: "warning",
+          title: "Payment recorded — verify before retrying",
+          message:
+            "The payment was saved on the server, but we did not receive " +
+            "a confirmation row. Refresh the invoice to verify the entry " +
+            "appears. Do NOT click Record Payment again — that would " +
+            "create a duplicate.",
+        })
+        return
+      }
+
       addNotification({
         type: "error",
         title: "Payment failed",

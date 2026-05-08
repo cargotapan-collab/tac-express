@@ -7,6 +7,7 @@ import { useCustomers } from "@workspace/services/hooks/use-customers"
 import { useRateLookupMutation } from "@workspace/services/hooks/use-rate-cards"
 import { useGenerateAwbNumber } from "@workspace/services/hooks/use-shipments"
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
+import { normalizeBillingDraft } from "@workspace/services/invoice-draft.service"
 import { PaymentMode } from "@workspace/types"
 import {
   InvoiceWizard,
@@ -22,11 +23,15 @@ import { format } from "date-fns"
 
 const DRAFT_KEY = "invoice_draft"
 
+/**
+ * Merge a partial autosaved draft with the wizard's defaults and run
+ * the legacy-billing hydration. Pure presentational glue — the actual
+ * normalization rule lives in `@workspace/services/invoice-draft.service`
+ * (LAW 7) so it's testable and reusable.
+ */
 function normalizeInvoiceDraft(draft: Partial<InvoiceWizardState>): InvoiceWizardState {
-  return {
-    ...INITIAL_INVOICE_STATE,
-    ...draft,
-  }
+  const merged: InvoiceWizardState = { ...INITIAL_INVOICE_STATE, ...draft }
+  return normalizeBillingDraft(merged)
 }
 
 export function CreateInvoiceClient() {
@@ -223,7 +228,18 @@ export function CreateInvoiceClient() {
             phone: state.consigneePhone,
             address: state.consigneeAddress,
           },
+          // billingAddress is the legacy joined string for back-compat with
+          // existing print views and report consumers. The structured parts
+          // below are the canonical store going forward — they round-trip
+          // through SmartAddressFields when the invoice is re-edited.
           billingAddress: state.billingAddress,
+          billing: {
+            line1: state.billingLine1,
+            line2: state.billingLine2,
+            city: state.billingCity,
+            state: state.billingState,
+            zip: state.billingZip,
+          },
           actualWeightKg: state.actualWeightKg,
           pickupCharge: state.pickupCharge,
           packingCharge: state.packingCharge,
@@ -264,7 +280,7 @@ export function CreateInvoiceClient() {
         description="Generate an invoice for an existing AWB with automatic rate-card lookup"
         actions={
           autosave.savedAt ? (
-            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <div className="flex items-center gap-2 t-overline text-muted-foreground">
               <span>
                 Draft saved · {format(new Date(autosave.savedAt), "HH:mm:ss")}
               </span>

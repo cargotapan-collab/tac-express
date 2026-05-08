@@ -2,7 +2,11 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Popover as PopoverPrimitive } from "radix-ui"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@workspace/ui/components/primitives/popover"
 import { cn } from "@workspace/ui/lib/utils"
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
 import {
@@ -60,8 +64,8 @@ function NotificationBell() {
   }
 
   return (
-    <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
-      <PopoverPrimitive.Trigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <button
           data-slot="notifications-trigger"
           type="button"
@@ -72,7 +76,7 @@ function NotificationBell() {
           {unreadCount > 0 && (
             <span
               className={cn(
-                "absolute top-0.5 right-0.5 min-w-[14px] h-[14px] px-1",
+                "absolute top-0.5 right-0.5 min-w-3.5 h-3.5 px-1",
                 "flex items-center justify-center",
                 "font-mono text-2xs font-bold tabular-nums",
                 "bg-destructive text-destructive-foreground",
@@ -84,19 +88,23 @@ function NotificationBell() {
             </span>
           )}
         </button>
-      </PopoverPrimitive.Trigger>
+      </PopoverTrigger>
 
-      <PopoverPrimitive.Portal>
-        <PopoverPrimitive.Content
-          data-slot="notifications-popover"
-          align="end"
-          sideOffset={8}
-          className={cn(
-            "z-50 w-[360px] bg-card border border-border shadow-brutal",
-            "data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-top-2",
-            "data-closed:animate-out data-closed:fade-out-0"
-          )}
-        >
+      <PopoverContent
+        data-slot="notifications-popover"
+        align="end"
+        sideOffset={8}
+        className={cn(
+          // w-panel-xl is 18.75rem (300px) — the project's defined panel
+          // width token. Replaces the previous broken `w-90` class
+          // (Tailwind ships no `90` spacing scale entry by default, so
+          // it silently no-op'd) and the earlier `w-[360px]` arbitrary
+          // value (LAW 11). The notification panel reads cleanly at
+          // 300px alongside the rest of the dashboard surface.
+          "w-panel-xl bg-card border border-border shadow-brutal p-0",
+          "data-open:slide-in-from-top-2"
+        )}
+      >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <p className="font-serif text-sm font-semibold text-foreground">
               Notifications
@@ -145,16 +153,12 @@ function NotificationBell() {
                         ? "text-destructive"
                         : "text-muted-foreground"
 
-                const content = (
-                  <div
-                    className={cn(
-                      "flex items-start gap-3 px-4 py-3 transition-colors",
-                      !n.read ? "bg-primary/5" : "hover:bg-accent/50"
-                    )}
-                    onClick={() => {
-                      if (!n.read) markRead(n.id)
-                    }}
-                  >
+                // Main row body. Rendered inside either a Link (when n.link
+                // is set) or a <button> (otherwise) so keyboard users can
+                // activate it. Dismiss is a SIBLING — never nest a <button>
+                // inside an <a>; it's invalid HTML and breaks focus order.
+                const mainBody = (
+                  <>
                     <Icon
                       className={cn("h-4 w-4 shrink-0 mt-0.5", iconColor)}
                       aria-hidden="true"
@@ -185,34 +189,49 @@ function NotificationBell() {
                         aria-hidden="true"
                       />
                     )}
+                  </>
+                )
+
+                const handleActivate = () => {
+                  if (!n.read) markRead(n.id)
+                }
+
+                return (
+                  <li
+                    key={n.id}
+                    className={cn(
+                      "flex items-start gap-3 px-4 py-3 transition-colors",
+                      !n.read ? "bg-primary/5" : "hover:bg-accent/50"
+                    )}
+                  >
+                    {n.link ? (
+                      <Link
+                        href={n.link}
+                        onClick={() => {
+                          handleActivate()
+                          setOpen(false)
+                        }}
+                        className="flex flex-1 min-w-0 items-start gap-3 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        {mainBody}
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleActivate}
+                        className="flex flex-1 min-w-0 items-start gap-3 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        {mainBody}
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        e.preventDefault()
-                        removeNotification(n.id)
-                      }}
+                      onClick={() => removeNotification(n.id)}
                       className="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50 hover:text-destructive transition-colors"
                       aria-label={`Dismiss ${n.title}`}
                     >
                       <RiCloseLine className="h-3.5 w-3.5" />
                     </button>
-                  </div>
-                )
-
-                return (
-                  <li key={n.id}>
-                    {n.link ? (
-                      <Link
-                        href={n.link}
-                        onClick={() => setOpen(false)}
-                        className="block"
-                      >
-                        {content}
-                      </Link>
-                    ) : (
-                      content
-                    )}
                   </li>
                 )
               })}
@@ -231,9 +250,8 @@ function NotificationBell() {
               View all →
             </Link>
           </div>
-        </PopoverPrimitive.Content>
-      </PopoverPrimitive.Portal>
-    </PopoverPrimitive.Root>
+      </PopoverContent>
+    </Popover>
   )
 }
 

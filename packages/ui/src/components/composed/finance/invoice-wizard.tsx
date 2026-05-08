@@ -27,12 +27,14 @@ export type { ComboboxOption }
  */
 function joinBillingAddress(parts: {
   line1?: string
+  line2?: string
   city?: string
   state?: string
   zip?: string
 }): string {
   const segments = [
     parts.line1?.trim(),
+    parts.line2?.trim(),
     [parts.city?.trim(), parts.state?.trim()].filter(Boolean).join(", "),
     parts.zip?.trim(),
   ].filter((seg): seg is string => Boolean(seg && seg.length > 0))
@@ -69,6 +71,7 @@ export interface InvoiceWizardState {
   billingAddress: string
   /** Structured billing-address parts driven by SmartAddressFields. */
   billingLine1: string
+  billingLine2: string
   billingCity: string
   billingState: string
   billingZip: string
@@ -123,6 +126,7 @@ export const INITIAL_INVOICE_STATE: InvoiceWizardState = {
   customerGstin: "",
   billingAddress: "",
   billingLine1: "",
+  billingLine2: "",
   billingCity: "",
   billingState: "",
   billingZip: "",
@@ -413,105 +417,110 @@ function PartiesStep({
             </Field>
           )}
 
+          <div className="md:col-span-2">
+            <SmartAddressFields
+              label="Billing address"
+              value={
+                {
+                  line1: state.billingLine1,
+                  line2: state.billingLine2,
+                  city: state.billingCity,
+                  state: state.billingState,
+                  zip: state.billingZip,
+                } satisfies SmartAddressValue
+              }
+              onChange={(next) => {
+                // Capture EVERY field SmartAddressFields tracks. Earlier
+                // versions destructured only line1/city/state/zip — line2
+                // keystrokes were silently dropped (Macroscope flagged this).
+                const nextLine1 = next.line1 ?? ""
+                const nextLine2 = next.line2 ?? ""
+                const nextCity = next.city ?? ""
+                const nextState = next.state ?? ""
+                const nextZip = next.zip ?? ""
+                onChange({
+                  billingLine1: nextLine1,
+                  billingLine2: nextLine2,
+                  billingCity: nextCity,
+                  billingState: nextState,
+                  billingZip: nextZip,
+                  billingAddress: joinBillingAddress({
+                    line1: nextLine1,
+                    line2: nextLine2,
+                    city: nextCity,
+                    state: nextState,
+                    zip: nextZip,
+                  }),
+                })
+              }}
+              idPrefix="invoice-billing"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border">
+        {/* Consignor */}
+        <div className="space-y-4">
+          <p className="t-overline text-muted-foreground border-b border-border pb-1">Consignor</p>
+          <Field label="Name">
+            <input
+              value={state.consignorName}
+              onChange={(e) => onChange({ consignorName: e.target.value })}
+              placeholder="Sender Name"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Phone">
+            <input
+              value={state.consignorPhone}
+              onChange={(e) => onChange({ consignorPhone: e.target.value })}
+              placeholder="Phone Number"
+              className={monoInputClass}
+            />
+          </Field>
+          <Field label="Address">
+            <textarea
+              value={state.consignorAddress}
+              onChange={(e) => onChange({ consignorAddress: e.target.value })}
+              rows={2}
+              className={cn(inputClass, "h-auto py-2 resize-none")}
+              placeholder="Origin Address"
+            />
+          </Field>
         </div>
 
-        <div className="md:col-span-2">
-          <SmartAddressFields
-            label="Billing address"
-            value={
-              {
-                line1: state.billingLine1,
-                city: state.billingCity,
-                state: state.billingState,
-                zip: state.billingZip,
-              } satisfies SmartAddressValue
-            }
-            onChange={(next) => {
-              const nextLine1 = next.line1 ?? ""
-              const nextCity = next.city ?? ""
-              const nextState = next.state ?? ""
-              const nextZip = next.zip ?? ""
-              onChange({
-                billingLine1: nextLine1,
-                billingCity: nextCity,
-                billingState: nextState,
-                billingZip: nextZip,
-                billingAddress: joinBillingAddress({
-                  line1: nextLine1,
-                  city: nextCity,
-                  state: nextState,
-                  zip: nextZip,
-                }),
-              })
-            }}
-            idPrefix="invoice-billing"
-          />
+        {/* Consignee */}
+        <div className="space-y-4">
+          <p className="t-overline text-muted-foreground border-b border-border pb-1">Consignee</p>
+          <Field label="Name">
+            <input
+              value={state.consigneeName}
+              onChange={(e) => onChange({ consigneeName: e.target.value })}
+              placeholder="Receiver Name"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Phone">
+            <input
+              value={state.consigneePhone}
+              onChange={(e) => onChange({ consigneePhone: e.target.value })}
+              placeholder="Phone Number"
+              className={monoInputClass}
+            />
+          </Field>
+          <Field label="Address">
+            <textarea
+              value={state.consigneeAddress}
+              onChange={(e) => onChange({ consigneeAddress: e.target.value })}
+              rows={2}
+              className={cn(inputClass, "h-auto py-2 resize-none")}
+              placeholder="Destination Address"
+            />
+          </Field>
         </div>
       </div>
     </div>
-
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border">
-      {/* Consignor */}
-      <div className="space-y-4">
-        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground border-b border-border pb-1">Consignor</p>
-        <Field label="Name">
-          <input
-            value={state.consignorName}
-            onChange={(e) => onChange({ consignorName: e.target.value })}
-            placeholder="Sender Name"
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Phone">
-          <input
-            value={state.consignorPhone}
-            onChange={(e) => onChange({ consignorPhone: e.target.value })}
-            placeholder="Phone Number"
-            className={monoInputClass}
-          />
-        </Field>
-        <Field label="Address">
-          <textarea
-            value={state.consignorAddress}
-            onChange={(e) => onChange({ consignorAddress: e.target.value })}
-            rows={2}
-            className={cn(inputClass, "h-auto py-2 resize-none")}
-            placeholder="Origin Address"
-          />
-        </Field>
-      </div>
-
-      {/* Consignee */}
-      <div className="space-y-4">
-        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground border-b border-border pb-1">Consignee</p>
-        <Field label="Name">
-          <input
-            value={state.consigneeName}
-            onChange={(e) => onChange({ consigneeName: e.target.value })}
-            placeholder="Receiver Name"
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Phone">
-          <input
-            value={state.consigneePhone}
-            onChange={(e) => onChange({ consigneePhone: e.target.value })}
-            placeholder="Phone Number"
-            className={monoInputClass}
-          />
-        </Field>
-        <Field label="Address">
-          <textarea
-            value={state.consigneeAddress}
-            onChange={(e) => onChange({ consigneeAddress: e.target.value })}
-            rows={2}
-            className={cn(inputClass, "h-auto py-2 resize-none")}
-            placeholder="Destination Address"
-          />
-        </Field>
-      </div>
-    </div>
-  </div>
   )
 }
 

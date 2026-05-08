@@ -139,8 +139,9 @@ import {
   RiBrushLine,
   RiTaskLine,
   RiArchiveLine,
-  RiWhatsappLine,
+  RiSignalWifiErrorLine,
 } from "@remixicon/react"
+export type { RemixiconComponentType } from "@remixicon/react"
 
 export {
   RiSubtractLine,
@@ -189,7 +190,7 @@ export {
   RiBrushLine,
   RiTaskLine,
   RiArchiveLine,
-  RiWhatsappLine,
+  RiSignalWifiErrorLine,
 }
 
 // Create a mapping of keys to Remix Icons, enforcing standard naming

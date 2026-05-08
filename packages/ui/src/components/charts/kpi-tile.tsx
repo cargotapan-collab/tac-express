@@ -3,8 +3,8 @@ import {
   RiArrowDownLine,
   RiArrowRightLine,
   RiArrowUpLine,
-} from "@remixicon/react"
-import type { RemixiconComponentType } from "@remixicon/react"
+  type RemixiconComponentType,
+} from "../../icons"
 import { cn } from "../../lib/utils"
 import type { SparkPoint, Trend } from "./types"
 

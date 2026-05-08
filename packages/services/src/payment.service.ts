@@ -1,5 +1,43 @@
 import type { SupabaseClient } from "@workspace/database/supabase.types"
 
+/**
+ * Thrown when the `record_invoice_payment` RPC returned `error = null` but
+ * also `data = null/undefined`. The server-side mutation has already
+ * happened (RPC runs inside a transaction with SECURITY DEFINER); the
+ * client just lost the response shape — likely an RLS filter on the
+ * returning row, an RPC that returned `void`, or a network framing issue.
+ *
+ * This error MUST NOT be confused with a generic mutation failure. The
+ * caller should:
+ *   - NOT retry the operation (the payment already exists on the server;
+ *     retrying creates a duplicate)
+ *   - surface a clear "refresh to verify" message to the operator
+ *   - report to error tracking (Sentry) with high severity since this
+ *     indicates a server-contract issue worth investigating
+ *
+ * Discriminate via `.code === "PAYMENT_RESPONSE_LOST"` for bundle-safety
+ * across package boundaries; `instanceof PaymentResponseLostError` also
+ * works inside the same bundle.
+ */
+export class PaymentResponseLostError extends Error {
+  readonly code = "PAYMENT_RESPONSE_LOST" as const
+  readonly invoiceId: string
+  readonly amount: number
+  readonly receivedAt: string
+
+  constructor(input: { invoiceId: string; amount: number; receivedAt: string }) {
+    super(
+      "Payment was recorded on the server but the response was empty. " +
+        "Refresh the invoice to see the new entry. If the payment does " +
+        "not appear, contact support — do NOT retry from the dialog.",
+    )
+    this.name = "PaymentResponseLostError"
+    this.invoiceId = input.invoiceId
+    this.amount = input.amount
+    this.receivedAt = input.receivedAt
+  }
+}
+
 export type PaymentMethod =
   | "CASH"
   | "UPI"
@@ -46,11 +84,28 @@ function mapPayment(row: Record<string, unknown>): Payment {
   }
 }
 
-// Process-wide cache: once we confirm the deployment is missing the
-// `invoice_payments` table, every subsequent call short-circuits without
-// hitting the network. This kills the noisy 404 spam in the browser console
-// for invoice detail pages until the migration is applied.
-let invoicePaymentsTableMissing = false
+/**
+ * Time-bounded cache: once we confirm the deployment is missing the
+ * `invoice_payments` table, every subsequent call within the TTL window
+ * short-circuits without hitting the network. This kills the noisy 404
+ * spam in the browser console while still letting the cache lapse so a
+ * fresh deploy of the migration self-heals without a process restart.
+ *
+ * We intentionally avoid a permanent module-level boolean — on the Node
+ * runtime that pins the flag for the lifetime of the server process and
+ * silently disables payment recording for every tenant once any single
+ * caller hits a schema-cache miss.
+ */
+const RELATION_MISSING_TTL_MS = 60_000
+let invoicePaymentsRelationMissingUntil = 0
+
+function markRelationMissing(): void {
+  invoicePaymentsRelationMissingUntil = Date.now() + RELATION_MISSING_TTL_MS
+}
+
+function isRelationMissing(): boolean {
+  return Date.now() < invoicePaymentsRelationMissingUntil
+}
 
 /**
  * Recognise every error shape Supabase returns when the table or RPC is
@@ -85,7 +140,7 @@ export function createPaymentService(db: SupabaseClient) {
     async listForInvoice(invoiceId: string): Promise<Payment[]> {
       // Short-circuit once we've already learned the table is missing —
       // avoids issuing repeated 404s for every invoice that loads.
-      if (invoicePaymentsTableMissing) return []
+      if (isRelationMissing()) return []
       const { data, error } = await db
         .from("invoice_payments")
         .select("*")
@@ -93,7 +148,7 @@ export function createPaymentService(db: SupabaseClient) {
         .order("received_at", { ascending: false })
       if (error) {
         if (isMissingInvoicePaymentsRelation(error)) {
-          invoicePaymentsTableMissing = true
+          markRelationMissing()
           return []
         }
         throw error
@@ -102,7 +157,7 @@ export function createPaymentService(db: SupabaseClient) {
     },
 
     async recordPayment(input: RecordPaymentInput): Promise<Payment> {
-      if (invoicePaymentsTableMissing) {
+      if (isRelationMissing()) {
         throw new Error(
           "Payment recording is unavailable: the `invoice_payments` table " +
             "has not been deployed yet. Apply migration 20260501000002.",
@@ -110,7 +165,17 @@ export function createPaymentService(db: SupabaseClient) {
       }
       const receivedAt = input.receivedAt ?? new Date().toISOString()
 
-      // RPC path: atomic invoice update + payment row.
+      // ── Canonical path ────────────────────────────────────────────────
+      // The `record_invoice_payment` RPC (when deployed) takes a row-level
+      // lock on the invoice inside a single transaction, mutates
+      // `advance_paid` / `balance` / `status`, and inserts the payment row
+      // atomically. THIS IS THE ONLY SAFE PATH for concurrent traffic.
+      //
+      // Status as of 2026-05: the RPC is NOT YET in the deployed schema.
+      // See issue #9 — migration is in flight. Until it lands, every
+      // call falls through to the racy two-step path below. We log every
+      // fallback invocation as a WARN so ops can correlate any
+      // payment-reconciliation incident with the race window.
       const rpc = await db.rpc("record_invoice_payment", {
         p_invoice_id: input.invoiceId,
         p_amount: input.amount,
@@ -120,11 +185,76 @@ export function createPaymentService(db: SupabaseClient) {
         p_received_at: receivedAt,
         p_attachment_path: input.attachmentPath ?? null,
       })
-      if (!rpc.error && rpc.data) {
-        return mapPayment(rpc.data as Record<string, unknown>)
+      if (!rpc.error) {
+        // RPC succeeded. THREE outcomes from here, ALL must avoid the
+        // fallback INSERT below — the RPC has already inserted + locked
+        // + updated balance, so re-running the fallback would duplicate
+        // the row and double-increment `advance_paid` (Macroscope finding,
+        // PR #8). Distinguish by whether we got a row back to map or not.
+        if (rpc.data) {
+          return mapPayment(rpc.data as Record<string, unknown>)
+        }
+        // RPC succeeded but returned null/undefined. The mutation has
+        // happened on the server (SECURITY DEFINER + transaction); we
+        // just lost the response shape. We THROW a typed error rather
+        // than fall through, so the caller can surface a clear "refresh
+        // to verify" message AND report to error tracking with high
+        // severity (this indicates a server-contract issue). Acceptance
+        // criteria for issue #9 will tighten the RPC's return contract;
+        // in the meantime this preserves data integrity.
+        throw new PaymentResponseLostError({
+          invoiceId: input.invoiceId,
+          amount: input.amount,
+          receivedAt,
+        })
       }
 
-      // Fallback: best-effort two-step.
+      // RPC errored. The fallback INSERT path is ONLY appropriate for
+      // "function not found" / schema-cache-miss errors — i.e. the RPC
+      // genuinely isn't deployed yet (issue #9). For ANY other RPC error
+      // (constraint violation, RLS denied, invoice-not-found, transaction
+      // rollback, network error) the fallback would either:
+      //   (a) duplicate work the RPC partially completed, OR
+      //   (b) succeed where the RPC was correctly rejecting the operation,
+      //       silently bypassing business rules / RLS that the RPC enforced.
+      //
+      // Both outcomes corrupt data. So we narrow the fallback to the
+      // missing-relation case explicitly and re-throw everything else
+      // (Macroscope High finding, PR #8 commit 9547758 follow-up).
+      if (!isMissingInvoicePaymentsRelation(rpc.error)) {
+        throw rpc.error
+      }
+
+      // ⚠ TEMPORARY FALLBACK — Tracking issue: #9
+      //
+      // The two-step `insert + read invoice + update` path below is NOT
+      // atomic. Two callers both read the same `advance_paid` and both
+      // write `oldAdvance + ownAmount`, swallowing one increment.
+      //
+      // We CAN'T fail-loud here because the RPC isn't in the deployed
+      // schema yet (#9 is the migration). Failing-loud would turn this
+      // into a hard payment-recording outage. Instead we WARN-log every
+      // fallback invocation so any reconciliation discrepancy can be
+      // correlated with this code path post-hoc, and we set a marker
+      // header on the response shape (callers can surface it for the UI
+      // to nag operators about double-clicks).
+      //
+      // Once #9 lands and the RPC is verified live for ≥ 7 days, this
+      // entire branch will be deleted in a follow-up PR — at that point
+      // the rpc.error path becomes throw-on-fail with a clear migration
+      // hint, and the racy code never executes again.
+      console.warn(
+        "[payment.service] record_invoice_payment RPC unavailable — " +
+          "falling back to racy two-step path. " +
+          "Tracking: https://github.com/cargotapan-collab/tac-express/issues/9",
+        {
+          invoiceId: input.invoiceId,
+          amount: input.amount,
+          rpcError: rpc.error?.message ?? "no data returned",
+          rpcCode: rpc.error?.code,
+          env: process.env.NODE_ENV,
+        },
+      )
       const { data: insRow, error: insErr } = await db
         .from("invoice_payments")
         .insert({
@@ -140,7 +270,7 @@ export function createPaymentService(db: SupabaseClient) {
         .single()
       if (insErr) {
         if (isMissingInvoicePaymentsRelation(insErr)) {
-          invoicePaymentsTableMissing = true
+          markRelationMissing()
         }
         throw insErr
       }
@@ -170,14 +300,14 @@ export function createPaymentService(db: SupabaseClient) {
     },
 
     async deletePayment(id: string): Promise<void> {
-      if (invoicePaymentsTableMissing) return
+      if (isRelationMissing()) return
       const { error } = await db
         .from("invoice_payments")
         .delete()
         .eq("id", id)
       if (error) {
         if (isMissingInvoicePaymentsRelation(error)) {
-          invoicePaymentsTableMissing = true
+          markRelationMissing()
           return
         }
         throw error

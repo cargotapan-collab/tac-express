@@ -187,6 +187,27 @@ EWAYBILL_PASSWORD=
 3. If stuck: clear failed items from the scan queue UI on `/scanning`, ask driver to re-capture.
 4. Storage bucket `shipment-docs/pod/` quota — confirm available space.
 
+### Payment recording broken in production (known, tracked: #9)
+
+**Symptom:** Operator clicks "Record Payment" on an invoice → sees red toast: "Payment recording is unavailable: the `invoice_payments` table has not been deployed yet. Apply migration 20260501000002."
+
+**State as of PR #8 merge (2026-05-08):**
+- The `invoice_payments` table does NOT exist in the deployed schema.
+- The `record_invoice_payment` RPC does NOT exist in the deployed schema.
+- Payments cannot be recorded. The error message is clear, not silent — `recordPayment()` throws on every call.
+- `usePaymentsForInvoice()` returns `[]` silently (the UI shows "no payments" which is correct since none can exist).
+- No `ALLOW_PAYMENT_FALLBACK` env var should be set in production. The gate code that read that variable was reverted; the var is now meaningless. If you find it set, remove it.
+
+**Resolution:** Issue **#9** — single small PR that adds:
+1. `supabase/migrations/20260501000001_add_invoice_payments_table.sql` — table + indexes + RLS policies
+2. `supabase/migrations/20260501000002_add_record_invoice_payment_rpc.sql` — RPC body with `SELECT ... FOR UPDATE` inside a transaction (`SECURITY DEFINER`)
+
+Both must land in one deploy. Once verified live for ≥ 7 days, a follow-up ≤50 LoC PR deletes the JS-layer fallback (which carries the documented two-step race) so the only remaining path is the atomic RPC.
+
+**Priority:** P1 — feature is non-functional. Owner + ETA owed in #9 before merging PR #8 into main, or as the very next change after.
+
+**Operator workaround until #9 lands:** record payments via the Supabase SQL editor manually. No UI path exists.
+
 ### Migration rollback
 
 **Symptom:** A migration broke production and we need to revert.

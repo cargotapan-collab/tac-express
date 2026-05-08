@@ -28,6 +28,13 @@ export interface WhatsAppTemplateOption {
   language: string
   status?: string
   body?: string
+  /**
+   * `"DOCUMENT" | "IMAGE" | "VIDEO" | "TEXT"` (or undefined for templates
+   * without a HEADER). When DOCUMENT/IMAGE/VIDEO, the dialog requires a
+   * `templateMediaUrl` from the user — otherwise WhatsApp silently
+   * rejects the send.
+   */
+  headerFormat?: string
 }
 
 export interface SendWhatsAppValues {
@@ -38,12 +45,22 @@ export interface SendWhatsAppValues {
   templateLanguage?: string
   /** Body parameters in order. */
   templateParams?: Array<{ text: string }>
+  /** Public URL of the document/image/video for the template's HEADER. */
+  templateMediaUrl?: string
+  templateMediaFilename?: string
+  templateMediaKind?: "document" | "image" | "video"
 }
 
 export interface WhatsappTestStatus {
   ok: boolean
   configured: boolean
   connected: boolean
+  /**
+   * True when the server can mint signed `/api/public/invoice-pdf` URLs
+   * that WhatsApp can fetch. When true, the dialog hides the manual
+   * Document URL field — the server fills it in.
+   */
+  pdfAutoGenAvailable?: boolean
   error?: string
   templates?: WhatsAppTemplateOption[]
 }
@@ -65,24 +82,19 @@ interface SendWhatsAppDialogProps {
 }
 
 /**
- * Confirmation dialog for sending an invoice summary via WhatsApp.
+ * Confirmation dialog for sending an invoice via WhatsApp.
  *
- * ## Two delivery modes
+ * The dialog auto-selects the delivery mechanism behind the scenes —
+ * operators don't pick modes, edit template parameters, or see WhatsApp's
+ * internal template names. They confirm WHO and see a preview of WHAT.
  *
- *   1. **Direct** (default) — uses the free-form `sendmessage` API.
- *      Subject to WhatsApp's **24-hour customer service window**: only
- *      delivers if the recipient has messaged your WhatsApp Business
- *      number in the past 24 hours. WPBox returns "success" + a real
- *      WAMID even when delivery will silently fail — this is a Meta
- *      policy, not a bug. Best for active conversations.
- *
- *   2. **Template** — uses `sendtemplatemessage` with a Meta-approved
- *      template. Delivers anytime, no 24h restriction. The template
- *      must already be approved in your LeminAi dashboard. Parameters
- *      are auto-filled from invoice data; user can override per send.
- *
- * The mode toggle is hidden when no approved templates are available
- * (sender can only do direct in that case).
+ * Mode selection is implicit:
+ *   - **Template** when the WPBox account has approved templates available
+ *     (delivers anytime, no 24-hour window). Production default — used by
+ *     virtually every send.
+ *   - **Direct** when no templates exist (free-form `sendmessage`). The
+ *     24h-window caveat is surfaced as a warning so the operator knows
+ *     delivery isn't guaranteed for cold contacts.
  */
 export function SendWhatsAppDialog({
   open,
@@ -100,74 +112,87 @@ export function SendWhatsAppDialog({
   className,
 }: SendWhatsAppDialogProps) {
   const [phone, setPhone] = React.useState(defaultPhone)
-  const [mode, setMode] = React.useState<DeliveryMode>("direct")
-  const [templateName, setTemplateName] = React.useState<string>("")
-  const [templateParams, setTemplateParams] = React.useState<string[]>([])
+  const [templateMediaUrl, setTemplateMediaUrl] = React.useState<string>("")
   const [error, setError] = React.useState<string | null>(null)
   const [errorDetail, setErrorDetail] = React.useState<string | null>(null)
   const [showDetail, setShowDetail] = React.useState(false)
 
-  /* Available approved templates — drives the dropdown + mode availability */
+  /* Available approved templates — drives implicit mode selection. */
   const templates = testStatus?.templates ?? []
-  const hasTemplates = templates.length > 0
+  /**
+   * Deterministically pick the invoice template. We can't safely auto-
+   * select `templates[0]` because WPBox's getTemplates response order
+   * isn't stable — once the WPBox account has more than one approved
+   * template (utility, marketing, etc.), positional selection picks
+   * whatever happens to come back first, which could fire the wrong
+   * BODY/HEADER contract for invoice sends.
+   *
+   * Match order: explicit env var → name pattern (`*invoice*`) → first
+   * approved template only when there's exactly one (degenerate case
+   * where ordering is moot). Otherwise return undefined.
+   */
+  const invoiceTemplate = pickInvoiceTemplate(templates)
+  /**
+   * **Misconfigured template state.** When the WPBox account has
+   * approved templates but `pickInvoiceTemplate()` couldn't identify
+   * the invoice one (e.g. naming convention drifted, env var unset
+   * with multiple templates), DON'T silently fall back to direct mode
+   * — that would defeat the deterministic-template guarantee and
+   * reintroduce the 24h-window failure. Treat as a blocking config
+   * error: the send button stays disabled and a status message
+   * surfaces. Operators should set `NEXT_PUBLIC_WHATSAPP_INVOICE_TEMPLATE`
+   * to the exact template name.
+   */
+  const isTemplateMisconfigured = templates.length > 0 && invoiceTemplate === undefined
+  const hasTemplates = invoiceTemplate !== undefined
+  /* Implicit delivery mode — operator doesn't see this decision. */
+  const mode: DeliveryMode = hasTemplates ? "template" : "direct"
+  const selectedTemplate = invoiceTemplate
 
-  /* When the dialog opens or the default phone changes, reset state.
-   * Logged so the browser console shows that the dialog actually mounted. */
+  /* Reset transient state every time the dialog opens. */
   React.useEffect(() => {
-    if (open) {
-      console.log("[whatsapp:client] dialog opened", {
+    if (!open) return
+    setPhone(defaultPhone)
+    setTemplateMediaUrl("")
+    setError(null)
+    setErrorDetail(null)
+    setShowDetail(false)
+  }, [open, defaultPhone])
+
+  /* Live preview body — direct mode shows the actual free-form message;
+   * template mode shows the template body with placeholders resolved
+   * from invoice data. */
+  const previewMessage = React.useMemo(() => {
+    if (mode === "template" && selectedTemplate?.body) {
+      const params = buildParamDefaults({
         customerName,
         invoiceNumber,
-        defaultPhone,
+        totalAmount,
+        awbNumber,
       })
-      setPhone(defaultPhone)
-      setError(null)
-      setErrorDetail(null)
-      setShowDetail(false)
-    } else {
-      console.log("[whatsapp:client] dialog closed")
+      return resolvePlaceholders(selectedTemplate.body, params)
     }
-  }, [open, defaultPhone, customerName, invoiceNumber])
-
-  /* When a template is selected, prefill its parameters from invoice
-   * data. The parser counts `{{N}}` placeholders in the template body
-   * to pick the right number of params. */
-  React.useEffect(() => {
-    if (!templateName) return
-    const tmpl = templates.find((t) => t.name === templateName)
-    if (!tmpl) return
-    const placeholderCount = countPlaceholders(tmpl.body ?? "")
-    const defaults = buildParamDefaults({
-      customerName,
-      invoiceNumber,
-      totalAmount,
-      awbNumber,
-    })
-    const next: string[] = []
-    for (let i = 0; i < Math.max(placeholderCount, defaults.length); i++) {
-      next.push(defaults[i] ?? "")
-    }
-    setTemplateParams(next)
-  }, [templateName, templates, customerName, invoiceNumber, totalAmount, awbNumber])
-
-  /* When the user enables template mode and templates have arrived,
-   * preselect the first one so the dropdown isn't empty. */
-  React.useEffect(() => {
-    if (mode === "template" && !templateName && templates.length > 0) {
-      setTemplateName(templates[0]!.name)
-    }
-  }, [mode, templates, templateName])
-
-  /* Live preview body — direct mode shows actual message; template
-   * mode shows the template body with placeholders resolved. */
-  const previewMessage = React.useMemo(() => {
     if (mode === "template") {
-      const tmpl = templates.find((t) => t.name === templateName)
-      if (!tmpl?.body) return "Template body not available — message will be rendered by WhatsApp."
-      return resolvePlaceholders(tmpl.body, templateParams)
+      // Template body wasn't returned by the WPBox catalog endpoint — give
+      // the operator a sensible neutral preview rather than an empty box.
+      return `Invoice ${invoiceNumber} for ${customerName || "customer"} (${formatINR(totalAmount)}) — PDF attached.`
     }
     return buildDirectPreview({ customerName, invoiceNumber, totalAmount, awbNumber })
-  }, [mode, templates, templateName, templateParams, customerName, invoiceNumber, totalAmount, awbNumber])
+  }, [mode, selectedTemplate, customerName, invoiceNumber, totalAmount, awbNumber])
+
+  /* Media-attachment plumbing — entirely server-side in production. */
+  const requiredMediaKind = mediaKindFromHeaderFormat(selectedTemplate?.headerFormat)
+  const requiresMedia = requiredMediaKind !== null
+  const autoGenAvailable = Boolean(testStatus?.pdfAutoGenAvailable)
+  /**
+   * Manual URL is only required when:
+   *   - The template needs media (DOCUMENT/IMAGE/VIDEO HEADER), AND
+   *   - The server can't auto-generate one. In production the server
+   *     fills the URL in transparently; this fallback only fires in
+   *     legacy/dev environments without a public origin configured.
+   */
+  const showUrlField = mode === "template" && requiresMedia && !autoGenAvailable
+  const showAttachmentNotice = mode === "template" && requiresMedia && autoGenAvailable
 
   async function handleSubmit() {
     setError(null)
@@ -183,20 +208,52 @@ export function SendWhatsAppDialog({
       setError("Phone number must include at least 10 digits")
       return
     }
-    if (mode === "template" && !templateName) {
-      setError("Select a template to send")
+
+    const trimmedUrl = templateMediaUrl.trim()
+    if (showUrlField && !trimmedUrl) {
+      setError(
+        `This template requires a ${requiredMediaKind} — paste a public URL.`,
+      )
+      return
+    }
+    if (trimmedUrl && !/^https?:\/\//i.test(trimmedUrl)) {
+      setError("Document URL must start with http:// or https://")
       return
     }
 
-    const tmpl = templates.find((t) => t.name === templateName)
+    /* Auto-fill template parameters from invoice data. Operators never
+     * see or edit these — they're a transport-layer detail of how
+     * WhatsApp's template engine works, not a customer-facing field. */
+    const templateParams =
+      mode === "template" && selectedTemplate
+        ? buildAutoTemplateParams({
+            template: selectedTemplate,
+            customerName,
+            invoiceNumber,
+            totalAmount,
+            awbNumber,
+          })
+        : undefined
+
     const values: SendWhatsAppValues = {
       phone: trimmedPhone,
       mode,
-      ...(mode === "template" && tmpl
+      ...(mode === "template" && selectedTemplate
         ? {
-            templateName: tmpl.name,
-            templateLanguage: tmpl.language,
-            templateParams: templateParams.map((text) => ({ text })),
+            templateName: selectedTemplate.name,
+            templateLanguage: selectedTemplate.language,
+            templateParams,
+            ...(trimmedUrl
+              ? {
+                  templateMediaUrl: trimmedUrl,
+                  templateMediaKind: requiredMediaKind ?? "document",
+                  ...(requiredMediaKind === "document" || !requiredMediaKind
+                    ? {
+                        templateMediaFilename: `TAC-Invoice-${invoiceNumber}.pdf`,
+                      }
+                    : {}),
+                }
+              : {}),
           }
         : {}),
     }
@@ -218,7 +275,13 @@ export function SendWhatsAppDialog({
     isSubmitting ||
     Boolean(testStatus && !testStatus.ok) ||
     Boolean(testLoading) ||
-    (mode === "template" && !templateName)
+    isTemplateMisconfigured
+
+  /* Show the connectivity pill ONLY when the connection is broken or
+   * still loading — once verified, hide it so production users don't
+   * see ops-flavored "WHATSAPP CONNECTED" badges on every send. */
+  const showStatusPill =
+    Boolean(testLoading) || !testStatus || !testStatus.ok
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -229,26 +292,36 @@ export function SendWhatsAppDialog({
             Send invoice via WhatsApp
           </DialogTitle>
           <DialogDescription>
-            A summary of invoice {invoiceNumber} will be delivered to the
-            customer's WhatsApp.
+            Invoice {invoiceNumber} will be delivered to the customer.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Pre-flight config / connectivity pill */}
-          <ConfigStatusPill
-            status={testStatus}
-            loading={testLoading}
-            onRetry={onRetryTest}
-          />
-
-          {/* Mode toggle — only shown when templates are available */}
-          {hasTemplates && (
-            <ModeToggle mode={mode} onChange={setMode} templateCount={templates.length} />
+          {/* Connectivity pill — only when broken or still loading. */}
+          {showStatusPill && (
+            <ConfigStatusPill
+              status={testStatus}
+              loading={testLoading}
+              onRetry={onRetryTest}
+            />
           )}
 
-          {/* 24-hour policy notice — direct mode only */}
-          {mode === "direct" && <Direct24hNotice hasTemplates={hasTemplates} />}
+          {/* Template-misconfigured: blocking error. We have approved
+              templates but couldn't resolve which one is the invoice
+              template. Don't silently fall back to direct. */}
+          {isTemplateMisconfigured && testStatus?.ok && (
+            <TemplateMisconfiguredNotice
+              templateCount={templates.length}
+            />
+          )}
+
+          {/* 24-hour policy notice — only when we'll send via direct
+              mode (no approved templates available) and the connection
+              is healthy. Surfaces the only delivery caveat the operator
+              needs to know about. */}
+          {mode === "direct" && testStatus?.ok && !isTemplateMisconfigured && (
+            <Direct24hNotice />
+          )}
 
           {/* Recipient name (read-only) */}
           <div className="space-y-1.5">
@@ -279,29 +352,52 @@ export function SendWhatsAppDialog({
               placeholder="+91 98765 43210"
               className="font-mono"
             />
-            <p className="font-sans text-xs text-muted-foreground/80">
-              Country code optional — Indian numbers default to +91.
-            </p>
           </div>
 
-          {/* Template controls — only in template mode */}
-          {mode === "template" && hasTemplates && (
-            <TemplateControls
-              templates={templates}
-              selected={templateName}
-              onSelect={setTemplateName}
-              params={templateParams}
-              onParamChange={(idx, value) =>
-                setTemplateParams((prev) => {
-                  const next = [...prev]
-                  next[idx] = value
-                  return next
-                })
-              }
-            />
+          {/* Compact attachment confirmation — production path. */}
+          {showAttachmentNotice && (
+            <div className="flex items-center gap-2 border border-primary/30 bg-primary/5 px-3 py-2">
+              <RiCheckLine
+                className="h-3.5 w-3.5 text-primary shrink-0"
+                aria-hidden="true"
+              />
+              <p className="font-mono text-2xs uppercase tracking-widest text-primary">
+                Invoice PDF will be attached
+              </p>
+            </div>
           )}
 
-          {/* Live message preview */}
+          {/* Manual URL fallback — fires only when auto-gen is unavailable
+              (e.g. local dev without a public tunnel). Production never
+              reaches this branch. */}
+          {showUrlField && requiredMediaKind && (
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="wa-media-url"
+                className="font-mono text-2xs uppercase tracking-widest text-muted-foreground flex items-center gap-2"
+              >
+                <span>{requiredMediaKind} URL</span>
+                <span className="font-sans normal-case text-2xs text-accent-warning">
+                  required
+                </span>
+              </Label>
+              <Input
+                id="wa-media-url"
+                type="url"
+                inputMode="url"
+                value={templateMediaUrl}
+                onChange={(e) => setTemplateMediaUrl(e.target.value)}
+                placeholder="https://example.com/invoice.pdf"
+                className="font-mono text-xs"
+              />
+              <p className="font-sans text-2xs leading-snug text-muted-foreground/80">
+                WhatsApp fetches this URL server-side — it must be publicly
+                reachable.
+              </p>
+            </div>
+          )}
+
+          {/* Live message preview — what the customer will actually see. */}
           <div className="space-y-1.5">
             <Label className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
               Preview
@@ -311,7 +407,7 @@ export function SendWhatsAppDialog({
             </pre>
           </div>
 
-          {/* Inline error with optional raw-response expandable */}
+          {/* Inline error with optional expandable detail. */}
           {error && (
             <div className="space-y-1.5 border border-destructive/40 bg-destructive/5 p-3">
               <p className="font-sans text-xs font-semibold text-destructive break-words">
@@ -324,7 +420,7 @@ export function SendWhatsAppDialog({
                     onClick={() => setShowDetail((v) => !v)}
                     className="font-mono text-2xs uppercase tracking-widest text-destructive/80 hover:text-destructive underline-offset-2 hover:underline"
                   >
-                    {showDetail ? "Hide raw response" : "View raw WPBox response"}
+                    {showDetail ? "Hide details" : "View details"}
                   </button>
                   {showDetail && (
                     <pre className="mt-1 max-h-32 overflow-auto border border-destructive/20 bg-background/60 px-2 py-1.5 font-mono text-2xs leading-snug text-foreground/80 whitespace-pre-wrap break-all">
@@ -354,11 +450,7 @@ export function SendWhatsAppDialog({
           >
             <RiWhatsappLine className="h-3.5 w-3.5" aria-hidden="true" />
             <span className="ml-1.5">
-              {isSubmitting
-                ? "Sending…"
-                : mode === "template"
-                  ? "Send template"
-                  : "Send WhatsApp"}
+              {isSubmitting ? "Sending…" : "Send invoice"}
             </span>
           </Button>
         </DialogFooter>
@@ -388,26 +480,14 @@ function ConfigStatusPill({
           aria-hidden="true"
         />
         <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
-          Verifying WPBox configuration…
+          Checking WhatsApp connection…
         </p>
       </div>
     )
   }
 
-  if (status.ok) {
-    return (
-      <div className="flex items-center gap-2 border border-primary/40 bg-primary/5 px-3 py-2">
-        <RiCheckLine className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-        <p className="font-mono text-2xs uppercase tracking-widest text-primary">
-          WhatsApp connected
-          {status.templates && status.templates.length > 0
-            ? ` · ${status.templates.length} template${status.templates.length === 1 ? "" : "s"}`
-            : " · no templates"}
-        </p>
-      </div>
-    )
-  }
-
+  // The healthy state isn't rendered here — the parent hides this pill
+  // entirely when status.ok is true.
   const headline = !status.configured
     ? "WhatsApp not configured"
     : "WhatsApp connection failed"
@@ -434,156 +514,58 @@ function ConfigStatusPill({
           </button>
         )}
       </div>
-      {status.error && (
-        <p className="font-mono text-2xs leading-snug text-destructive/80 break-words pl-5">
-          {status.error}
-        </p>
-      )}
       {!status.configured && (
         <p className="font-sans text-2xs leading-snug text-muted-foreground pl-5">
-          Set <code className="font-mono">WPBOX_API_TOKEN</code> and{" "}
-          <code className="font-mono">WPBOX_USER_ID</code> in{" "}
-          <code className="font-mono">apps/dashboard/.env.local</code>, then
-          restart the dev server.
+          Contact an administrator to enable invoice messaging.
         </p>
       )}
     </div>
   )
 }
 
-function ModeToggle({
-  mode,
-  onChange,
+function TemplateMisconfiguredNotice({
   templateCount,
 }: {
-  mode: DeliveryMode
-  onChange: (mode: DeliveryMode) => void
   templateCount: number
 }) {
-  const opts: Array<{ value: DeliveryMode; label: string; sub: string }> = [
-    { value: "direct", label: "Direct", sub: "free-form · 24h limit" },
-    {
-      value: "template",
-      label: "Template",
-      sub: `pre-approved · always delivers · ${templateCount} avail.`,
-    },
-  ]
   return (
-    <div className="grid grid-cols-2 gap-2">
-      {opts.map((opt) => {
-        const active = mode === opt.value
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => onChange(opt.value)}
-            className={cn(
-              "flex flex-col items-start gap-0.5 border px-3 py-2 text-left transition-colors",
-              active
-                ? "border-primary bg-primary/5"
-                : "border-border bg-card hover:border-primary/40"
-            )}
-          >
-            <span
-              className={cn(
-                "font-mono text-2xs uppercase tracking-widest",
-                active ? "text-primary" : "text-foreground"
-              )}
-            >
-              {opt.label}
-            </span>
-            <span className="font-sans text-2xs text-muted-foreground leading-tight">
-              {opt.sub}
-            </span>
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-function Direct24hNotice({ hasTemplates }: { hasTemplates: boolean }) {
-  return (
-    <div className="border border-amber-500/40 bg-amber-500/5 px-3 py-2 space-y-1">
+    <div className="border border-destructive/40 bg-destructive/5 px-3 py-2 space-y-1">
       <div className="flex items-center gap-2">
         <RiErrorWarningLine
-          className="h-3.5 w-3.5 text-amber-600 dark:text-amber-500 shrink-0"
+          className="h-3.5 w-3.5 text-destructive shrink-0"
           aria-hidden="true"
         />
-        <p className="font-mono text-2xs uppercase tracking-widest text-amber-700 dark:text-amber-400">
-          24-hour delivery window
+        <p className="font-mono text-2xs uppercase tracking-widest text-destructive">
+          Template not configured
         </p>
       </div>
       <p className="font-sans text-2xs leading-snug text-muted-foreground pl-5">
-        WhatsApp Business policy: free-form messages only deliver if the
-        recipient has messaged your WhatsApp Business number in the past
-        24 hours. The API may report success even when delivery will
-        silently fail.
-        {hasTemplates && " For cold contacts, switch to Template mode."}
+        {templateCount === 1
+          ? "The single approved template doesn't match the invoice naming pattern. "
+          : `Found ${templateCount} approved templates but none matches the invoice pattern. `}
+        Set <code className="font-mono">NEXT_PUBLIC_WHATSAPP_INVOICE_TEMPLATE</code>{" "}
+        to the exact template name and restart the dashboard.
       </p>
     </div>
   )
 }
 
-function TemplateControls({
-  templates,
-  selected,
-  onSelect,
-  params,
-  onParamChange,
-}: {
-  templates: WhatsAppTemplateOption[]
-  selected: string
-  onSelect: (name: string) => void
-  params: string[]
-  onParamChange: (idx: number, value: string) => void
-}) {
+function Direct24hNotice() {
   return (
-    <div className="space-y-3 border border-border bg-muted/20 p-3">
-      <div className="space-y-1.5">
-        <Label
-          htmlFor="wa-template"
-          className="font-mono text-2xs uppercase tracking-widest text-muted-foreground"
-        >
-          Template
-        </Label>
-        <select
-          id="wa-template"
-          value={selected}
-          onChange={(e) => onSelect(e.target.value)}
-          className="h-9 w-full border border-border bg-background px-3 font-sans text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-        >
-          {templates.map((t) => (
-            <option key={`${t.name}|${t.language}`} value={t.name}>
-              {t.name} ({t.language}
-              {t.status ? ` · ${t.status}` : ""})
-            </option>
-          ))}
-        </select>
+    <div className="border border-accent-warning/40 bg-accent-warning/5 px-3 py-2 space-y-1">
+      <div className="flex items-center gap-2">
+        <RiErrorWarningLine
+          className="h-3.5 w-3.5 text-accent-warning shrink-0"
+          aria-hidden="true"
+        />
+        <p className="font-mono text-2xs uppercase tracking-widest text-accent-warning">
+          24-hour delivery window
+        </p>
       </div>
-
-      {params.length > 0 && (
-        <div className="space-y-2">
-          <Label className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
-            Parameters · auto-filled from invoice
-          </Label>
-          <div className="space-y-1.5">
-            {params.map((value, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <span className="font-mono text-2xs text-muted-foreground/70 w-10 shrink-0">
-                  {`{{${idx + 1}}}`}
-                </span>
-                <Input
-                  type="text"
-                  value={value}
-                  onChange={(e) => onParamChange(idx, e.target.value)}
-                  className="font-sans text-sm"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <p className="font-sans text-2xs leading-snug text-muted-foreground pl-5">
+        This message will only deliver if the customer has messaged your
+        WhatsApp Business number in the past 24 hours.
+      </p>
     </div>
   )
 }
@@ -635,6 +617,33 @@ function buildParamDefaults(input: {
   ]
 }
 
+/** Build the exact array of `{ text }` parameters the template expects.
+ *  Counts the `{{N}}` placeholders in the template body so we never send
+ *  too many (which WhatsApp rejects with "parameter mismatch"). Falls
+ *  back to 3 (the canonical name/invoice/amount shape) when the body
+ *  text isn't returned by the WPBox getTemplates response. */
+function buildAutoTemplateParams(input: {
+  template: WhatsAppTemplateOption
+  customerName: string
+  invoiceNumber: string
+  totalAmount: number
+  awbNumber?: string
+}): Array<{ text: string }> {
+  const detected = countPlaceholders(input.template.body ?? "")
+  const finalCount = detected > 0 ? detected : 3
+  const defaults = buildParamDefaults({
+    customerName: input.customerName,
+    invoiceNumber: input.invoiceNumber,
+    totalAmount: input.totalAmount,
+    awbNumber: input.awbNumber,
+  })
+  const out: Array<{ text: string }> = []
+  for (let i = 0; i < finalCount; i++) {
+    out.push({ text: defaults[i] ?? "" })
+  }
+  return out
+}
+
 function countPlaceholders(body: string): number {
   const matches = body.match(/\{\{\s*\d+\s*\}\}/g)
   return matches ? matches.length : 0
@@ -645,4 +654,51 @@ function resolvePlaceholders(body: string, params: string[]): string {
     const i = parseInt(String(idx), 10) - 1
     return params[i] ?? `{{${idx}}}`
   })
+}
+
+/** Map WhatsApp's HEADER format string to our media-kind union. */
+function mediaKindFromHeaderFormat(
+  fmt: string | undefined,
+): "document" | "image" | "video" | null {
+  if (!fmt) return null
+  const upper = fmt.toUpperCase()
+  if (upper === "DOCUMENT") return "document"
+  if (upper === "IMAGE") return "image"
+  if (upper === "VIDEO") return "video"
+  return null // TEXT or other — no media required
+}
+
+/**
+ * Deterministically pick the invoice template from the WPBox catalog.
+ * Match order:
+ *   1. `NEXT_PUBLIC_WHATSAPP_INVOICE_TEMPLATE` env (exact name match,
+ *      case-insensitive) — production-blessed, lets ops switch templates
+ *      without redeploying the dashboard.
+ *   2. Name contains "invoice" (case-insensitive) — fallback for the
+ *      common case where the template is named `*_invoice` /
+ *      `invoice_*` / similar.
+ *   3. The single approved template, if there's exactly one — degenerate
+ *      case where ordering doesn't matter.
+ *   4. `undefined` — refuse to send rather than picking arbitrarily.
+ */
+function pickInvoiceTemplate(
+  templates: readonly WhatsAppTemplateOption[],
+): WhatsAppTemplateOption | undefined {
+  if (templates.length === 0) return undefined
+
+  const explicit =
+    typeof process !== "undefined"
+      ? process.env?.NEXT_PUBLIC_WHATSAPP_INVOICE_TEMPLATE?.trim()
+      : undefined
+  if (explicit) {
+    const exact = templates.find((t) => t.name.toLowerCase() === explicit.toLowerCase())
+    if (exact) return exact
+  }
+
+  const byPattern = templates.find((t) => /invoice/i.test(t.name))
+  if (byPattern) return byPattern
+
+  if (templates.length === 1) return templates[0]
+
+  return undefined
 }

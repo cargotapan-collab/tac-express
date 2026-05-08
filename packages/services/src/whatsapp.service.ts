@@ -44,6 +44,61 @@ export interface SendTemplateInput {
   components?: WhatsAppTemplateComponent[]
 }
 
+/**
+ * Header media component used by templates whose HEADER is an image,
+ * video, or document. WhatsApp fetches `link` server-side, so it MUST
+ * be publicly resolvable (no Bearer/cookie auth on the URL itself).
+ */
+export type WhatsAppHeaderMedia =
+  | { kind: "document"; link: string; filename?: string }
+  | { kind: "image"; link: string }
+  | { kind: "video"; link: string }
+
+/**
+ * Build a HEADER component for `sendtemplatemessage`. Output matches the
+ * WPBox docs:
+ *
+ *   { type: "HEADER", parameters: [{ type: "document", document: { link, filename } }] }
+ */
+export function buildHeaderMediaComponent(
+  media: WhatsAppHeaderMedia
+): WhatsAppTemplateComponent {
+  if (media.kind === "document") {
+    return {
+      type: "HEADER",
+      // The WPBox JSON shape uses dynamic keys keyed by media kind, so
+      // we cast the parameter object once rather than fight the typed
+      // shape (which only models the BODY-text variant).
+      parameters: [
+        {
+          type: "document",
+          document: { link: media.link, ...(media.filename ? { filename: media.filename } : {}) },
+        } as unknown as { type: "text"; text: string },
+      ],
+    }
+  }
+  if (media.kind === "image") {
+    return {
+      type: "HEADER",
+      parameters: [
+        { type: "image", image: { link: media.link } } as unknown as {
+          type: "text"
+          text: string
+        },
+      ],
+    }
+  }
+  return {
+    type: "HEADER",
+    parameters: [
+      { type: "video", video: { link: media.link } } as unknown as {
+        type: "text"
+        text: string
+      },
+    ],
+  }
+}
+
 export interface MakeContactInput {
   phone: string
   name: string
@@ -217,7 +272,34 @@ export function createWhatsAppService(config: WhatsAppConfig): WhatsAppService {
       }
     }
 
-    /* ── Application-level failure (HTTP 200 + error body) ── */
+    /* ── Application-level failure (HTTP 200 + error body) ──
+     *
+     * Two failure shapes WPBox emits with HTTP 200:
+     *
+     *  1. `{ status: "error", message: "..." }` — explicit error envelope.
+     *  2. `{ status: "success", message_id: N, message_wamid: null }` —
+     *     **silent rejection**. WPBox accepted our request but WhatsApp
+     *     itself refused to send (template requires HEADER but we sent
+     *     BODY only, template not approved, recipient blocked, etc.).
+     *     The null WAMID is the actual signal of failure for any send
+     *     path (`/sendmessage` or `/sendtemplatemessage`). Treat as
+     *     failure on those endpoints.
+     */
+    const isSendEndpoint = path.includes("sendmessage") || path.includes("sendtemplatemessage")
+    if (isSendEndpoint && data && typeof data === "object") {
+      const obj = data as Record<string, unknown>
+      // null literal — JSON.parse leaves this as JS `null`
+      if (Object.prototype.hasOwnProperty.call(obj, "message_wamid") && obj.message_wamid === null) {
+        return {
+          ok: false,
+          error:
+            "WhatsApp rejected the message (message_wamid: null). The template likely requires a HEADER component, the recipient isn't reachable, or the template is unapproved.",
+          status: res.status,
+          rawResponse: text.slice(0, 1000),
+        }
+      }
+    }
+
     if (data && typeof data === "object") {
       const obj = data as Record<string, unknown>
       const isErrorStatus =
@@ -395,12 +477,19 @@ export function createWhatsAppServiceFromEnv(): WhatsAppService {
  * Normalize a free-form phone string to the digits-only format the WPBox
  * API expects (country code + national number, no `+`, no spaces).
  *
- * - Strips all non-digit characters
- * - 10 digits → prepends `defaultCountryCode` (default: India "91")
- * - 11 digits starting with `0` → strips the leading 0, prepends country code
- * - 12-13 digits already containing the country code → returned as-is
+ * Canonical Indian form: `91` + 10-digit subscriber number = 12 digits total.
  *
- * Returns `null` if no plausible phone number can be derived.
+ * Recognised input shapes (assumes default country code "91"):
+ * - `9876543210`           → `919876543210`   (bare 10-digit national)
+ * - `09876543210`          → `919876543210`   (national with trunk-zero)
+ * - `919876543210`         → `919876543210`   (already canonical)
+ * - `+91 98765 43210`      → `919876543210`   (after non-digit strip)
+ * - `+91 0 9876543210`     → `919876543210`   (operator prefix +0 stripped)
+ *
+ * Returns `null` if no plausible Indian phone can be derived. Used as the
+ * comparison key for the WhatsApp IDOR allow-list — a bug here can either
+ * accept illegitimate sends or reject legitimate ones, so the function
+ * stays defensive about ambiguous inputs.
  */
 export function normalizePhone(
   input: string,
@@ -410,21 +499,34 @@ export function normalizePhone(
   const digits = input.replace(/\D/g, "")
   if (!digits) return null
 
-  // Already includes country code (10-digit national + 2-digit country)
-  if (digits.length === 12 && digits.startsWith(defaultCountryCode)) return digits
-  if (digits.length === 13 && digits.startsWith(defaultCountryCode)) return digits
+  // Canonical: 12-digit (country code + 10-digit subscriber).
+  if (digits.length === 12 && digits.startsWith(defaultCountryCode)) {
+    return digits
+  }
 
-  // National number with a leading 0 (Indian local format)
+  // 13-digit form is almost always `91` + spurious trunk-zero + 10-digit
+  // subscriber (the user typed `+91 0 …`). Strip the zero rather than
+  // returning the malformed value — otherwise this number compares !=
+  // the canonical one and breaks the allow-list. Reject anything else.
+  if (digits.length === 13 && digits.startsWith(defaultCountryCode)) {
+    if (digits[2] === "0") {
+      return defaultCountryCode + digits.slice(3)
+    }
+    return null
+  }
+
+  // National number with leading trunk-zero.
   if (digits.length === 11 && digits.startsWith("0")) {
     return defaultCountryCode + digits.slice(1)
   }
 
-  // Bare 10-digit national number — assume default country
+  // Bare 10-digit national number — assume default country.
   if (digits.length === 10) {
     return defaultCountryCode + digits
   }
 
-  // 11-digit Indian mobile without leading zero (e.g. user typed extra digit)
-  // — reject rather than guess
+  // Anything else (8-digit landlines, 11-digit no-zero, 14-digit garbage,
+  // non-IN country codes) is rejected — the caller MUST surface a clear
+  // error rather than guess.
   return null
 }
