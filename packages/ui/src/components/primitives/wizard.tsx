@@ -222,7 +222,7 @@ function WizardActions({
       >
         {!isFirst ? <RiArrowLeftLine aria-hidden="true" /> : null}
         <span className={cn("font-mono uppercase tracking-wider", !isFirst && "ml-1.5")}>
-          {isFirst ? "CANCEL" : "BACK"}
+          {isFirst && cancellable ? "CANCEL" : "BACK"}
         </span>
       </Button>
 
