@@ -1,4 +1,5 @@
 import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@workspace/ui/lib/utils"
 
 /**
@@ -18,51 +19,48 @@ import { cn } from "@workspace/ui/lib/utils"
  * default — e.g., a print preview that should hit the full hardware frame.
  */
 
+const pageShellVariants = cva("mx-auto w-full", {
+  variants: {
+    width: {
+      content: "max-w-page-content",
+      control: "max-w-control",
+      full: "",
+    },
+    spacing: {
+      tight: "space-y-4",
+      default: "space-y-6",
+      loose: "space-y-8",
+    },
+  },
+  defaultVariants: {
+    width: "content",
+    spacing: "default",
+  },
+})
+
 interface PageShellProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "children">,
+    VariantProps<typeof pageShellVariants> {
   children: React.ReactNode
-  /**
-   * Content max-width. Defaults to `"content"` (the canonical `--spacing-page-content`,
-   * 80rem / 1280px). Use `"control"` to opt into the wider 100rem mission-control
-   * frame, or `"full"` to drop the cap entirely.
-   */
-  width?: "content" | "control" | "full"
-  /** Vertical rhythm between PageHeader and body. Defaults to `space-y-6`. */
-  spacing?: "tight" | "default" | "loose"
-}
-
-const WIDTH_CLASS: Record<NonNullable<PageShellProps["width"]>, string> = {
-  content: "max-w-page-content",
-  control: "max-w-control",
-  full: "",
-}
-
-const SPACING_CLASS: Record<NonNullable<PageShellProps["spacing"]>, string> = {
-  tight: "space-y-4",
-  default: "space-y-6",
-  loose: "space-y-8",
 }
 
 export function PageShell({
   className,
   children,
-  width = "content",
-  spacing = "default",
+  width,
+  spacing,
   ...props
 }: PageShellProps) {
   return (
     <div
       data-slot="page-shell"
-      data-width={width}
-      className={cn(
-        "mx-auto w-full",
-        WIDTH_CLASS[width],
-        SPACING_CLASS[spacing],
-        className,
-      )}
+      data-width={width ?? "content"}
+      className={cn(pageShellVariants({ width, spacing }), className)}
       {...props}
     >
       {children}
     </div>
   )
 }
+
+export { pageShellVariants }
