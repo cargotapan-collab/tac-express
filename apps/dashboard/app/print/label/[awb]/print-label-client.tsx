@@ -17,6 +17,10 @@ import type { Shipment, Address } from "@workspace/types"
 
 interface PrintLabelClientProps {
   shipment: Shipment
+  /** Pre-encoded Code 128 SVG markup (from `@workspace/services/barcode/encode`). */
+  code128Svg: string
+  /** Pre-encoded Data Matrix SVG markup. */
+  dataMatrixSvg: string
 }
 
 function formatAddress(addr?: Address | null): string {
@@ -26,7 +30,11 @@ function formatAddress(addr?: Address | null): string {
     .join(", ")
 }
 
-export function PrintLabelClient({ shipment }: PrintLabelClientProps) {
+export function PrintLabelClient({
+  shipment,
+  code128Svg,
+  dataMatrixSvg,
+}: PrintLabelClientProps) {
   const router = useRouter()
   const labelRef = React.useRef<HTMLDivElement>(null)
 
@@ -86,7 +94,12 @@ export function PrintLabelClient({ shipment }: PrintLabelClientProps) {
         data-print-target="label"
         className="flex justify-center"
       >
-        <ShippingLabel ref={labelRef} data={labelData} />
+        <ShippingLabel
+          ref={labelRef}
+          data={labelData}
+          code128Svg={code128Svg}
+          dataMatrixSvg={dataMatrixSvg}
+        />
       </div>
     </div>
   )

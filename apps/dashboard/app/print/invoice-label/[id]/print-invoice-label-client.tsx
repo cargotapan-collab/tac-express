@@ -16,11 +16,20 @@ import { RiArrowLeftLine } from "@workspace/ui/icons"
 
 interface PrintInvoiceLabelClientProps {
   data: ShippingLabelData
+  /** Pre-encoded Code 128 SVG markup (from `@workspace/services/barcode/encode`). */
+  code128Svg: string
+  /** Pre-encoded Data Matrix SVG markup. */
+  dataMatrixSvg: string
   /** When true, the browser print dialog is triggered automatically. */
   autoPrint?: boolean
 }
 
-export function PrintInvoiceLabelClient({ data, autoPrint }: PrintInvoiceLabelClientProps) {
+export function PrintInvoiceLabelClient({
+  data,
+  code128Svg,
+  dataMatrixSvg,
+  autoPrint,
+}: PrintInvoiceLabelClientProps) {
   const router = useRouter()
   const labelRef = React.useRef<HTMLDivElement>(null)
 
@@ -55,7 +64,12 @@ export function PrintInvoiceLabelClient({ data, autoPrint }: PrintInvoiceLabelCl
       </div>
 
       <div data-print-target="label" className="flex justify-center">
-        <ShippingLabel ref={labelRef} data={data} />
+        <ShippingLabel
+          ref={labelRef}
+          data={data}
+          code128Svg={code128Svg}
+          dataMatrixSvg={dataMatrixSvg}
+        />
       </div>
     </div>
   )
