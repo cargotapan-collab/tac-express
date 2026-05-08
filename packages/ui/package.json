@@ -91,6 +91,9 @@
     "./components/composed/exceptions/*": "./src/components/composed/exceptions/*.tsx",
     "./components/composed/admin/*": "./src/components/composed/admin/*.tsx",
     "./components/composed/inventory/*": "./src/components/composed/inventory/*.tsx",
+    "./components/composed/management/*": "./src/components/composed/management/*.tsx",
+    "./components/composed/notifications/*": "./src/components/composed/notifications/*.tsx",
+    "./components/composed/settings/*": "./src/components/composed/settings/*.tsx",
     "./components/primitives/*": "./src/components/primitives/*.tsx",
     "./hooks/*": "./src/hooks/*.ts",
     "./icons": "./src/icons/index.tsx"

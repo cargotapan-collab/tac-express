@@ -16,14 +16,12 @@ import {
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
 import { UserRole, type HubInput } from "@workspace/types"
 
-import {
-  StaffTable,
-  type StaffProfile,
-} from "@workspace/ui/components/composed/admin/staff-table"
+import { StaffTable } from "@workspace/ui/components/composed/admin/staff-table"
 import { PageHeader } from "@workspace/ui/components/composed/page-header"
 import { PageShell } from "@workspace/ui/components/composed/page-shell"
 import { HubsManager } from "@workspace/ui/components/composed/management/hubs-manager"
 import { RolesMatrix } from "@workspace/ui/components/composed/management/roles-matrix"
+import { StaffStats } from "@workspace/ui/components/composed/management/staff-stats"
 import { Button } from "@workspace/ui/components/button"
 import { EmptyState } from "@workspace/ui/components/primitives/empty-state"
 import { Input } from "@workspace/ui/components/primitives/input"
@@ -247,45 +245,6 @@ export function ManagementClient() {
         onInvite={handleInvite}
       />
     </PageShell>
-  )
-}
-
-/**
- * Staff KPI strip — surfaces the basic shape of the staff roster without
- * the operator having to scan the full table. Reads off the same data the
- * StaffTable below renders, so it stays consistent without an extra query.
- */
-function StaffStats({ staff }: { staff: StaffProfile[] }) {
-  const total = staff.length
-  const active = staff.filter((s) => s.isActive).length
-  const inactive = total - active
-  const hubsCovered = new Set(
-    staff.map((s) => s.hubCode).filter((c): c is string => Boolean(c)),
-  ).size
-
-  const tiles: { label: string; value: number }[] = [
-    { label: "Total staff", value: total },
-    { label: "Active", value: active },
-    { label: "Inactive", value: inactive },
-    { label: "Hubs covered", value: hubsCovered },
-  ]
-
-  return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {tiles.map((t) => (
-        <div
-          key={t.label}
-          className="tac-fui-panel space-y-1 bg-card p-4"
-        >
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            {t.label}
-          </p>
-          <p className="font-mono text-3xl font-light tabular-nums text-foreground">
-            {t.value}
-          </p>
-        </div>
-      ))}
-    </div>
   )
 }
 
