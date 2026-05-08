@@ -224,6 +224,44 @@ export { ComponentName, componentVariants }
 - **Never commit directly to `main`** — always via PR with passing CI
 - **Run before commit:** `pnpm build && pnpm lint && pnpm typecheck`
 
+### 7a. PULL-REQUEST SCOPE RULES (HARD LIMIT)
+
+Established by issue #14 after PR #8 (12,539 LoC across 6 features in
+99 files) created an unreviewable closed loop where four AI agents
+reviewed a fifth AI agent's code and a sixth Claude run "fixed" the
+findings — no human-in-the-loop.
+
+- **One feature per PR.** Six features = six PRs, opened independently.
+- **≤ 1,500 LoC additions per PR.** If a slice exceeds this, stop and
+  split. Diff stat `git diff --stat <base>..HEAD | tail -1` is the
+  authoritative count.
+- **PR opened BEFORE merge.** No fast-forward, no direct pushes to `main`.
+- **Self-review is NOT sufficient** when the change touches:
+  - Money flows (invoices, payments, refunds, WhatsApp sends)
+  - Auth or RBAC
+  - A new external API integration (paid or otherwise)
+  - More than 500 LoC of net change
+  - Any `supabase/migrations/` SQL
+- For any of the above, a **human pass is required**, not an LLM pass.
+  Bot reviews (CodeRabbit, Macroscope) are necessary but not sufficient
+  signal.
+
+### 7b. PRE-PR CHECKLIST
+
+Run these gates before opening the PR, not after a reviewer asks:
+
+- [ ] All quality gates pass (`pnpm typecheck && pnpm lint && pnpm test && pnpm build`)
+- [ ] Diff scope: ≤ 1,500 LoC additions (or the split rationale is in the PR description)
+- [ ] If touching `packages/services/src/orbital.service.ts` or any new
+      direct-Supabase reads → RLS audit linked (issue #15 / `supabase/migrations/RLS-POLICIES.md`)
+- [ ] If adding charts or large client-side libs → bundle-size delta
+      measured (issue #16)
+- [ ] If touching print routes or any `<ShippingLabel>` / `<InvoicePrintView>` → visual snapshot run (issue #17)
+- [ ] If a new feature could need rollback → entry added to
+      `docs/ROLLBACK-PLAYBOOK.md` (issue #18)
+- [ ] PR description names the issue it closes + the test plan for
+      manual verification
+
 ---
 
 ## 8. PER-PHASE QUALITY GATE
