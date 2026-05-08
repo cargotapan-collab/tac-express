@@ -462,10 +462,13 @@
   --tracking-pdf-tag: 0.18em;     /* "Tracking" / meta tag                 */
   --tracking-pdf-emboss: 0.2em;   /* vertical brand strip / "computer-gen" */
   --tracking-pdf-terms: 0.22em;   /* "Terms & Conditions" heading          */
+  --tracking-pdf-strip: 0.25em;   /* manifest header strip / footer banner */
 
   /* PDF-specific dimensions */
   --spacing-pdf-rule: 0.1875rem;   /* 3px — vertical violet accent bar */
   --spacing-pdf-signature: 14rem;  /* signature-line max-width         */
+  --spacing-print-a4-w: 210mm;     /* A4 portrait page width           */
+  --spacing-print-a4-h: 297mm;     /* A4 portrait page height          */
 
   --radius-sm: var(--radius);
   --radius-md: var(--radius);
