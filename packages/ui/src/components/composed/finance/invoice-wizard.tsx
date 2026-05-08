@@ -8,12 +8,13 @@ import {
   SmartAddressFields,
   type SmartAddressValue,
 } from "@workspace/ui/components/composed/smart-address-fields"
-import { WizardStepper, type WizardStep } from "./wizard-stepper"
 import {
-  RiArrowLeftLine,
-  RiArrowRightLine,
+  Wizard,
+  WizardActions,
+  type WizardStep,
+} from "@workspace/ui/components/primitives/wizard"
+import {
   RiCalculatorLine,
-  RiCheckLine,
   RiCloseLine,
   RiRefreshLine,
 } from "@workspace/ui/icons"
@@ -1025,7 +1026,7 @@ function InvoiceWizard({
 
   return (
     <div data-slot="invoice-wizard" className={cn("space-y-5", className)}>
-      <WizardStepper
+      <Wizard
         steps={INVOICE_WIZARD_STEPS}
         currentIndex={currentIndex}
         onStepClick={(idx) => {
@@ -1063,28 +1064,15 @@ function InvoiceWizard({
         {currentIndex === 3 && <PaymentStep state={state} onChange={onChange} />}
       </div>
 
-      <div className="flex items-center justify-between gap-3">
-        <Button type="button" variant="outline" size="sm" onClick={handleBack}>
-          <RiArrowLeftLine aria-hidden="true" />
-          <span className="ml-1.5">{currentIndex === 0 ? "Cancel" : "Back"}</span>
-        </Button>
-        <div className="flex items-center gap-1 font-mono text-2xs uppercase tracking-widest text-muted-foreground">
-          Step {currentIndex + 1} of {INVOICE_WIZARD_STEPS.length}
-        </div>
-        <Button type="button" size="sm" onClick={handleNext} disabled={isSubmitting}>
-          {isLast ? (
-            <>
-              <RiCheckLine aria-hidden="true" />
-              <span className="ml-1.5">{isSubmitting ? "Creating..." : "Create Invoice"}</span>
-            </>
-          ) : (
-            <>
-              <span className="mr-1.5">Continue</span>
-              <RiArrowRightLine aria-hidden="true" />
-            </>
-          )}
-        </Button>
-      </div>
+      <WizardActions
+        currentIndex={currentIndex}
+        totalSteps={INVOICE_WIZARD_STEPS.length}
+        onBack={handleBack}
+        onNext={handleNext}
+        isSubmitting={isSubmitting}
+        finalLabel="CREATE INVOICE"
+        submittingLabel="CREATING…"
+      />
     </div>
   )
 }
