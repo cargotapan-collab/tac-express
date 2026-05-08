@@ -103,34 +103,31 @@ function DashboardHeader() {
           ))}
         </nav>
 
-        {/* Search */}
-        <div className="relative hidden w-65 sm:block">
-          <RiSearchLine
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none"
-            aria-hidden="true"
-          />
-          <input
-            type="text"
-            placeholder="Search..."
-            readOnly
-            onClick={() => setPaletteOpen(true)}
-            className={cn(
-              "h-8 w-full cursor-pointer pl-8 pr-14 rounded-none",
-              "border border-border bg-surface t-data text-muted-foreground",
-              "placeholder:text-muted-foreground/60",
-              "hover:border-primary hover:bg-primary/5 transition-all tac-fui-hover",
-              "focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary focus:shadow-brutal"
-            )}
-            aria-label="Open search"
-          />
+        {/* Search trigger — compact icon + ⌘K hint, opens CommandPalette.
+            Replaces the prior 260px text input that read as a real input
+            but was actually a click-trigger; the new variant is ~80px and
+            visually consistent with the other header buttons. */}
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          className={cn(
+            "hidden h-8 items-center gap-2 px-2 sm:inline-flex",
+            "border border-border bg-surface text-muted-foreground",
+            "hover:border-primary hover:bg-primary/5 hover:text-foreground",
+            "tac-fui-hover transition-colors",
+            "focus:outline-none focus-visible:outline-1 focus-visible:outline-primary focus-visible:[outline-offset:1px]"
+          )}
+          aria-label="Open search (⌘K)"
+        >
+          <RiSearchLine className="h-3.5 w-3.5" aria-hidden="true" />
           <kbd
-            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-5 min-w-6 items-center justify-center gap-px whitespace-nowrap border border-border bg-background px-1.5 t-mono leading-none text-muted-foreground"
+            className="pointer-events-none inline-flex h-5 min-w-6 items-center justify-center gap-px whitespace-nowrap border border-border bg-background px-1.5 font-mono text-2xs leading-none text-muted-foreground"
             aria-hidden="true"
           >
             <span>⌘</span>
             <span>K</span>
           </kbd>
-        </div>
+        </button>
 
         <HeaderDensityToggle />
         <NotificationBell />
