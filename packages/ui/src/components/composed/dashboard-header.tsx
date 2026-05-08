@@ -105,23 +105,25 @@ function DashboardHeader() {
 
         {/* Search trigger — compact icon + ⌘K hint, opens CommandPalette.
             Replaces the prior 260px text input that read as a real input
-            but was actually a click-trigger; the new variant is ~80px and
-            visually consistent with the other header buttons. */}
+            but was actually a click-trigger; the new variant is ~80px on
+            sm+ and an icon-only square on mobile (the CommandPalette is
+            the only operator-facing search entry point, so it must
+            remain reachable below the sm breakpoint). */}
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
           className={cn(
-            "hidden h-8 items-center gap-2 px-2 sm:inline-flex",
+            "inline-flex h-8 w-8 items-center justify-center sm:w-auto sm:gap-2 sm:px-2",
             "border border-border bg-surface text-muted-foreground",
             "hover:border-primary hover:bg-primary/5 hover:text-foreground",
             "tac-fui-hover transition-colors",
-            "focus:outline-none focus-visible:outline-1 focus-visible:outline-primary focus-visible:[outline-offset:1px]"
+            "focus:outline-none focus-visible:outline-1 focus-visible:outline-primary focus-visible:[outline-offset:var(--outline-offset-outset)]"
           )}
           aria-label="Open search (⌘K)"
         >
           <RiSearchLine className="h-3.5 w-3.5" aria-hidden="true" />
           <kbd
-            className="pointer-events-none inline-flex h-5 min-w-6 items-center justify-center gap-px whitespace-nowrap border border-border bg-background px-1.5 font-mono text-2xs leading-none text-muted-foreground"
+            className="pointer-events-none hidden h-5 min-w-6 items-center justify-center gap-px whitespace-nowrap border border-border bg-background px-1.5 font-mono text-2xs leading-none text-muted-foreground sm:inline-flex"
             aria-hidden="true"
           >
             <span>⌘</span>

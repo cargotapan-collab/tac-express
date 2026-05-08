@@ -150,7 +150,7 @@ export function SettingsClient() {
         {/* Security */}
         <TabsContent value="security" className="pt-4 space-y-6">
           <div className="tac-fui-panel space-y-4 bg-card p-5">
-            <p className="border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="border-b border-border pb-2 font-mono text-2xs uppercase tracking-widest text-muted-foreground">
               Session security
             </p>
             <SecurityItem
@@ -181,7 +181,7 @@ export function SettingsClient() {
         {/* Theme */}
         <TabsContent value="theme" className="pt-4">
           <div className="tac-fui-panel space-y-4 bg-card p-5">
-            <p className="border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="border-b border-border pb-2 font-mono text-2xs uppercase tracking-widest text-muted-foreground">
               Appearance
             </p>
             <Field label="Theme">
@@ -211,7 +211,7 @@ export function SettingsClient() {
                 </ToggleGroupItem>
               </ToggleGroup>
             </Field>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
               The TAC Orbital v3.0 Indigo Mission-Control palette is the only
               brand theme. We respect the OS-level{" "}
               <code className="font-mono">prefers-reduced-motion</code> setting
@@ -223,7 +223,7 @@ export function SettingsClient() {
         {/* Integrations */}
         <TabsContent value="integrations" className="pt-4 space-y-6">
           <div className="tac-fui-panel space-y-4 bg-card p-5">
-            <p className="border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="border-b border-border pb-2 font-mono text-2xs uppercase tracking-widest text-muted-foreground">
               Active integrations
             </p>
             <SecurityItem
@@ -262,7 +262,7 @@ export function SettingsClient() {
         {/* Audit */}
         <TabsContent value="audit" className="pt-4">
           <div className="tac-fui-panel space-y-3 bg-card p-5">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
               Audit stream
             </p>
             <p className="text-sm">
@@ -274,7 +274,7 @@ export function SettingsClient() {
             <div>
               <Link
                 href="/audit"
-                className="inline-flex h-8 items-center gap-2 border border-border px-3 font-mono text-[10px] uppercase tracking-widest text-foreground transition-colors hover:border-primary hover:text-primary"
+                className="inline-flex h-8 items-center gap-2 border border-border px-3 font-mono text-2xs uppercase tracking-widest text-foreground transition-colors hover:border-primary hover:text-primary"
               >
                 <RiHistoryLine className="size-3.5" />
                 Open audit log
@@ -364,7 +364,7 @@ function SecurityItem({
 function SystemInfoCard({ className }: { className?: string }) {
   return (
     <div className={`tac-fui-panel space-y-3 bg-card p-5 ${className ?? ""}`}>
-      <p className="border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+      <p className="border-b border-border pb-2 font-mono text-2xs uppercase tracking-widest text-muted-foreground">
         System information
       </p>
       <div className="space-y-2">
@@ -373,7 +373,7 @@ function SystemInfoCard({ className }: { className?: string }) {
           { label: "Environment", value: process.env.NODE_ENV ?? "production" },
         ].map(({ label, value }) => (
           <div key={label} className="flex items-center justify-between py-1">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <span className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
               {label}
             </span>
             <span className="font-mono text-xs text-foreground">{value}</span>
