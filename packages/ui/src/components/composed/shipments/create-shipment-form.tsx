@@ -6,6 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { cn } from "@workspace/ui/lib/utils"
 import {
+  Wizard,
+  WizardActions,
+  type WizardStep,
+} from "@workspace/ui/components/primitives/wizard"
+import {
   SmartAddressFields,
   type SmartAddressValue,
 } from "@workspace/ui/components/composed/smart-address-fields"
@@ -35,7 +40,12 @@ const createShipmentSchema = z.object({
 
 type CreateShipmentInput = z.infer<typeof createShipmentSchema>
 
-const STEPS = ["Sender", "Receiver", "Package", "Review"] as const
+const STEPS: WizardStep[] = [
+  { id: "sender", label: "Sender" },
+  { id: "receiver", label: "Receiver" },
+  { id: "package", label: "Package" },
+  { id: "review", label: "Review" },
+]
 
 interface CreateShipmentFormProps {
   onSubmit: (data: CreateShipmentInput) => Promise<void>
@@ -146,7 +156,13 @@ function CreateShipmentForm({ onSubmit, isLoading, className }: CreateShipmentFo
     [],
   ]
 
+  const isLastStep = step === STEPS.length - 1
+
   async function handleNext() {
+    if (isLastStep) {
+      handleSubmit(onSubmit)()
+      return
+    }
     const valid = await trigger(stepFields[step] as (keyof CreateShipmentInput)[])
     if (valid) setStep((s) => Math.min(s + 1, STEPS.length - 1))
   }
@@ -159,40 +175,14 @@ function CreateShipmentForm({ onSubmit, isLoading, className }: CreateShipmentFo
 
   return (
     <div data-slot="create-shipment-form" className={cn("space-y-6", className)}>
-      {/* Stepper */}
-      <div className="flex items-center gap-0">
-        {STEPS.map((label, idx) => {
-          const isDone = idx < step
-          const isCurrent = idx === step
-          return (
-            <React.Fragment key={label}>
-              <div className="flex flex-col items-center gap-1">
-                <div
-                  className={cn(
-                    "h-6 w-6 border flex items-center justify-center font-mono text-2xs",
-                    isDone && "bg-primary border-primary text-primary-foreground",
-                    isCurrent && "border-primary text-primary",
-                    !isDone && !isCurrent && "border-border text-muted-foreground"
-                  )}
-                >
-                  {isDone ? "✓" : idx + 1}
-                </div>
-                <span className={cn(
-                  "font-mono text-3xs uppercase tracking-wider",
-                  isCurrent ? "text-foreground" : "text-muted-foreground"
-                )}>
-                  {label}
-                </span>
-              </div>
-              {idx < STEPS.length - 1 && (
-                <div className={cn("h-px w-12 mb-4", idx < step ? "bg-primary" : "bg-border")} />
-              )}
-            </React.Fragment>
-          )
-        })}
-      </div>
+      <Wizard steps={STEPS} currentIndex={step} />
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleNext()
+        }}
+      >
         {/* Step 0 — Sender */}
         {step === 0 && (
           <div className="space-y-4">
@@ -313,38 +303,16 @@ function CreateShipmentForm({ onSubmit, isLoading, className }: CreateShipmentFo
           </div>
         )}
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between mt-6">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={step === 0}
-            className={cn(
-              "h-8 px-4 border border-border font-mono text-xs uppercase tracking-wider",
-              "text-muted-foreground hover:text-foreground hover:border-foreground transition-colors",
-              "disabled:opacity-40 disabled:cursor-not-allowed"
-            )}
-          >
-            Back
-          </button>
-          {step < STEPS.length - 1 ? (
-            <button
-              type="button"
-              onClick={handleNext}
-              className="h-8 px-6 bg-primary text-primary-foreground font-mono text-xs uppercase tracking-wider hover:bg-primary/90 transition-colors"
-            >
-              Next
-            </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="h-8 px-6 bg-primary text-primary-foreground font-mono text-xs uppercase tracking-wider hover:bg-primary/90 transition-colors disabled:opacity-60"
-            >
-              {isLoading ? "Creating..." : "Create Shipment"}
-            </button>
-          )}
-        </div>
+        <WizardActions
+          className="mt-6"
+          currentIndex={step}
+          totalSteps={STEPS.length}
+          onBack={handleBack}
+          onNext={handleNext}
+          isSubmitting={isLoading}
+          finalLabel="CREATE SHIPMENT"
+          submittingLabel="CREATING…"
+        />
       </form>
     </div>
   )

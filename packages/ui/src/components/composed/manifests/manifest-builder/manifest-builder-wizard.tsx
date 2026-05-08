@@ -16,7 +16,7 @@ import {
 } from "@workspace/ui/components/primitives/alert-dialog"
 import { RiArrowLeftLine, RiArrowRightLine } from "@workspace/ui/icons"
 
-import { WizardStepper } from "./wizard-stepper"
+import { Wizard } from "@workspace/ui/components/primitives/wizard"
 import {
   StepSetup,
   type ManifestSetupValue,
@@ -175,7 +175,7 @@ export function ManifestBuilderWizard({
       data-slot="manifest-builder-wizard"
       className={cn("flex flex-col gap-4", className)}
     >
-      <WizardStepper steps={STEPS} current={step} />
+      <Wizard steps={STEPS} currentIndex={step} />
 
       {/*
         Steps are kept mounted via display:none + inert so Radix portals
