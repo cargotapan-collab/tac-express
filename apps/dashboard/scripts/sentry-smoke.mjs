@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 // @ts-check
+/* eslint-disable no-undef -- runs in Node; `process` is global. The
+   workspace's flat eslint config doesn't auto-detect Node globals for
+   .mjs scripts, so we suppress here rather than mutate config. */
 
 /**
  * Sentry smoke test — verifies that the configured DSN routes events

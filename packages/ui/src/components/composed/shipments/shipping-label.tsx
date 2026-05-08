@@ -47,6 +47,22 @@ interface ShippingLabelProps {
   /** Centered footer compliance line. */
   handlerInstruction?: string
   className?: string
+  /**
+   * Real Code 128 barcode SVG, encoded server-side via
+   * `@workspace/services/barcode/encode`. The label inlines this
+   * markup directly via `dangerouslySetInnerHTML` so the rendered
+   * SVG is the actual scannable symbology — not a decorative
+   * stand-in. REQUIRED — without it the label renders an explicit
+   * "Barcode missing" placeholder instead of a fake-looking pattern,
+   * so the failure mode is loud rather than silently producing
+   * unscannable output.
+   */
+  code128Svg?: string
+  /**
+   * Real Data Matrix barcode SVG, encoded server-side. Same contract
+   * as `code128Svg`.
+   */
+  dataMatrixSvg?: string
 }
 
 /* ════════════════════════════════════════════════════════════════════════ */
@@ -88,6 +104,8 @@ const ShippingLabel = React.forwardRef<HTMLDivElement, ShippingLabelProps>(
       size = "print",
       handlerInstruction = "DO NOT COVER — KEEP LABEL VISIBLE",
       className,
+      code128Svg,
+      dataMatrixSvg,
     },
     ref
   ) {
@@ -187,8 +205,8 @@ const ShippingLabel = React.forwardRef<HTMLDivElement, ShippingLabelProps>(
 
         {/* ━━━━━━━━━━━━ Zone 4: Code 128 + Data Matrix ━━━━━━━━━━━━ */}
         <div className="flex items-stretch gap-2.5 pt-3.5 pb-1.5">
-          <Code128 value={data.awbNumber} />
-          <DataMatrix value={data.awbNumber} size={86} />
+          <Code128 svg={code128Svg} awbNumber={data.awbNumber} />
+          <DataMatrix svg={dataMatrixSvg} awbNumber={data.awbNumber} />
         </div>
 
         {/* ━━━━━━━━━━━━ Zones 5 + 6: tracking number + manifest stack ━━━━━━━━━━━━ */}
@@ -244,155 +262,77 @@ function AddressColumn({
 }
 
 /* ════════════════════════════════════════════════════════════════════════ */
-/*  Barcodes — deterministic seeded patterns.                                */
-/*                                                                           */
-/*  These are visually-correct stand-ins, NOT real Code 128 / Data Matrix    */
-/*  encodings (no check digits, no FNC chars). When real encoding is        */
-/*  greenlit, move it to `packages/services/barcode` and pass pre-encoded    */
-/*  `code128: number[]` + `dataMatrix: boolean[][]` props through.           */
+/*  Barcodes — real symbology, encoded server-side via                       */
+/*  `@workspace/services/barcode/encode`. The components here are dumb       */
+/*  inliners: they render the encoded SVG markup as-is, or a loud            */
+/*  "Barcode missing" placeholder when no SVG was provided. Failure mode     */
+/*  is deliberately visible — silently rendering a decorative stand-in       */
+/*  was the bug this code replaces (#28).                                    */
 /* ════════════════════════════════════════════════════════════════════════ */
 
-function Code128({ value }: { value: string }) {
-  const segments = React.useMemo(() => generateCode128Pattern(value), [value])
+function Code128({ svg, awbNumber }: { svg: string | undefined; awbNumber: string }) {
+  if (!svg) return <BarcodeMissing kind="Code 128" awbNumber={awbNumber} flex />
   return (
-    <svg
-      viewBox="0 0 280 86"
-      preserveAspectRatio="none"
-      shapeRendering="crispEdges"
-      className="block flex-1 h-[86px]"
+    <div
+      className="flex-1 min-w-0 [&>svg]:block [&>svg]:h-[86px] [&>svg]:w-full"
       role="img"
-      aria-label={`Code 128 barcode for ${value}`}
-    >
-      {segments.map((s, i) =>
-        s.isBar ? (
-          <rect
-            key={i}
-            x={s.x}
-            y={0}
-            width={s.w}
-            height={86}
-            fill="currentColor"
-          />
-        ) : null
-      )}
-    </svg>
+      aria-label={`Code 128 barcode for ${awbNumber}`}
+      // The encoder output is generated server-side from a known
+      // payload (the AWB string). It contains no user-controlled HTML,
+      // only static SVG primitives produced by bwip-js — safe to inline.
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
   )
 }
 
-function DataMatrix({ value, size = 86 }: { value: string; size?: number }) {
-  const grid = React.useMemo(() => generateDataMatrixPattern(value), [value])
-  const n = grid.length
+function DataMatrix({
+  svg,
+  awbNumber,
+}: {
+  svg: string | undefined
+  awbNumber: string
+}) {
+  if (!svg) return <BarcodeMissing kind="Data Matrix" awbNumber={awbNumber} />
   return (
-    <svg
-      viewBox={`0 0 ${n} ${n}`}
-      shapeRendering="crispEdges"
-      style={{ width: size, height: size }}
-      className="block shrink-0"
+    <div
+      className="shrink-0 w-[86px] h-[86px] [&>svg]:block [&>svg]:w-full [&>svg]:h-full"
       role="img"
-      aria-label={`Data Matrix code for ${value}`}
-    >
-      {grid.flatMap((row, r) =>
-        row.map((cell, c) =>
-          cell ? (
-            <rect
-              key={`${r}-${c}`}
-              x={c}
-              y={r}
-              width={1}
-              height={1}
-              fill="currentColor"
-            />
-          ) : null
-        )
-      )}
-    </svg>
+      aria-label={`Data Matrix code for ${awbNumber}`}
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
   )
 }
 
-/* ════════════════════════════════════════════════════════════════════════ */
-/*  Encoding helpers (seeded, deterministic per input)                       */
-/* ════════════════════════════════════════════════════════════════════════ */
-
-interface BarSegment {
-  x: number
-  w: number
-  isBar: boolean
-}
-
 /**
- * Generate a Code-128-style bar/space sequence keyed off `seed`.
- *
- * Returns alternating bar/space segments with widths in module units; the
- * caller renders only segments where `isBar === true`. Width 4 is the
- * widest bar permitted, matching standard Code 128 spec proportions even
- * though this isn't a real encoding.
+ * Loud placeholder rendered when the caller forgot to pass in the
+ * encoded SVG. Picking up this fallback in the print preview means
+ * something upstream (the page's server component) skipped the
+ * encoder call — much better than silently shipping an unscannable
+ * label to a customer.
  */
-function generateCode128Pattern(seed: string): BarSegment[] {
-  const r = createSeededRand(seed)
-  const widths = [1, 2, 3, 1, 2, 3, 1, 1, 2, 1, 3, 2]
-  const out: BarSegment[] = []
-  let x = 4
-  let isBar = true
-  let i = 0
-  while (x < 274) {
-    let w = widths[i % widths.length]!
-    if (r() < 0.35) w += 1
-    if (w > 4) w = 4
-    out.push({ x, w, isBar })
-    x += w
-    isBar = !isBar
-    i++
-  }
-  return out
-}
-
-/**
- * Generate a 14×14 Data-Matrix-style boolean grid keyed off `seed`.
- *
- * The standard Data Matrix finder pattern (solid left + bottom edges,
- * alternating top + right edges) is reproduced exactly so the result reads
- * as a Data Matrix at a glance. Inner cells are seeded random.
- */
-function generateDataMatrixPattern(seed: string): boolean[][] {
-  const n = 14
-  const r = createSeededRand(`DM-${seed}`)
-  const grid: boolean[][] = []
-  for (let row = 0; row < n; row++) {
-    const r0: boolean[] = []
-    for (let col = 0; col < n; col++) {
-      let fill: boolean
-      if (col === 0 || row === n - 1) {
-        fill = true // solid left edge + bottom edge (finder pattern)
-      } else if (row === 0) {
-        fill = col % 2 === 0 // alternating top edge
-      } else if (col === n - 1) {
-        fill = row % 2 === 1 // alternating right edge
-      } else {
-        fill = r() < 0.48 // data region
-      }
-      r0.push(fill)
-    }
-    grid.push(r0)
-  }
-  return grid
-}
-
-/** FNV-1a + xorshift32 PRNG seeded by string. Deterministic per input. */
-function createSeededRand(seed: string): () => number {
-  let h = 2166136261 >>> 0
-  for (let i = 0; i < seed.length; i++) {
-    h ^= seed.charCodeAt(i)
-    h = Math.imul(h, 16777619) >>> 0
-  }
-  return () => {
-    h ^= h << 13
-    h >>>= 0
-    h ^= h >>> 17
-    h >>>= 0
-    h ^= h << 5
-    h >>>= 0
-    return h / 4294967296
-  }
+function BarcodeMissing({
+  kind,
+  awbNumber,
+  flex = false,
+}: {
+  kind: string
+  awbNumber: string
+  flex?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center border-2 border-dashed border-black p-2 text-center",
+        flex ? "flex-1" : "shrink-0 w-[86px] h-[86px]",
+      )}
+      role="alert"
+    >
+      <span className="text-[9px] font-medium tracking-widest uppercase">
+        {kind} missing
+      </span>
+      <span className="text-[8px] mt-0.5 break-all">{awbNumber}</span>
+    </div>
+  )
 }
 
 /* ════════════════════════════════════════════════════════════════════════ */

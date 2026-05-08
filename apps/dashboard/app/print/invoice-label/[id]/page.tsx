@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 import { notFound } from "next/navigation"
 
 import { createInvoiceServerService } from "@workspace/services/server"
+import { encodeShippingLabelBarcodes } from "@workspace/services/barcode/encode"
 import type { ShippingLabelData } from "@workspace/ui/components/composed/shipments/shipping-label"
 
 import { PrintInvoiceLabelClient } from "./print-invoice-label-client"
@@ -97,5 +98,20 @@ export default async function PrintInvoiceLabelPage({ params, searchParams }: Pa
     orderRef: invoice.invoiceNumber,
   }
 
-  return <PrintInvoiceLabelClient data={data} autoPrint={printParam === "1"} />
+  /* Encode real Code 128 + Data Matrix barcodes server-side. The label
+   * component inlines the SVG markup directly — no client-side bwip-js
+   * dependency, no decorative seeded patterns. If encoding fails (e.g.
+   * an AWB containing characters Code 128 can't represent), let the
+   * error propagate — the print page returning 5xx is a louder signal
+   * than rendering an unscannable label. */
+  const { code128Svg, dataMatrixSvg } = encodeShippingLabelBarcodes(data.awbNumber)
+
+  return (
+    <PrintInvoiceLabelClient
+      data={data}
+      code128Svg={code128Svg}
+      dataMatrixSvg={dataMatrixSvg}
+      autoPrint={printParam === "1"}
+    />
+  )
 }

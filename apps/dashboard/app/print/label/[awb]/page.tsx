@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { cookies } from "next/headers"
 import { notFound } from "next/navigation"
 import { createShipmentServerService } from "@workspace/services/server"
+import { encodeShippingLabelBarcodes } from "@workspace/services/barcode/encode"
 import { PrintLabelClient } from "./print-label-client"
 
 export const metadata: Metadata = {
@@ -26,5 +27,16 @@ export default async function PrintLabelPage({ params }: PageProps) {
     notFound()
   }
 
-  return <PrintLabelClient shipment={shipment} />
+  /* Real Code 128 + Data Matrix encoded server-side. See the same
+   * pattern in `apps/dashboard/app/print/invoice-label/[id]/page.tsx`
+   * for rationale — labels must scan, not just look right. */
+  const { code128Svg, dataMatrixSvg } = encodeShippingLabelBarcodes(shipment.awbNumber)
+
+  return (
+    <PrintLabelClient
+      shipment={shipment}
+      code128Svg={code128Svg}
+      dataMatrixSvg={dataMatrixSvg}
+    />
+  )
 }
