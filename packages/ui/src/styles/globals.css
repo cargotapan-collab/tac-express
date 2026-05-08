@@ -433,6 +433,7 @@
   --spacing-label-4in: 4in;       /* 4×6 thermal shipping label width */
   --spacing-label-a6: 148mm;      /* A6 standard label width */
   --spacing-label-preview: 26.25rem; /* 420px — screen-preview width */
+  --spacing-label-barcode: 5.375rem; /* 86px — square barcode side on shipping label */
 
   /* ── Tax-invoice / PDF typography scale (LAW 11) ──
      Sizes hand-tuned for one-page A4 fit on composed/finance/invoice-
@@ -444,7 +445,9 @@
        9px → text-3xs · 10px → text-2xs · 12px → text-xs · 24px → text-2xl
   */
   --text-pdf-7p5: 0.469rem;   /* 7.5px — terms fine-print body            */
+  --text-pdf-8: 0.5rem;       /* 8px — shipping-label AWB caption          */
   --text-pdf-8p5: 0.531rem;   /* 8.5px — "computer-generated" stamp       */
+  --text-pdf-9p5: 0.594rem;   /* 9.5px — shipping-label service-class tag */
   --text-pdf-10p5: 0.656rem;  /* 10.5px — body mono (tel/email/address)  */
   --text-pdf-11: 0.6875rem;   /* 11px — company address line              */
   --text-pdf-11p5: 0.719rem;  /* 11.5px — service-table header / cells    */
@@ -462,6 +465,8 @@
   --tracking-pdf-tag: 0.18em;     /* "Tracking" / meta tag                 */
   --tracking-pdf-emboss: 0.2em;   /* vertical brand strip / "computer-gen" */
   --tracking-pdf-terms: 0.22em;   /* "Terms & Conditions" heading          */
+  --tracking-pdf-band: 0.08em;    /* shipping-label horizontal info band  */
+  --tracking-pdf-id: 0.14em;      /* shipping-label AWB id hero           */
   --tracking-pdf-strip: 0.25em;   /* manifest header strip / footer banner */
 
   /* PDF-specific dimensions */
