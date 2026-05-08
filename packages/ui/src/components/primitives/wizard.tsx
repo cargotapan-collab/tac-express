@@ -88,7 +88,7 @@ function Wizard({
               className={cn(
                 "flex w-full items-center gap-3 px-4 py-3 text-left",
                 "transition-colors duration-[var(--duration-fast)] ease-linear",
-                "focus:outline-none focus-visible:outline-1 focus-visible:outline-primary focus-visible:[outline-offset:-1px]",
+                "focus:outline-none focus-visible:outline-1 focus-visible:outline-primary focus-visible:[outline-offset:var(--outline-offset-inset)]",
                 clickable ? "hover:bg-accent/50" : "cursor-default"
               )}
             >

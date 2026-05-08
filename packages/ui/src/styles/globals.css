@@ -114,6 +114,16 @@
 
   --ease-in-out: cubic-bezier(0.4, 0, 0.6, 1); /* symmetric easing — pulse loops, fade transitions */
 
+  /* Focus-ring outline offset.
+     - `outset`: focus ring extends beyond the element border (typical
+       isolated button — used by Button primitive).
+     - `inset`: focus ring drawn 1px inside the element border (used by
+       elements that sit flush against neighbours, e.g. wizard step
+       cells with `border-r` between siblings — outset would clip
+       against the parent border). */
+  --outline-offset-outset: 1px;
+  --outline-offset-inset: -1px;
+
   /* ── v6 — 3-layer motion vocabulary (semantic, intent-named) ──
      instant     mission-control hover/toggle/data updates           (linear, 80ms)
      smooth      modal/sheet/tab — branded but quick                 (smooth ease, 180ms)
