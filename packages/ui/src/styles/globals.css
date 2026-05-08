@@ -72,6 +72,8 @@
   --print-bg: oklch(1 0 0);
   --print-fg: oklch(0 0 0);
   --print-border: oklch(0 0 0);
+  --print-accent: oklch(0.5393 0.2713 286.7462);   /* violet primary on paper */
+  --print-surface-muted: oklch(0.9700 0.0050 264); /* zinc-100 equivalent — invoice header gray */
 
   /* Typography — LAW 4 governed */
   --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
@@ -108,6 +110,9 @@
   --duration-base: 150ms;
   --duration-slow: 300ms;
   --duration-slower: 500ms;
+  --duration-pulse: 2s;       /* loop animations: skeleton-pulse, shimmer, etc. */
+
+  --ease-in-out: cubic-bezier(0.4, 0, 0.6, 1); /* symmetric easing — pulse loops, fade transitions */
 
   /* ── v6 — 3-layer motion vocabulary (semantic, intent-named) ──
      instant     mission-control hover/toggle/data updates           (linear, 80ms)
@@ -429,8 +434,6 @@
   --print-bg: #ffffff;        /* paper white — never themed */
   --print-fg: #000000;        /* ink black — never themed */
   --print-border: #000000;    /* solid black border for print rules */
-  --print-accent: #7c3aed;    /* violet-600 equivalent — invoice/manifest accent on paper */
-  --print-surface-muted: #f4f4f5; /* zinc-100 equivalent — invoice header gray surface */
 
   /* Named print widths matching common thermal/laser label stocks.
      Components reference these as `max-w-label-4in`, `w-label-a6`. */
@@ -1033,7 +1036,7 @@
   }
 
   .animate-skeleton-pulse {
-    animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation: skeleton-pulse var(--duration-pulse) var(--ease-in-out) infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {

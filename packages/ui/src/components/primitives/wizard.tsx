@@ -84,7 +84,7 @@ function Wizard({
               onClick={() => clickable && onStepClick?.(idx)}
               className={cn(
                 "flex w-full items-center gap-3 px-4 py-3 text-left",
-                "transition-colors duration-fast ease-linear",
+                "transition-colors duration-[var(--duration-fast)] ease-linear",
                 "focus:outline-none focus-visible:outline-1 focus-visible:outline-primary focus-visible:[outline-offset:-1px]",
                 clickable ? "hover:bg-accent/50" : "cursor-default"
               )}
@@ -150,22 +150,27 @@ interface WizardActionsProps
   totalSteps: number
   /**
    * Called when the user clicks the back button at step > 0.
-   * Typically `onIndexChange(currentIndex - 1)`.
+   * Typically `onIndexChange(currentIndex - 1)`. May return a Promise —
+   * the primitive intentionally discards the return value (fire-and-forget);
+   * consumers that need awaited completion should manage their own loading
+   * state via `isSubmitting` / `nextDisabled`.
    */
-  onBack: () => void
+  onBack: () => void | Promise<void>
   /**
    * Called when the user clicks the back button at step 0. When provided the
    * button is labelled "CANCEL" — typically dismiss the wizard / close an
    * inline panel. When omitted, step-0 BACK renders as a disabled button —
    * appropriate for full-page routes that have no in-flow cancel target.
+   * Async permitted; see `onBack` notes.
    */
-  onCancel?: () => void
+  onCancel?: () => void | Promise<void>
   /**
    * Called when the user clicks the forward button. At the final step the
    * button is labelled with `finalLabel` — typically `onSubmit()`. Otherwise
    * "NEXT →" — typically `onIndexChange(currentIndex + 1)`.
+   * Async permitted; see `onBack` notes.
    */
-  onNext: () => void
+  onNext: () => void | Promise<void>
   isSubmitting?: boolean
   /** Override final-step detection. Otherwise `currentIndex === totalSteps - 1`. */
   isFinalStep?: boolean
@@ -200,11 +205,17 @@ function WizardActions({
   const backDisabled = isFirst && !cancellable
 
   const handleBackClick = () => {
+    // Discard any returned promise — fire-and-forget at the primitive
+    // boundary. Consumers manage their own loading state via isSubmitting.
     if (isFirst) {
-      onCancel?.()
+      void onCancel?.()
     } else {
-      onBack()
+      void onBack()
     }
+  }
+
+  const handleNextClick = () => {
+    void onNext()
   }
 
   return (
@@ -239,7 +250,7 @@ function WizardActions({
       <Button
         type="button"
         size="sm"
-        onClick={onNext}
+        onClick={handleNextClick}
         disabled={isSubmitting || nextDisabled}
       >
         <span className="mr-1.5 font-mono uppercase tracking-wider">
