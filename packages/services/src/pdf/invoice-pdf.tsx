@@ -969,7 +969,7 @@ export function InvoicePdf({
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>Advance Paid</Text>
               <Text style={styles.totalsAmount}>
-                −{formatINR(data.advancePaid)}
+                {formatINRSigned(-data.advancePaid)}
               </Text>
             </View>
           ) : null}

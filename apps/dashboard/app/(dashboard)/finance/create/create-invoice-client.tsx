@@ -7,6 +7,7 @@ import { useCustomers } from "@workspace/services/hooks/use-customers"
 import { useRateLookupMutation } from "@workspace/services/hooks/use-rate-cards"
 import { useGenerateAwbNumber } from "@workspace/services/hooks/use-shipments"
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
+import { normalizeBillingDraft } from "@workspace/services/invoice-draft.service"
 import { PaymentMode } from "@workspace/types"
 import {
   InvoiceWizard,
@@ -22,41 +23,15 @@ import { format } from "date-fns"
 
 const DRAFT_KEY = "invoice_draft"
 
+/**
+ * Merge a partial autosaved draft with the wizard's defaults and run
+ * the legacy-billing hydration. Pure presentational glue — the actual
+ * normalization rule lives in `@workspace/services/invoice-draft.service`
+ * (LAW 7) so it's testable and reusable.
+ */
 function normalizeInvoiceDraft(draft: Partial<InvoiceWizardState>): InvoiceWizardState {
-  // Older drafts (before structured billing fields existed) only stored the
-  // joined `billingAddress` string. If we naively merged, the empty
-  // `billingLine1/City/State/Zip` from INITIAL_INVOICE_STATE would later be
-  // overwritten with a fresh empty join the moment the user touches
-  // SmartAddressFields — silent data loss. Detect that case and keep the
-  // legacy join so the user can re-enter and re-derive deliberately.
   const merged: InvoiceWizardState = { ...INITIAL_INVOICE_STATE, ...draft }
-  const hasStructured = Boolean(
-    merged.billingLine1 ||
-      merged.billingLine2 ||
-      merged.billingCity ||
-      merged.billingState ||
-      merged.billingZip,
-  )
-  const hasLegacyOnly = !hasStructured && Boolean(merged.billingAddress)
-  if (hasLegacyOnly) {
-    // Hydrate at least `billingLine1` from the legacy joined string so
-    // the structured fields aren't all empty when the user opens the
-    // wizard. Without this, the moment the user touches any structured
-    // field the auto-rejoin logic in SmartAddressFields fires with the
-    // mostly-empty values and silently overwrites the original
-    // `billingAddress` — that's the data-loss path the comment above
-    // warns about. Keeping the original `billingAddress` intact too
-    // means the print view still has the full historical record.
-    const firstLine = merged.billingAddress
-      ?.split(/\r?\n/)
-      .map((line) => line.trim())
-      .find((line) => line.length > 0)
-    return {
-      ...merged,
-      billingLine1: merged.billingLine1 || firstLine || merged.billingAddress || "",
-    }
-  }
-  return merged
+  return normalizeBillingDraft(merged)
 }
 
 export function CreateInvoiceClient() {

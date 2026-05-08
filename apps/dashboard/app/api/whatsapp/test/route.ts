@@ -233,8 +233,10 @@ function normalizeTemplate(t: unknown): TemplateSummary | null {
       }
     }
     if (cType === "BODY" && !body) {
-      const t = c.text ?? c.body ?? c.content
-      if (typeof t === "string" && t.length > 0) body = t
+      const componentText = c.text ?? c.body ?? c.content
+      if (typeof componentText === "string" && componentText.length > 0) {
+        body = componentText
+      }
     }
   }
 

@@ -354,7 +354,7 @@ export function SendWhatsAppDialog({
                 className="font-mono text-2xs uppercase tracking-widest text-muted-foreground flex items-center gap-2"
               >
                 <span>{requiredMediaKind} URL</span>
-                <span className="font-sans normal-case text-2xs text-amber-600 dark:text-amber-500">
+                <span className="font-sans normal-case text-2xs text-accent-warning">
                   required
                 </span>
               </Label>
@@ -502,13 +502,13 @@ function ConfigStatusPill({
 
 function Direct24hNotice() {
   return (
-    <div className="border border-amber-500/40 bg-amber-500/5 px-3 py-2 space-y-1">
+    <div className="border border-accent-warning/40 bg-accent-warning/5 px-3 py-2 space-y-1">
       <div className="flex items-center gap-2">
         <RiErrorWarningLine
-          className="h-3.5 w-3.5 text-amber-600 dark:text-amber-500 shrink-0"
+          className="h-3.5 w-3.5 text-accent-warning shrink-0"
           aria-hidden="true"
         />
-        <p className="font-mono text-2xs uppercase tracking-widest text-amber-700 dark:text-amber-400">
+        <p className="font-mono text-2xs uppercase tracking-widest text-accent-warning">
           24-hour delivery window
         </p>
       </div>

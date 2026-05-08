@@ -682,7 +682,6 @@ function buildPdfData(
 }
 
 /**
-/**
  * Returns `{ consignor, consignee }` phones from the invoice notes JSON.
  * Either or both may be `null`. Used to build the per-invoice phone
  * allow-list and to detect the "consignor === consignee" duplicate-

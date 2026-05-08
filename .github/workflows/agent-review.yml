@@ -65,9 +65,11 @@ jobs:
       - name: Acknowledge trigger
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          REPO: ${{ github.repository }}
         run: |
-          gh pr comment "${{ steps.pr.outputs.number }}" \
-            --repo "${{ github.repository }}" \
+          gh pr comment "$PR_NUMBER" \
+            --repo "$REPO" \
             --body "🤖 \`agent-review\` triggered. Running the [\`pr-review-and-merge\` skill](.agents/skills/pr-review-and-merge/SKILL.md) — phase 0 (preconditions) → 7 (follow-up). Status comments will appear inline as each phase completes."
 
       # ────────────────────────────────────────────────────────────────
