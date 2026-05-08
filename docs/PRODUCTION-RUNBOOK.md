@@ -211,26 +211,40 @@ Both must land in one deploy. Once verified live for ≥ 7 days, a follow-up ≤
 
 **Operator workaround until #9 lands:** record payments via the Supabase SQL editor manually. No UI path exists.
 
-### Sentry telemetry is currently silent (known, tracked: #22)
+### Sentry telemetry — wiring landed, prod-env vars + alert rule still pending (tracked: #22)
 
-**Symptom:** A `PaymentResponseLostError` (or any other unexpected exception) fires in production. Operator sees the user-facing warning toast. Nobody on ops gets paged or sees an alert.
+**State as of 2026-05-08 (PR #33 merged):**
+- ✅ Sentry project exists: `tapan-cargo-az/javascript-nextjs` on `de.sentry.io`
+- ✅ Code wiring complete — all four hooks active when DSN is set:
+  - `apps/dashboard/sentry.{client,server,edge}.config.ts` — runtime init with logs + release support
+  - `apps/dashboard/instrumentation.ts` — exports `onRequestError = Sentry.captureRequestError` for App Router server-component coverage
+  - `apps/dashboard/app/global-error.tsx` — captures React render-time errors
+  - `apps/dashboard/next.config.mjs` — wrapped with `withSentryConfig` for source map uploads + ad-blocker tunnel via `/sentry-tunnel`
+- ✅ Local dev DSN set in `apps/dashboard/.env.local`
+- ❌ **Production env vars NOT YET set** — `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` need to be configured in Vercel (or wherever the dashboard deploys). Until then, prod captures remain silent.
+- ❌ **Alert rule for `tags[kind]:payment_response_lost` NOT YET configured** — without it, lost-payment-confirmation events land in Sentry but nobody gets paged.
 
-**Root cause (audited 2026-05-08):**
-- The Sentry org `tapan-cargo-az` exists but has only ONE project: `react-native` — a mobile-runtime project, not the Next.js dashboard.
-- No DSN is set for the dashboard. `Sentry.init()` in `apps/dashboard/sentry.{client,server,edge}.config.ts` early-returns when DSN is empty.
-- `Sentry.captureException()` calls (including the `kind:payment_response_lost` capture in `invoice-detail-client.tsx`) are silent no-ops.
-- Sentry org has zero events in the last 30 days — concrete proof nothing is currently being captured.
+**To fully close #22 (manual UI steps):**
 
-**Resolution:** Issue **#22** — manual UI steps in Sentry:
-1. Sign in at `https://tapan-cargo-az.sentry.io`
-2. Create a new "Next.js" project (suggested slug: `tac-express-dashboard`)
-3. Copy the DSN, set `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` in production env
-4. Configure an alert rule: `tags[kind]:payment_response_lost` → notify ops within 5 min
-5. Optional: set up `sentry-cli` release tagging (see `apps/dashboard/.env.example` for the workflow)
+1. **Set production env vars** in deploy platform (Vercel):
+   ```
+   SENTRY_DSN=https://36081208c160813b4df2bbd36f19fcca@o4510226292932608.ingest.de.sentry.io/4511352032067664
+   NEXT_PUBLIC_SENTRY_DSN=https://36081208c160813b4df2bbd36f19fcca@o4510226292932608.ingest.de.sentry.io/4511352032067664
+   SENTRY_ENV=production
+   NEXT_PUBLIC_SENTRY_ENV=production
+   SENTRY_AUTH_TOKEN=<generate at Settings → Account → API → Auth Tokens, scope: project:releases>
+   ```
 
-**Until #22 closes**, treat the `Sentry.captureException()` codepath in `invoice-detail-client.tsx` as documentation for what WILL be captured, not what IS captured. Lost-payment-confirmation events are still surfaced to the user via toast (correct UX), but ops has no telemetry on frequency.
+2. **Configure alert rule** at https://tapan-cargo-az.sentry.io/alerts:
+   - Type: Issue Alert
+   - Filter: `tags[kind]:payment_response_lost`
+   - Threshold: any event matching, last 1 minute
+   - Action: notify ops via Slack / email / PagerDuty
+   - Save
 
-**Priority:** P1 — pairs with #9. Without telemetry, you won't know if #9's fix is working when it ships. Recommend closing #22 BEFORE deploying the #9 migration.
+3. **Verify** by visiting `<deployed-host>/sentry-example-page` (created by the wizard, currently NOT in our codebase — see #22 close-out for whether we add it).
+
+**Until step 1 lands**, `Sentry.captureException()` in production is still a no-op. Lost-payment events still surface to the user via toast (correct UX), but ops has no telemetry. Pair with #9 — close this BEFORE deploying the payment migration so you can measure whether the fix is working.
 
 ### Migration rollback
 

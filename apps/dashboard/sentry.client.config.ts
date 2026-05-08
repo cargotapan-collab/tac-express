@@ -32,6 +32,8 @@ if (dsn) {
     tracesSampleRate: isProd ? 0.1 : 1.0,
     replaysOnErrorSampleRate: 1.0,
     replaysSessionSampleRate: isProd ? 0.05 : 0.0,
+    enableLogs: true,
+    sendDefaultPii: false,
     integrations: [
       Sentry.replayIntegration({
         // Mask all text by default — replays are debugging tools, never PII
