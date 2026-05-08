@@ -151,13 +151,13 @@ function checkPdfAutoGenAvailable(req: NextRequest): boolean {
 
   const explicit = process.env.NEXT_PUBLIC_DASHBOARD_URL?.trim()
   if (explicit) {
-    return !/localhost|127\.0\.0\.1/.test(explicit)
+    return !/localhost|127\.0\.0\.1|\[?::1\]?/.test(explicit)
   }
 
   const host =
     req.headers.get("x-forwarded-host") ?? req.headers.get("host")
   if (!host) return false
-  return !/localhost|127\.0\.0\.1/.test(host)
+  return !/localhost|127\.0\.0\.1|\[?::1\]?/.test(host)
 }
 
 /* ════════════════════════════════════════════════════════════════════════ */

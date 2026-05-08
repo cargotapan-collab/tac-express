@@ -559,14 +559,14 @@ export async function POST(req: NextRequest) {
 function resolvePublicOrigin(req: NextRequest): string | null {
   const explicit = process.env.NEXT_PUBLIC_DASHBOARD_URL?.trim()
   if (explicit) {
-    if (/localhost|127\.0\.0\.1/.test(explicit)) return null
+    if (/localhost|127\.0\.0\.1|\[?::1\]?/.test(explicit)) return null
     return explicit.replace(/\/+$/, "")
   }
 
   const host =
     req.headers.get("x-forwarded-host") ?? req.headers.get("host")
   if (host) {
-    if (/localhost|127\.0\.0\.1/.test(host)) return null
+    if (/localhost|127\.0\.0\.1|\[?::1\]?/.test(host)) return null
     // `x-forwarded-proto` may carry a comma-separated list when multiple
     // proxies have prepended their own value (e.g. "https, http"). Take
     // the first entry — it's the one closest to the original client.

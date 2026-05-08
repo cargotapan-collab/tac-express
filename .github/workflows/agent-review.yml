@@ -57,6 +57,17 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
         run: |
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            # Defense-in-depth: even though the input is now passed
+            # through env (no direct `${{ }}` interpolation), reject any
+            # value that isn't purely numeric. A non-numeric input would
+            # have to be a deliberate misuse — fail loud rather than
+            # propagate it to downstream `gh pr comment` calls.
+            case "$INPUT_PR_NUMBER" in
+              ''|*[!0-9]*)
+                echo "::error::Input pr_number must be a numeric PR id"
+                exit 1
+                ;;
+            esac
             echo "number=$INPUT_PR_NUMBER" >> "$GITHUB_OUTPUT"
           else
             echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"

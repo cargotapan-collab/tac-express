@@ -80,9 +80,21 @@ const PLACEHOLDER = "[unset]"
 const env = (key: string): string =>
   (typeof process !== "undefined" && process.env?.[key]?.trim()) || PLACEHOLDER
 
+/**
+ * Parse the pipe-separated `COMPANY_ADDRESS` env var into an array of
+ * non-empty trimmed lines. Returns `[]` when the env is unset so
+ * `assertCompanyConfig()` can detect the missing config — naively
+ * splitting `"[unset]"` would produce `["[unset]"]` (length 1), which
+ * would silently render the placeholder as a real address line.
+ */
+function parseAddressLines(raw: string): string[] {
+  if (raw === PLACEHOLDER) return []
+  return raw.split("|").map((s) => s.trim()).filter(Boolean)
+}
+
 const COMPANY = {
   legalName: env("COMPANY_LEGAL_NAME"),
-  addressLines: env("COMPANY_ADDRESS").split("|").map((s) => s.trim()).filter(Boolean),
+  addressLines: parseAddressLines(env("COMPANY_ADDRESS")),
   tel: env("COMPANY_TEL"),
   email: env("COMPANY_EMAIL"),
   web: env("COMPANY_WEB"),
