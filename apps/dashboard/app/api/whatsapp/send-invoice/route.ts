@@ -91,9 +91,19 @@ const TemplateModeSchema = BaseBodySchema.extend({
    * Public URL of the document (PDF) to attach to the template's HEADER
    * component. Required for templates whose HEADER format is DOCUMENT,
    * IMAGE, or VIDEO. WhatsApp fetches this URL server-side, so it must
-   * be publicly resolvable (no auth, no localhost).
+   * be publicly resolvable (no auth, no localhost). The refinement
+   * rejects loopback / RFC 1918 / link-local hosts at the schema
+   * boundary so callers fail fast rather than at WPBox-fetch time.
    */
-  templateMediaUrl: z.string().url().max(2048).optional(),
+  templateMediaUrl: z
+    .string()
+    .url()
+    .max(2048)
+    .refine(isPubliclyReachableHttpUrl, {
+      message:
+        "templateMediaUrl must be a publicly reachable http(s) URL (no localhost, loopback, or RFC1918 private hosts).",
+    })
+    .optional(),
   /** Display filename for the document attachment (HEADER format=DOCUMENT). */
   templateMediaFilename: z.string().max(200).optional(),
   /** Override the default header media kind. Defaults to "document". */
@@ -260,10 +270,11 @@ export async function POST(req: NextRequest) {
     ? await customerService.getCustomerById(invoice.customerId).catch(() => null)
     : null
 
+  const notesPhones = extractPhonesFromInvoice(invoice)
   const expectedRawPhones: string[] = []
   if (customer?.phone) expectedRawPhones.push(customer.phone)
-  const notesPhones = extractPhonesFromInvoice(invoice) // [consignor?, consignee?]
-  for (const p of notesPhones) expectedRawPhones.push(p)
+  if (notesPhones.consignor) expectedRawPhones.push(notesPhones.consignor)
+  if (notesPhones.consignee) expectedRawPhones.push(notesPhones.consignee)
 
   const expectedNormalised = new Set(
     expectedRawPhones
@@ -281,8 +292,8 @@ export async function POST(req: NextRequest) {
    * MANAGER-authored invoice), but the ambiguity that would normally
    * warrant a UI confirm step doesn't exist.
    */
-  const consignorPhone = notesPhones[0] ? normalizePhone(notesPhones[0]) : null
-  const consigneePhone = notesPhones[1] ? normalizePhone(notesPhones[1]) : null
+  const consignorPhone = notesPhones.consignor ? normalizePhone(notesPhones.consignor) : null
+  const consigneePhone = notesPhones.consignee ? normalizePhone(notesPhones.consignee) : null
   const isDuplicateContact =
     consignorPhone !== null &&
     consigneePhone !== null &&
@@ -331,16 +342,16 @@ export async function POST(req: NextRequest) {
       rawPhone = parsed.phone
       usingOverride = true
     }
-  } else if (isDuplicateContact && notesPhones[0]) {
+  } else if (isDuplicateContact && notesPhones.consignor) {
     // Consignor === consignee — unambiguous destination. Fast-path skips
     // any UI-side confirmation gate.
-    rawPhone = notesPhones[0]
+    rawPhone = notesPhones.consignor
   } else if (customer?.phone) {
     rawPhone = customer.phone
-  } else if (notesPhones[0]) {
-    rawPhone = notesPhones[0]
-  } else if (notesPhones[1]) {
-    rawPhone = notesPhones[1]
+  } else if (notesPhones.consignor) {
+    rawPhone = notesPhones.consignor
+  } else if (notesPhones.consignee) {
+    rawPhone = notesPhones.consignee
   }
 
   if (!rawPhone) {
@@ -477,8 +488,39 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  /* ─── 6. Extract WAMID for success surfacing ─── */
+  /* ─── 6. Extract WAMID + treat absent WAMID as a silent rejection ───
+   *
+   * WhatsApp returns 200 OK with no `wamid` when the message is
+   * silently rejected (most commonly: template parameter mismatch, or
+   * recipient outside the 24h window for direct sends). Surfacing this
+   * as success would give operators false positives and suppress
+   * retries — fail the request explicitly.
+   */
   const wamid = extractWamid(result.data)
+  if (!wamid) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error(
+        `[whatsapp] send returned no WAMID for ${invoice.invoiceNumber} → ${phone} (mode=${mode}) — treating as silent rejection`,
+        { data: result.data },
+      )
+    }
+    return NextResponse.json(
+      {
+        error:
+          "WhatsApp accepted the request but did not return a message ID — the message was silently rejected. " +
+          "Common causes: template parameter mismatch, recipient outside the 24h customer-service window (direct mode), or template HEADER format mismatch.",
+        // The success-shape result has no `rawResponse` field — surface
+        // the raw `data` instead so operators can diagnose what WPBox
+        // actually returned.
+        rawResponse:
+          typeof result.data === "string"
+            ? result.data
+            : JSON.stringify(result.data ?? null),
+        mode,
+      },
+      { status: 502 },
+    )
+  }
 
   if (process.env.NODE_ENV !== "production") {
     console.log(
@@ -525,13 +567,56 @@ function resolvePublicOrigin(req: NextRequest): string | null {
     req.headers.get("x-forwarded-host") ?? req.headers.get("host")
   if (host) {
     if (/localhost|127\.0\.0\.1/.test(host)) return null
+    // `x-forwarded-proto` may carry a comma-separated list when multiple
+    // proxies have prepended their own value (e.g. "https, http"). Take
+    // the first entry — it's the one closest to the original client.
+    const protoHeader = req.headers.get("x-forwarded-proto")
     const proto =
-      req.headers.get("x-forwarded-proto") ??
+      protoHeader?.split(",")[0]?.trim() ||
       (host.includes(".") ? "https" : "http")
     return `${proto}://${host}`
   }
 
   return null
+}
+
+/**
+ * Returns true when `url` is a syntactically-valid http(s) URL pointing
+ * at a publicly-routable host. Rejects:
+ *   - non-http(s) schemes (file:, data:, javascript:, etc.)
+ *   - localhost, 127.0.0.0/8, ::1
+ *   - RFC 1918 private ranges (10/8, 172.16/12, 192.168/16)
+ *   - link-local 169.254.0.0/16
+ *   - IPv6 unique-local fc00::/7
+ *
+ * WhatsApp's media fetcher is on the public internet, so URLs that
+ * resolve to private space are guaranteed to fail at delivery time —
+ * better to refuse them at the schema boundary.
+ */
+function isPubliclyReachableHttpUrl(value: string): boolean {
+  let u: URL
+  try {
+    u = new URL(value)
+  } catch {
+    return false
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return false
+  const host = u.hostname.toLowerCase()
+  if (host === "localhost" || host === "::1") return false
+  // IPv4 dotted-quad checks
+  const v4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (v4) {
+    const [, a, b] = v4
+    const o1 = Number(a), o2 = Number(b)
+    if (o1 === 10) return false                                 // 10/8
+    if (o1 === 127) return false                                // loopback
+    if (o1 === 169 && o2 === 254) return false                  // link-local
+    if (o1 === 172 && o2 >= 16 && o2 <= 31) return false        // 172.16/12
+    if (o1 === 192 && o2 === 168) return false                  // 192.168/16
+  }
+  // IPv6 unique-local fc00::/7 — match leading fc/fd nybble
+  if (/^\[?(fc|fd)[0-9a-f]{2}:/i.test(host)) return false
+  return true
 }
 
 /**
@@ -597,35 +682,44 @@ function buildPdfData(
 }
 
 /**
- * Returns the consignor and consignee phones in that order. Either or
- * both may be missing — callers should treat the result as a possibly
- * sparse 2-tuple. Used to build the per-invoice phone allow-list and to
- * detect the "consignor === consignee" duplicate-contact shortcut.
+/**
+ * Returns `{ consignor, consignee }` phones from the invoice notes JSON.
+ * Either or both may be `null`. Used to build the per-invoice phone
+ * allow-list and to detect the "consignor === consignee" duplicate-
+ * contact shortcut.
  *
- * History: this helper used to return ONE phone (consignor preferred),
- * which excluded the consignee from the allow-list and forced operators
- * to use `overridePhone: true` whenever they wanted to dispatch to the
- * receiving party. Returning both is safe because the trust boundary
- * doesn't change — the same MANAGER who authored the invoice authored
- * both fields.
+ * Returning a structured object (rather than a tuple-array) eliminates
+ * a positional bug: an earlier dense-array shape silently lost the
+ * consignor/consignee role distinction when consignor was unset and
+ * consignee was set — the consignee would land at index 0 and be
+ * treated as the consignor by the duplicate-contact gate.
+ *
+ * Trust note: the same MANAGER who authored the invoice authored these
+ * fields, so the allow-list bound is the same as `customer.phone`.
  */
-function extractPhonesFromInvoice(invoice: InvoiceLike): string[] {
-  const out: string[] = []
-  if (!invoice.notes) return out
-  if (invoice.notes.length > MAX_NOTES_BYTES) return out
+interface InvoiceNotesPhones {
+  consignor: string | null
+  consignee: string | null
+}
+
+function extractPhonesFromInvoice(invoice: InvoiceLike): InvoiceNotesPhones {
+  const empty: InvoiceNotesPhones = { consignor: null, consignee: null }
+  if (!invoice.notes) return empty
+  if (invoice.notes.length > MAX_NOTES_BYTES) return empty
   const trimmed = invoice.notes.trim()
-  if (!trimmed.startsWith("{")) return out
+  if (!trimmed.startsWith("{")) return empty
   try {
     const parsed = JSON.parse(trimmed) as {
       consignor?: { phone?: string }
       consignee?: { phone?: string }
     }
-    if (parsed.consignor?.phone) out.push(String(parsed.consignor.phone))
-    if (parsed.consignee?.phone) out.push(String(parsed.consignee.phone))
+    return {
+      consignor: parsed.consignor?.phone ? String(parsed.consignor.phone) : null,
+      consignee: parsed.consignee?.phone ? String(parsed.consignee.phone) : null,
+    }
   } catch {
-    /* fall through */
+    return empty
   }
-  return out
 }
 
 /**

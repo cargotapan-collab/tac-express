@@ -119,11 +119,24 @@ export function SendWhatsAppDialog({
 
   /* Available approved templates — drives implicit mode selection. */
   const templates = testStatus?.templates ?? []
-  const hasTemplates = templates.length > 0
-  /* Implicit delivery mode + first-template auto-pick. The operator
-   * doesn't see either of these decisions. */
+  /**
+   * Deterministically pick the invoice template. We can't safely auto-
+   * select `templates[0]` because WPBox's getTemplates response order
+   * isn't stable — once the WPBox account has more than one approved
+   * template (utility, marketing, etc.), positional selection picks
+   * whatever happens to come back first, which could fire the wrong
+   * BODY/HEADER contract for invoice sends.
+   *
+   * Match order: explicit env var → name pattern (`*invoice*`) → first
+   * approved template only when there's exactly one (degenerate case
+   * where ordering is moot). Otherwise fall back to undefined and the
+   * dialog disables the send button.
+   */
+  const invoiceTemplate = pickInvoiceTemplate(templates)
+  const hasTemplates = invoiceTemplate !== undefined
+  /* Implicit delivery mode — operator doesn't see this decision. */
   const mode: DeliveryMode = hasTemplates ? "template" : "direct"
-  const selectedTemplate = hasTemplates ? templates[0] : undefined
+  const selectedTemplate = invoiceTemplate
 
   /* Reset transient state every time the dialog opens. */
   React.useEffect(() => {
@@ -603,4 +616,39 @@ function mediaKindFromHeaderFormat(
   if (upper === "IMAGE") return "image"
   if (upper === "VIDEO") return "video"
   return null // TEXT or other — no media required
+}
+
+/**
+ * Deterministically pick the invoice template from the WPBox catalog.
+ * Match order:
+ *   1. `NEXT_PUBLIC_WHATSAPP_INVOICE_TEMPLATE` env (exact name match,
+ *      case-insensitive) — production-blessed, lets ops switch templates
+ *      without redeploying the dashboard.
+ *   2. Name contains "invoice" (case-insensitive) — fallback for the
+ *      common case where the template is named `*_invoice` /
+ *      `invoice_*` / similar.
+ *   3. The single approved template, if there's exactly one — degenerate
+ *      case where ordering doesn't matter.
+ *   4. `undefined` — refuse to send rather than picking arbitrarily.
+ */
+function pickInvoiceTemplate(
+  templates: readonly WhatsAppTemplateOption[],
+): WhatsAppTemplateOption | undefined {
+  if (templates.length === 0) return undefined
+
+  const explicit =
+    typeof process !== "undefined"
+      ? process.env?.NEXT_PUBLIC_WHATSAPP_INVOICE_TEMPLATE?.trim()
+      : undefined
+  if (explicit) {
+    const exact = templates.find((t) => t.name.toLowerCase() === explicit.toLowerCase())
+    if (exact) return exact
+  }
+
+  const byPattern = templates.find((t) => /invoice/i.test(t.name))
+  if (byPattern) return byPattern
+
+  if (templates.length === 1) return templates[0]
+
+  return undefined
 }

@@ -1,18 +1,32 @@
+import { cookies } from "next/headers"
 import { NextResponse, type NextRequest } from "next/server"
 
+import { getServerAuth } from "@workspace/auth/server"
+import { isManagerOrAbove } from "@workspace/auth/rbac"
+import { UserRole } from "@workspace/types"
+import { createAdminServerService } from "@workspace/services/server"
 import { createWhatsAppServiceFromEnv } from "@workspace/services/whatsapp.service"
+import { checkWhatsApp } from "@/lib/rate-limit"
 
 /**
  * GET /api/whatsapp/test
  *
- * Verifies the WPBox configuration AND fetches the list of approved
- * templates the user can pick from when sending invoices.
+ * Diagnostics endpoint — verifies the WPBox configuration AND fetches
+ * the list of approved templates the dialog uses to pick a delivery
+ * mode. Returns each template's `name`, `language`, `status`, `body`,
+ * and — critically — `headerFormat` (DOCUMENT / IMAGE / VIDEO /
+ * undefined). The dialog uses `headerFormat` to decide whether to
+ * require a media URL field.
  *
- * Returns each template's `name`, `language`, `status`, `body`, and —
- * critically — `headerFormat` (DOCUMENT / IMAGE / VIDEO / undefined).
- * The dialog uses `headerFormat` to decide whether to require a media
- * URL field. Sending a template with HEADER but omitting the media
- * causes WhatsApp to silently reject the message (returns null WAMID).
+ * Authentication & rate-limiting:
+ *   - Requires an authenticated MANAGER+ user. The endpoint exposes
+ *     internal config state and template metadata — not for anon
+ *     callers — and a getTemplates() call hits WPBox upstream, so
+ *     unauthenticated access would let any internet caller burn our
+ *     WPBox quota.
+ *   - Per-user rate-limited by the same bucket as the send endpoint.
+ *     Diagnostics calls are typically once per dialog open, so the
+ *     budget is plenty.
  */
 export const dynamic = "force-dynamic"
 
@@ -26,7 +40,45 @@ interface TemplateSummary {
 }
 
 export async function GET(req: NextRequest) {
-  /* ── 0. PDF auto-gen availability ──
+  /* ── 0a. Authn + Authz — MANAGER+ same as the send route ── */
+  const cookieStore = await cookies()
+  const auth = getServerAuth(cookieStore)
+  const user = await auth.getUser().catch(() => null)
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  const adminService = createAdminServerService(cookieStore)
+  const profile = await adminService.getProfileById(user.id).catch(() => null)
+  const role = profile?.role as UserRole | undefined
+  if (!role || !isManagerOrAbove(role)) {
+    return NextResponse.json(
+      { error: "Insufficient permissions. WhatsApp diagnostics require MANAGER or above." },
+      { status: 403 },
+    )
+  }
+
+  /* ── 0b. Per-user rate limit — same bucket as the send route. ── */
+  const rl = await checkWhatsApp(`user:${user.id}`)
+  if (!rl.success) {
+    return NextResponse.json(
+      {
+        error: "Too many requests. Try again in a minute.",
+        limit: rl.limit,
+        remaining: rl.remaining,
+        reset: rl.reset,
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": String(rl.limit),
+          "X-RateLimit-Remaining": String(rl.remaining),
+          "X-RateLimit-Reset": String(rl.reset),
+        },
+      },
+    )
+  }
+
+  /* ── 1. PDF auto-gen availability ──
    *
    * The dialog uses this flag to hide the manual "Document URL" field
    * when the server can produce signed `/api/public/invoice-pdf` URLs
@@ -41,7 +93,7 @@ export async function GET(req: NextRequest) {
    */
   const pdfAutoGenAvailable = checkPdfAutoGenAvailable(req)
 
-  /* ── 1. Config check ── */
+  /* ── 2. Config check ── */
   let svc
   try {
     svc = createWhatsAppServiceFromEnv()
@@ -55,7 +107,7 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  /* ── 2. Connectivity + auth check + fetch template catalog ── */
+  /* ── 3. Connectivity check + fetch template catalog ── */
   const result = await svc.getTemplates()
   if (!result.ok) {
     return NextResponse.json({
@@ -69,7 +121,7 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  /* ── 3. Extract template list (best-effort across response shapes) ── */
+  /* ── 4. Extract template list (best-effort across response shapes) ── */
   const rawTemplates = extractTemplatesArray(result.data)
   const templates: TemplateSummary[] = rawTemplates
     .map(normalizeTemplate)

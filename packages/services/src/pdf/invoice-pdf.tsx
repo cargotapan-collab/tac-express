@@ -61,27 +61,74 @@ const FONT_MONO = "Courier"
 const BRAND_VIOLET = "#6D28D9" // matches Violet Grid v6 primary
 const BRAND_VIOLET_SOFT = "#EDE9FE"
 
+/**
+ * Company + bank details rendered on the invoice. Sourced from env so we
+ * never ship placeholder GSTIN / account numbers to production. Each
+ * field falls back to an obviously-bogus marker in dev so a missing env
+ * fails loudly visually rather than silently rendering an invalid
+ * statutory document.
+ *
+ * Required envs (must be set in production):
+ *   COMPANY_LEGAL_NAME, COMPANY_GSTIN, COMPANY_PAN, COMPANY_CIN,
+ *   COMPANY_ADDRESS, COMPANY_TEL, COMPANY_EMAIL, COMPANY_WEB,
+ *   BANK_NAME, BANK_ACCOUNT, BANK_IFSC, BANK_SWIFT, BANK_UPI
+ *
+ * `assertCompanyConfig()` is exported so callers (the public PDF route)
+ * can refuse to render before letting WhatsApp or a customer see junk.
+ */
+const PLACEHOLDER = "[unset]"
+const env = (key: string): string =>
+  (typeof process !== "undefined" && process.env?.[key]?.trim()) || PLACEHOLDER
+
 const COMPANY = {
-  // Trade name shown on the invoice. The pdf-header.png banner keeps the
-  // "TAC Express" mark; this is the registered/legal entity that issues
-  // the invoice and that customers should reference for support.
-  legalName: "Tapan Associate Cargo",
-  addressLines: ["Imphal, Manipur, India — 795001"],
-  tel: "+91 385 000 0000",
-  email: "ops@tapanassociatecargo.in",
-  web: "tapanassociatecargo.in",
-  gstin: "14AAAAA0000A1Z5",
-  pan: "AAAAA0000A",
-  cin: "U63090ML2024PTC012345",
-  hsn: "996511", // GTA / road transport of goods
+  legalName: env("COMPANY_LEGAL_NAME"),
+  addressLines: env("COMPANY_ADDRESS").split("|").map((s) => s.trim()).filter(Boolean),
+  tel: env("COMPANY_TEL"),
+  email: env("COMPANY_EMAIL"),
+  web: env("COMPANY_WEB"),
+  gstin: env("COMPANY_GSTIN"),
+  pan: env("COMPANY_PAN"),
+  cin: env("COMPANY_CIN"),
+  hsn: "996511", // GTA / road transport of goods — statutory, not env-bound
 }
 
 const BANK = {
-  name: "State Bank of India · Imphal Main Branch",
-  account: "1234 5678 9012 3456",
-  ifsc: "SBIN0001234",
-  swift: "SBININBBXXX",
-  upi: "tacxpress@sbi",
+  name: env("BANK_NAME"),
+  account: env("BANK_ACCOUNT"),
+  ifsc: env("BANK_IFSC"),
+  swift: env("BANK_SWIFT"),
+  upi: env("BANK_UPI"),
+}
+
+/**
+ * Throws if any rendered company/bank field is missing. Callers should
+ * invoke this at the top of any code path that renders an invoice for
+ * external delivery (WhatsApp, print) so we never ship a tax document
+ * with `[unset]` GSTIN or "1234..." account numbers.
+ */
+export function assertCompanyConfig(): void {
+  const required: Array<[string, string]> = [
+    ["COMPANY_LEGAL_NAME", COMPANY.legalName],
+    ["COMPANY_GSTIN", COMPANY.gstin],
+    ["COMPANY_PAN", COMPANY.pan],
+    ["COMPANY_CIN", COMPANY.cin],
+    ["COMPANY_TEL", COMPANY.tel],
+    ["COMPANY_EMAIL", COMPANY.email],
+    ["COMPANY_WEB", COMPANY.web],
+    ["BANK_NAME", BANK.name],
+    ["BANK_ACCOUNT", BANK.account],
+    ["BANK_IFSC", BANK.ifsc],
+  ]
+  const missing = required
+    .filter(([, value]) => !value || value === PLACEHOLDER)
+    .map(([key]) => key)
+  if (COMPANY.addressLines.length === 0) missing.push("COMPANY_ADDRESS")
+  if (missing.length > 0) {
+    throw new Error(
+      `Invoice PDF cannot render — missing required company/bank env vars: ${missing.join(", ")}. ` +
+        `Set these in apps/dashboard/.env.local (see .env.example).`,
+    )
+  }
 }
 
 /**
@@ -575,8 +622,14 @@ const formatINR = (n: number) =>
     maximumFractionDigits: 2,
   })}`
 
+/**
+ * Negative-aware INR formatter. Uses ASCII hyphen-minus `-` (U+002D),
+ * NOT the Unicode MINUS SIGN `−` (U+2212), because @react-pdf/renderer
+ * uses WinAnsi font encoding by default — U+2212 falls outside the
+ * encoding's glyph table and renders as a missing-glyph box.
+ */
 const formatINRSigned = (n: number) =>
-  `${n < 0 ? "−" : ""}INR ${Math.abs(n).toLocaleString("en-IN", {
+  `${n < 0 ? "-" : ""}INR ${Math.abs(n).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`
@@ -645,8 +698,15 @@ function buildChargeLines(d: InvoicePdfData): ChargeLine[] {
  */
 function amountInWords(n: number): string {
   if (!isFinite(n)) return ""
-  const rupees = Math.floor(Math.abs(n))
-  const paise = Math.round((Math.abs(n) - rupees) * 100)
+  let rupees = Math.floor(Math.abs(n))
+  let paise = Math.round((Math.abs(n) - rupees) * 100)
+  // Floating-point edge case: 99.999 → rupees=99, paise=Math.round(99.9)=100.
+  // Without this guard, the output reads "and One Hundred Paise" which is
+  // numerically wrong. Carry the overflow into rupees.
+  if (paise >= 100) {
+    paise = 0
+    rupees += 1
+  }
   const sign = n < 0 ? "Minus " : ""
   const main = numberToIndianWords(rupees)
   const tail = paise > 0 ? ` and ${numberToIndianWords(paise)} Paise` : ""

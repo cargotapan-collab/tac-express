@@ -462,7 +462,7 @@ function PartiesStep({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border">
         {/* Consignor */}
         <div className="space-y-4">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground border-b border-border pb-1">Consignor</p>
+          <p className="t-overline text-muted-foreground border-b border-border pb-1">Consignor</p>
           <Field label="Name">
             <input
               value={state.consignorName}
@@ -492,7 +492,7 @@ function PartiesStep({
 
         {/* Consignee */}
         <div className="space-y-4">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground border-b border-border pb-1">Consignee</p>
+          <p className="t-overline text-muted-foreground border-b border-border pb-1">Consignee</p>
           <Field label="Name">
             <input
               value={state.consigneeName}

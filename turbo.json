@@ -33,7 +33,21 @@
                                            "WPBOX_BASE_URL",
                                            "WHATSAPP_ENABLED",
                                            "INVOICE_PDF_SIGNING_SECRET",
-                                           "NEXT_PUBLIC_DASHBOARD_URL"
+                                           "NEXT_PUBLIC_DASHBOARD_URL",
+                                           "NEXT_PUBLIC_WHATSAPP_INVOICE_TEMPLATE",
+                                           "COMPANY_LEGAL_NAME",
+                                           "COMPANY_ADDRESS",
+                                           "COMPANY_TEL",
+                                           "COMPANY_EMAIL",
+                                           "COMPANY_WEB",
+                                           "COMPANY_GSTIN",
+                                           "COMPANY_PAN",
+                                           "COMPANY_CIN",
+                                           "BANK_NAME",
+                                           "BANK_ACCOUNT",
+                                           "BANK_IFSC",
+                                           "BANK_SWIFT",
+                                           "BANK_UPI"
                                        ]
                            },
                   "format":  {

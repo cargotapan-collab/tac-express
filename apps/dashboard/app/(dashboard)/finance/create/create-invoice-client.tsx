@@ -39,9 +39,22 @@ function normalizeInvoiceDraft(draft: Partial<InvoiceWizardState>): InvoiceWizar
   )
   const hasLegacyOnly = !hasStructured && Boolean(merged.billingAddress)
   if (hasLegacyOnly) {
-    // Surface a marker comment so the wizard's billing field knows to show
-    // a hint to the user. We keep the legacy string intact for the print view.
-    return merged
+    // Hydrate at least `billingLine1` from the legacy joined string so
+    // the structured fields aren't all empty when the user opens the
+    // wizard. Without this, the moment the user touches any structured
+    // field the auto-rejoin logic in SmartAddressFields fires with the
+    // mostly-empty values and silently overwrites the original
+    // `billingAddress` — that's the data-loss path the comment above
+    // warns about. Keeping the original `billingAddress` intact too
+    // means the print view still has the full historical record.
+    const firstLine = merged.billingAddress
+      ?.split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0)
+    return {
+      ...merged,
+      billingLine1: merged.billingLine1 || firstLine || merged.billingAddress || "",
+    }
   }
   return merged
 }

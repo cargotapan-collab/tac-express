@@ -2,7 +2,11 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Popover as PopoverPrimitive } from "radix-ui"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@workspace/ui/components/primitives/popover"
 import { cn } from "@workspace/ui/lib/utils"
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
 import {
@@ -60,8 +64,8 @@ function NotificationBell() {
   }
 
   return (
-    <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
-      <PopoverPrimitive.Trigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <button
           data-slot="notifications-trigger"
           type="button"
@@ -84,19 +88,23 @@ function NotificationBell() {
             </span>
           )}
         </button>
-      </PopoverPrimitive.Trigger>
+      </PopoverTrigger>
 
-      <PopoverPrimitive.Portal>
-        <PopoverPrimitive.Content
-          data-slot="notifications-popover"
-          align="end"
-          sideOffset={8}
-          className={cn(
-            "z-50 w-90 bg-card border border-border shadow-brutal",
-            "data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-top-2",
-            "data-closed:animate-out data-closed:fade-out-0"
-          )}
-        >
+      <PopoverContent
+        data-slot="notifications-popover"
+        align="end"
+        sideOffset={8}
+        className={cn(
+          // w-panel-xl is 18.75rem (300px) — the project's defined panel
+          // width token. Replaces the previous broken `w-90` class
+          // (Tailwind ships no `90` spacing scale entry by default, so
+          // it silently no-op'd) and the earlier `w-[360px]` arbitrary
+          // value (LAW 11). The notification panel reads cleanly at
+          // 300px alongside the rest of the dashboard surface.
+          "w-panel-xl bg-card border border-border shadow-brutal p-0",
+          "data-open:slide-in-from-top-2"
+        )}
+      >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <p className="font-serif text-sm font-semibold text-foreground">
               Notifications
@@ -242,9 +250,8 @@ function NotificationBell() {
               View all →
             </Link>
           </div>
-        </PopoverPrimitive.Content>
-      </PopoverPrimitive.Portal>
-    </PopoverPrimitive.Root>
+      </PopoverContent>
+    </Popover>
   )
 }
 

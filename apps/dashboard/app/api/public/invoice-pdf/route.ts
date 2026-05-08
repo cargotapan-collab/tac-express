@@ -3,7 +3,10 @@ import { promises as fs } from "node:fs"
 
 import type { NextRequest } from "next/server"
 
-import { renderInvoicePdfToBuffer } from "@workspace/services/pdf/invoice-pdf"
+import {
+  assertCompanyConfig,
+  renderInvoicePdfToBuffer,
+} from "@workspace/services/pdf/invoice-pdf"
 import { verifyInvoicePdfToken } from "@workspace/services/pdf/invoice-pdf-token"
 import { generateQrPng } from "@workspace/services/pdf/qr"
 
@@ -60,6 +63,25 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const p = url.searchParams.get("p")
   const s = url.searchParams.get("s")
+
+  /* ─── 0. Refuse to render with placeholder company/bank config ───
+   *
+   * The PDF is a legal tax document. If COMPANY_GSTIN, BANK_ACCOUNT,
+   * etc. aren't set in the environment, `assertCompanyConfig()` throws
+   * — better to return a 500 here than to deliver a customer-facing
+   * invoice with `[unset]` GSTIN or "1234..." account numbers. */
+  try {
+    assertCompanyConfig()
+  } catch (err) {
+    console.error("[invoice-pdf] company/bank config invalid:", err)
+    return new Response(
+      JSON.stringify({
+        error: "Invoice PDF cannot render",
+        detail: err instanceof Error ? err.message : String(err),
+      }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    )
+  }
 
   /* ─── 1. Verify signature ─── */
   const result = verifyInvoicePdfToken({ p, s })
