@@ -109,7 +109,10 @@ EWAYBILL_PASSWORD=
 
 ### D. Observability
 
-- [ ] Sentry project created · alert rules: any error in production tagged `level: error`
+- [ ] **Sentry Next.js project created** in `tapan-cargo-az` org (audited 2026-05-08: only `react-native` exists — wrong runtime; create a separate `tac-express-dashboard` project before relying on captures)
+- [ ] **`SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` set in production env** — without these, every `Sentry.captureException()` call (including the `payment_response_lost` capture in `apps/dashboard/app/(dashboard)/finance/[id]/invoice-detail-client.tsx`) is a SILENT NO-OP
+- [ ] **Alert rule configured**: filter `tags[kind]:payment_response_lost` → notify ops within 5 min. This is the trigger condition the route handler tags for; without it, lost-payment-confirmation events land in Sentry but nobody sees them
+- [ ] Sentry alert rules: any error in production tagged `level: error`
 - [ ] Sentry source maps uploaded per release (`SENTRY_RELEASE` env var on every deploy)
 - [ ] Sentry replay budget set — see `sentry.client.config.ts` (5% session sample, 100% on error)
 - [ ] Vercel Speed Insights enabled
@@ -207,6 +210,27 @@ Both must land in one deploy. Once verified live for ≥ 7 days, a follow-up ≤
 **Priority:** P1 — feature is non-functional. Owner + ETA owed in #9 before merging PR #8 into main, or as the very next change after.
 
 **Operator workaround until #9 lands:** record payments via the Supabase SQL editor manually. No UI path exists.
+
+### Sentry telemetry is currently silent (known, tracked: #22)
+
+**Symptom:** A `PaymentResponseLostError` (or any other unexpected exception) fires in production. Operator sees the user-facing warning toast. Nobody on ops gets paged or sees an alert.
+
+**Root cause (audited 2026-05-08):**
+- The Sentry org `tapan-cargo-az` exists but has only ONE project: `react-native` — a mobile-runtime project, not the Next.js dashboard.
+- No DSN is set for the dashboard. `Sentry.init()` in `apps/dashboard/sentry.{client,server,edge}.config.ts` early-returns when DSN is empty.
+- `Sentry.captureException()` calls (including the `kind:payment_response_lost` capture in `invoice-detail-client.tsx`) are silent no-ops.
+- Sentry org has zero events in the last 30 days — concrete proof nothing is currently being captured.
+
+**Resolution:** Issue **#22** — manual UI steps in Sentry:
+1. Sign in at `https://tapan-cargo-az.sentry.io`
+2. Create a new "Next.js" project (suggested slug: `tac-express-dashboard`)
+3. Copy the DSN, set `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` in production env
+4. Configure an alert rule: `tags[kind]:payment_response_lost` → notify ops within 5 min
+5. Optional: set up `sentry-cli` release tagging (see `apps/dashboard/.env.example` for the workflow)
+
+**Until #22 closes**, treat the `Sentry.captureException()` codepath in `invoice-detail-client.tsx` as documentation for what WILL be captured, not what IS captured. Lost-payment-confirmation events are still surfaced to the user via toast (correct UX), but ops has no telemetry on frequency.
+
+**Priority:** P1 — pairs with #9. Without telemetry, you won't know if #9's fix is working when it ships. Recommend closing #22 BEFORE deploying the #9 migration.
 
 ### Migration rollback
 
