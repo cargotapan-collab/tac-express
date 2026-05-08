@@ -33,6 +33,49 @@ const REVENUE_TREND_MONTHS = 6
 const SHIPMENT_VOLUME_DAYS = 30
 
 /**
+ * Row cap for client-side aggregation queries (#11).
+ *
+ * The previous value was 2000, which truncated KPI inputs silently
+ * the first time a tenant exceeded 2k rows in any of the three
+ * affected tables. Bumped to 50000 so the cap covers realistic
+ * dashboards (months of operational data for a mid-size 3PL) and
+ * truncation hits become exceptional rather than routine.
+ *
+ * When truncation IS hit, `warnIfTruncated()` makes it loud — a
+ * console.error with the row counts so deploy logs surface it. The
+ * proper long-term fix is server-side aggregation (issue #11
+ * Option A: move to RPCs that GROUP BY in Postgres). This module
+ * stays on client-side JS aggregation for now to keep the chart
+ * surface unchanged; follow-up: route through `analytics.service`
+ * RPCs once Phase 6.5 lands `sla_breaches` etc.
+ */
+const ORBITAL_AGGREGATION_LIMIT = 50000
+
+/**
+ * Compare actual row count vs requested limit and emit a loud
+ * warning when the cap was hit. Centralised so every aggregation
+ * callsite reports truncation the same way.
+ *
+ * Logged via `console.error` (not warn) because silent KPI truncation
+ * is a correctness bug, not a soft warning — ops should see this in
+ * the production log stream and route the trace to whoever owns the
+ * orbital → analytics migration.
+ */
+function warnIfTruncated(
+  source: string,
+  rowsReturned: number,
+  totalRows: number | null,
+): void {
+  if (totalRows !== null && totalRows > ORBITAL_AGGREGATION_LIMIT) {
+    console.error(
+      `[orbital] ${source} TRUNCATED — aggregated ${rowsReturned} of ` +
+        `${totalRows} rows (cap=${ORBITAL_AGGREGATION_LIMIT}). KPIs are ` +
+        `partial. Migrate this query to a server-side aggregation RPC.`,
+    )
+  }
+}
+
+/**
  * Build a sparkline from a numeric series — keeps the trailing window.
  * Returns at most `points` entries; pads nothing.
  */
@@ -163,13 +206,15 @@ export function createOrbitalService(db: SupabaseClient) {
     },
 
     async getServiceMix(): Promise<Segment[]> {
-      const { data, error } = await db
+      const { data, error, count } = await db
         .from("shipments")
-        .select("service_level")
-        .limit(2000)
+        .select("service_level", { count: "exact" })
+        .limit(ORBITAL_AGGREGATION_LIMIT)
       if (error) throw error
+      const rows = data ?? []
+      warnIfTruncated("getServiceMix", rows.length, count)
       const counts: Record<string, number> = {}
-      for (const row of (data ?? []) as Array<{ service_level: string | null }>) {
+      for (const row of rows as Array<{ service_level: string | null }>) {
         const key = row.service_level ?? "STANDARD"
         counts[key] = (counts[key] ?? 0) + 1
       }
@@ -195,17 +240,21 @@ export function createOrbitalService(db: SupabaseClient) {
     async getTopCustomers({ limit = 10 }: { limit?: number } = {}): Promise<
       RankItem[]
     > {
-      const { data, error } = await db
+      const { data, error, count } = await db
         .from("invoices")
-        .select("customer_id, customer_name, total_amount, status")
+        .select("customer_id, customer_name, total_amount, status", {
+          count: "exact",
+        })
         .eq("status", "PAID")
-        .limit(2000)
+        .limit(ORBITAL_AGGREGATION_LIMIT)
       if (error) throw error
+      const rows = data ?? []
+      warnIfTruncated("getTopCustomers", rows.length, count)
       const byCustomer = new Map<
         string,
         { name: string; revenue: number; count: number }
       >()
-      for (const row of (data ?? []) as Array<{
+      for (const row of rows as Array<{
         customer_id: string | null
         customer_name: string | null
         total_amount: number | null
@@ -253,15 +302,17 @@ export function createOrbitalService(db: SupabaseClient) {
     },
 
     async getLaneHeatmap(): Promise<LaneHeatmapData> {
-      const { data, error } = await db
+      const { data, error, count } = await db
         .from("shipments")
-        .select("origin_hub, dest_hub")
-        .limit(2000)
+        .select("origin_hub, dest_hub", { count: "exact" })
+        .limit(ORBITAL_AGGREGATION_LIMIT)
       if (error) throw error
+      const rows = data ?? []
+      warnIfTruncated("getLaneHeatmap", rows.length, count)
       const originSet = new Set<string>()
       const destSet = new Set<string>()
       const cellMap = new Map<string, LaneCell>()
-      for (const row of (data ?? []) as Array<{
+      for (const row of rows as Array<{
         origin_hub: string
         dest_hub: string
       }>) {
