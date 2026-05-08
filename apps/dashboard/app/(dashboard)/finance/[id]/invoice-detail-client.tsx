@@ -128,8 +128,21 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
   const sendWhatsapp = useSendInvoiceWhatsapp()
   const [recordOpen, setRecordOpen] = React.useState(false)
   const [whatsappOpen, setWhatsappOpen] = React.useState(false)
-  // Pre-flight WPBox config check — only fires when the dialog opens.
-  const whatsappTest = useWhatsappTest(whatsappOpen)
+  /**
+   * Pre-flight WPBox config check — runs on page load (not just when
+   * the dialog opens) so the "Send via WhatsApp" button knows the
+   * upstream state before the operator clicks it. Per issue #12:
+   * when the kill-switch flag is on (`WHATSAPP_ENABLED!=='true'`)
+   * or WPBox is unreachable, the button disables itself with a
+   * tooltip rather than letting the operator hit a 503/502 inside
+   * the dialog.
+   *
+   * `staleTime: 60_000` in the underlying hook caps re-fetch
+   * frequency to once per minute per session — cheap enough to
+   * always-enable.
+   */
+  const whatsappTest = useWhatsappTest(true)
+  const whatsappAvailable = whatsappTest.data?.ok !== false
 
   const parsedNotes = React.useMemo(() => parseNotes(invoice?.notes), [invoice?.notes])
 
@@ -336,7 +349,19 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
               variant="outline"
               size="sm"
               onClick={() => setWhatsappOpen(true)}
-              className="h-7 px-3 font-mono text-2xs uppercase tracking-wider border-accent-success/40 text-accent-success hover:bg-accent-success/10 hover:text-accent-success"
+              disabled={!whatsappAvailable}
+              title={
+                whatsappAvailable
+                  ? undefined
+                  : whatsappTest.data?.error ??
+                    "WhatsApp send is currently unavailable — check the WHATSAPP_ENABLED kill switch or WPBox upstream."
+              }
+              aria-label={
+                whatsappAvailable
+                  ? "Send invoice via WhatsApp"
+                  : "Send via WhatsApp (currently unavailable)"
+              }
+              className="h-7 px-3 font-mono text-2xs uppercase tracking-wider border-accent-success/40 text-accent-success hover:bg-accent-success/10 hover:text-accent-success disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-accent-success"
             >
               <RiWhatsappLine className="h-3.5 w-3.5 mr-1.5" /> Send via WhatsApp
             </Button>
