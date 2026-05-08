@@ -35,6 +35,8 @@ import {
   RiContrastLine,
   RiKey2Line,
   RiTimeLine,
+  RiCheckLine,
+  RiKeyboardLine,
 } from "@workspace/ui/icons"
 
 const RiPlay = RiTimeLine
@@ -110,47 +112,55 @@ export function SettingsClient() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Profile */}
+        {/* Profile — 2-column on lg+ : form on the left, summary widgets on the right */}
         <TabsContent value="profile" className="pt-4">
-          <div className="tac-fui-panel space-y-4 bg-card p-5">
-            <p className="border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Profile
-            </p>
-            <Field label="Email">
-              <ReadOnly value={session?.user?.email ?? "—"} />
-            </Field>
-            <Field label="Display name">
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="h-9 font-mono text-sm uppercase"
-              />
-            </Field>
-            <Field label="Hub code">
-              <Input
-                value={hubCode}
-                onChange={(e) => setHubCode(e.target.value.toUpperCase())}
-                placeholder="e.g. IMPHAL"
-                className="h-9 font-mono text-sm uppercase"
-              />
-            </Field>
-            <div className="flex items-center justify-between pt-1">
-              {saved && (
-                <p className="font-mono text-xs text-primary">Saved.</p>
-              )}
-              <div className="ml-auto">
-                <Button
-                  onClick={handleSave}
-                  disabled={updateProfile.isPending}
-                  className="h-8 px-5 font-mono text-xs uppercase tracking-wider"
-                >
-                  {updateProfile.isPending ? "Saving…" : "Save changes"}
-                </Button>
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
+              <div className="tac-fui-panel space-y-4 bg-card p-5">
+                <p className="border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Profile
+                </p>
+                <Field label="Email">
+                  <ReadOnly value={session?.user?.email ?? "—"} />
+                </Field>
+                <Field label="Display name">
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-9 font-mono text-sm uppercase"
+                  />
+                </Field>
+                <Field label="Hub code">
+                  <Input
+                    value={hubCode}
+                    onChange={(e) => setHubCode(e.target.value.toUpperCase())}
+                    placeholder="e.g. IMPHAL"
+                    className="h-9 font-mono text-sm uppercase"
+                  />
+                </Field>
+                <div className="flex items-center justify-between pt-1">
+                  {saved && (
+                    <p className="font-mono text-xs text-primary">Saved.</p>
+                  )}
+                  <div className="ml-auto">
+                    <Button
+                      onClick={handleSave}
+                      disabled={updateProfile.isPending}
+                      className="h-8 px-5 font-mono text-xs uppercase tracking-wider"
+                    >
+                      {updateProfile.isPending ? "Saving…" : "Save changes"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <SystemInfoCard className="mt-6" />
+            <aside className="space-y-6">
+              <ProfileCompletionCard name={name} hubCode={hubCode} />
+              <ShortcutsCard />
+              <SystemInfoCard />
+            </aside>
+          </div>
         </TabsContent>
 
         {/* Security */}
@@ -395,6 +405,121 @@ function SystemInfoCard({ className }: { className?: string }) {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Profile completion meter — a small dose of "you're 50% done" to
+ * encourage operators to fill in optional fields. The two tracked fields
+ * (display name + hub code) are the ones that improve UX downstream:
+ * display name shows in audit logs and notifications; hub code unlocks
+ * default routing for create-shipment pickers.
+ */
+function ProfileCompletionCard({ name, hubCode }: { name: string; hubCode: string }) {
+  const tracked = [
+    { label: "Display name", filled: Boolean(name.trim()) },
+    { label: "Hub code", filled: Boolean(hubCode.trim()) },
+  ]
+  const filled = tracked.filter((f) => f.filled).length
+  const total = tracked.length
+  const percent = Math.round((filled / total) * 100)
+  const missing = tracked.filter((f) => !f.filled)
+
+  return (
+    <div className="tac-fui-panel space-y-3 bg-card p-5">
+      <p className="border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        Profile completion
+      </p>
+
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between">
+          <span className="font-mono text-3xl font-light tabular-nums text-foreground">
+            {percent}
+            <span className="ml-0.5 text-base text-muted-foreground">%</span>
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            {missing.length === 0 ? "Complete" : `${missing.length} pending`}
+          </span>
+        </div>
+
+        <div
+          className="h-1 w-full bg-muted"
+          role="progressbar"
+          aria-valuenow={percent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Profile completion"
+        >
+          <div
+            className="h-full bg-primary transition-all duration-[var(--duration-base)]"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+      </div>
+
+      <ul className="space-y-1.5 pt-1">
+        {tracked.map((f) => (
+          <li
+            key={f.label}
+            className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest"
+          >
+            {f.filled ? (
+              <RiCheckLine className="size-3 shrink-0 text-primary" aria-hidden="true" />
+            ) : (
+              <span
+                className="inline-block size-1.5 shrink-0 bg-muted-foreground"
+                aria-hidden="true"
+              />
+            )}
+            <span className={f.filled ? "text-foreground" : "text-muted-foreground"}>
+              {f.label}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/**
+ * Keyboard shortcuts cheatsheet — surfaces the dashboard's chord-like
+ * navigation so operators discover them without reading docs. Listed
+ * shortcuts are wired in the CommandPalette + sidebar today.
+ */
+function ShortcutsCard() {
+  const shortcuts: { label: string; keys: string[] }[] = [
+    { label: "Open search", keys: ["⌘", "K"] },
+    { label: "Toggle theme", keys: ["⌘", "⇧", "L"] },
+    { label: "Notifications", keys: ["⌘", "⇧", "N"] },
+    { label: "Sign out", keys: ["⌘", "⇧", "Q"] },
+  ]
+
+  return (
+    <div className="tac-fui-panel space-y-3 bg-card p-5">
+      <p className="flex items-center gap-2 border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <RiKeyboardLine className="size-3.5" aria-hidden="true" />
+        Keyboard shortcuts
+      </p>
+      <ul className="space-y-1.5">
+        {shortcuts.map((s) => (
+          <li key={s.label} className="flex items-center justify-between gap-3 py-0.5">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-foreground">
+              {s.label}
+            </span>
+            <span className="flex items-center gap-1">
+              {s.keys.map((k, i) => (
+                <kbd
+                  key={i}
+                  className="inline-flex h-5 min-w-5 items-center justify-center border border-border bg-background px-1 font-mono text-2xs leading-none text-muted-foreground"
+                >
+                  {k}
+                </kbd>
+              ))}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
