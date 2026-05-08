@@ -205,14 +205,14 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
         {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
         {/* GRAY HEADER ZONE — compact to fit A4 in one page */}
         {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-        <div className="relative bg-muted/40 print:bg-zinc-100 px-8 pt-5 pb-4">
+        <div className="relative bg-muted/40 print:bg-print-surface-muted px-8 pt-5 pb-4">
           {/* Vertical brand strip on far left */}
           <div
             aria-hidden="true"
             className="absolute left-2.5 top-0 bottom-0 flex items-center"
           >
             <span
-              className="font-sans font-bold text-pdf-13 tracking-pdf-emboss uppercase text-primary print:text-violet-600 leading-none whitespace-nowrap"
+              className="font-sans font-bold text-pdf-13 tracking-pdf-emboss uppercase text-primary print:text-print-accent leading-none whitespace-nowrap"
               style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
             >
               {company.name.split(" ")[0] ?? "TAC"}&nbsp;Express
@@ -240,7 +240,7 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
               </p>
             </div>
 
-            <p className="font-sans font-light text-2xl leading-none text-primary print:text-violet-600 tracking-tight shrink-0">
+            <p className="font-sans font-light text-2xl leading-none text-primary print:text-print-accent tracking-tight shrink-0">
               Invoice
             </p>
           </div>
@@ -296,7 +296,7 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
           {/* Vertical violet accent bar on left edge of the body */}
           <div
             aria-hidden="true"
-            className="absolute left-2.5 top-5 bottom-6 w-pdf-rule bg-primary print:bg-violet-600"
+            className="absolute left-2.5 top-5 bottom-6 w-pdf-rule bg-primary print:bg-print-accent"
           />
 
           <div className="pl-5">
@@ -411,7 +411,7 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
                 <span className="font-sans font-bold text-xs text-foreground">
                   Balance due:
                 </span>
-                <span className="font-mono font-bold text-pdf-15 tabular-nums text-primary print:text-violet-600">
+                <span className="font-mono font-bold text-pdf-15 tabular-nums text-primary print:text-print-accent">
                   {formatINR(balanceDue)}
                 </span>
               </div>
@@ -419,7 +419,7 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
                 <span className="font-sans font-bold text-xs text-foreground">
                   Due date:
                 </span>
-                <span className="font-mono font-bold text-pdf-13 tabular-nums text-primary print:text-violet-600">
+                <span className="font-mono font-bold text-pdf-13 tabular-nums text-primary print:text-print-accent">
                   {data.dueDate
                     ? formatDateShort(data.dueDate)
                     : formatDateShort(
@@ -444,7 +444,7 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
                 <p className="font-sans font-bold text-2xs uppercase tracking-pdf-label text-foreground">
                   Bank information:
                 </p>
-                <div className="font-mono text-pdf-10p5 leading-tight text-primary print:text-violet-600 space-y-0 pt-0.5">
+                <div className="font-mono text-pdf-10p5 leading-tight text-primary print:text-print-accent space-y-0 pt-0.5">
                   <p>
                     <span className="font-bold">IBAN:</span> {COMPANY_DEFAULTS.bank.iban}
                   </p>

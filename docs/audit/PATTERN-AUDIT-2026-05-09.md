@@ -54,16 +54,16 @@ Reproducible greps run against the entire repo TS/TSX surface. Date-stamp the re
 
 ```bash
 # LAW 1 — color literals in arbitrary syntax (expect 0)
-rg -t tsx -t ts -c '-\[(#[0-9a-fA-F]{3,8}|rgb|rgba|hsl|hsla|oklch)\(?'
+rg -t ts -c '-\[(#[0-9a-fA-F]{3,8}|rgb|rgba|hsl|hsla|oklch)\(?'
 
 # LAW 10 — Tailwind palette classes (expect 0)
-rg -t tsx -t ts -c '(bg|text|border|ring|fill|stroke|outline|decoration|placeholder|caret|accent|from|via|to)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(50|100|200|300|400|500|600|700|800|900|950)'
+rg -t ts -c '(bg|text|border|ring|fill|stroke|outline|decoration|placeholder|caret|accent|from|via|to)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(50|100|200|300|400|500|600|700|800|900|950)'
 
 # LAW 11 — literal-unit arbitrary values
-rg -t tsx -t ts -c '-\[\d+(\.\d+)?(px|rem|em|vh|vw|fr|%|ms|deg)\]'
+rg -t ts -c '-\[\d+(\.\d+)?(px|rem|em|vh|vw|fr|%|ms|deg)\]'
 
 # LAW 11 — legitimate var(--*) refs (subtract from above for the real-violation count)
-rg -t tsx -t ts -c '-\[var\(--'
+rg -t ts -c '-\[var\(--'
 ```
 
 ---

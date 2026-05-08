@@ -396,6 +396,8 @@
   --color-print-bg: var(--print-bg);
   --color-print-fg: var(--print-fg);
   --color-print-border: var(--print-border);
+  --color-print-accent: var(--print-accent);
+  --color-print-surface-muted: var(--print-surface-muted);
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
@@ -427,6 +429,8 @@
   --print-bg: #ffffff;        /* paper white — never themed */
   --print-fg: #000000;        /* ink black — never themed */
   --print-border: #000000;    /* solid black border for print rules */
+  --print-accent: #7c3aed;    /* violet-600 equivalent — invoice/manifest accent on paper */
+  --print-surface-muted: #f4f4f5; /* zinc-100 equivalent — invoice header gray surface */
 
   /* Named print widths matching common thermal/laser label stocks.
      Components reference these as `max-w-label-4in`, `w-label-a6`. */
@@ -1011,6 +1015,14 @@
   to { transform: translateY(calc(-100% - var(--gap))); }
 }
 
+/* Skeleton-pulse — used by route-level loading.tsx skeletons. Custom keyframes
+   per LAW 3 (animations via motion/react, tw-animate-css, OR @keyframes in
+   globals.css). Mirrors the cadence of Tailwind's built-in animate-pulse but
+   keeps the animation name within the project's design system. */
+@keyframes skeleton-pulse {
+  50% { opacity: 0.5; }
+}
+
 @layer utilities {
   .animate-marquee-x {
     animation: marquee-x var(--duration) linear infinite;
@@ -1018,6 +1030,16 @@
 
   .animate-marquee-y {
     animation: marquee-y var(--duration) linear infinite;
+  }
+
+  .animate-skeleton-pulse {
+    animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-skeleton-pulse {
+      animation: none;
+    }
   }
 
   .animate-reverse {

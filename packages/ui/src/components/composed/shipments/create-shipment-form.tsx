@@ -160,7 +160,7 @@ function CreateShipmentForm({ onSubmit, isLoading, className }: CreateShipmentFo
 
   async function handleNext() {
     if (isLastStep) {
-      handleSubmit(onSubmit)()
+      await handleSubmit(onSubmit)()
       return
     }
     const valid = await trigger(stepFields[step] as (keyof CreateShipmentInput)[])
@@ -180,7 +180,7 @@ function CreateShipmentForm({ onSubmit, isLoading, className }: CreateShipmentFo
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          handleNext()
+          void handleNext()
         }}
       >
         {/* Step 0 — Sender */}

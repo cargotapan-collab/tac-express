@@ -156,7 +156,7 @@ export function CustomerForm({
 
   const handleNext = async () => {
     if (isLastStep) {
-      handleSubmit(onSubmit)()
+      await handleSubmit(onSubmit)()
       return
     }
     const valid = await trigger(currentStep.fields, { shouldFocus: true })
