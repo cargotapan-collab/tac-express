@@ -434,6 +434,39 @@
   --spacing-label-a6: 148mm;      /* A6 standard label width */
   --spacing-label-preview: 26.25rem; /* 420px — screen-preview width */
 
+  /* ── Tax-invoice / PDF typography scale (LAW 11) ──
+     Sizes hand-tuned for one-page A4 fit on composed/finance/invoice-
+     print-view.tsx. Each step encodes a distinct visual role in the
+     document hierarchy (fine-print → body → label → name → headline).
+     Reuse aggressively before adding a new step.
+
+     Existing reuses (no new token needed):
+       9px → text-3xs · 10px → text-2xs · 12px → text-xs · 24px → text-2xl
+  */
+  --text-pdf-7p5: 0.469rem;   /* 7.5px — terms fine-print body            */
+  --text-pdf-8p5: 0.531rem;   /* 8.5px — "computer-generated" stamp       */
+  --text-pdf-10p5: 0.656rem;  /* 10.5px — body mono (tel/email/address)  */
+  --text-pdf-11: 0.6875rem;   /* 11px — company address line              */
+  --text-pdf-11p5: 0.719rem;  /* 11.5px — service-table header / cells    */
+  --text-pdf-13: 0.8125rem;   /* 13px — company name / due-date value     */
+  --text-pdf-15: 0.9375rem;   /* 15px — balance-due value                 */
+  --text-pdf-17: 1.0625rem;   /* 17px — customer name (bill-to block)     */
+  --text-pdf-19: 1.1875rem;   /* 19px — invoice-number value              */
+
+  /* Letter-spacing scale for invoice/PDF surfaces. The Tailwind defaults
+     (tracking-wide 0.025em, wider 0.05em, widest 0.1em) jump too coarsely
+     for dense print-typography where 0.04 / 0.16 / 0.18 / 0.20 / 0.22em
+     differences carry intentional visual weight. */
+  --tracking-pdf-label: 0.04em;   /* section labels: "Bill to:" / "Notes:" */
+  --tracking-pdf-awb: 0.16em;     /* AWB number text                       */
+  --tracking-pdf-tag: 0.18em;     /* "Tracking" / meta tag                 */
+  --tracking-pdf-emboss: 0.2em;   /* vertical brand strip / "computer-gen" */
+  --tracking-pdf-terms: 0.22em;   /* "Terms & Conditions" heading          */
+
+  /* PDF-specific dimensions */
+  --spacing-pdf-rule: 0.1875rem;   /* 3px — vertical violet accent bar */
+  --spacing-pdf-signature: 14rem;  /* signature-line max-width         */
+
   --radius-sm: var(--radius);
   --radius-md: var(--radius);
   --radius-lg: var(--radius);
