@@ -49,6 +49,9 @@
         "./rate-card.service": "./src/rate-card.service.ts",
         "./public-tracking.service": "./src/public-tracking.service.ts",
         "./whatsapp.service": "./src/whatsapp.service.ts",
+        "./pdf/invoice-pdf": "./src/pdf/invoice-pdf.tsx",
+        "./pdf/invoice-pdf-token": "./src/pdf/invoice-pdf-token.ts",
+        "./pdf/qr": "./src/pdf/qr.ts",
         "./server": "./src/server.ts"
     }
 }

@@ -27,7 +27,13 @@
                                            "NEXT_PUBLIC_SENTRY_DSN",
                                            "NEXT_PUBLIC_SENTRY_ENV",
                                            "UPSTASH_REDIS_REST_URL",
-                                           "UPSTASH_REDIS_REST_TOKEN"
+                                           "UPSTASH_REDIS_REST_TOKEN",
+                                           "WPBOX_API_TOKEN",
+                                           "WPBOX_USER_ID",
+                                           "WPBOX_BASE_URL",
+                                           "WHATSAPP_ENABLED",
+                                           "INVOICE_PDF_SIGNING_SECRET",
+                                           "NEXT_PUBLIC_DASHBOARD_URL"
                                        ]
                            },
                   "format":  {

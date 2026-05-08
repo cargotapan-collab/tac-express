@@ -44,6 +44,61 @@ export interface SendTemplateInput {
   components?: WhatsAppTemplateComponent[]
 }
 
+/**
+ * Header media component used by templates whose HEADER is an image,
+ * video, or document. WhatsApp fetches `link` server-side, so it MUST
+ * be publicly resolvable (no Bearer/cookie auth on the URL itself).
+ */
+export type WhatsAppHeaderMedia =
+  | { kind: "document"; link: string; filename?: string }
+  | { kind: "image"; link: string }
+  | { kind: "video"; link: string }
+
+/**
+ * Build a HEADER component for `sendtemplatemessage`. Output matches the
+ * WPBox docs:
+ *
+ *   { type: "HEADER", parameters: [{ type: "document", document: { link, filename } }] }
+ */
+export function buildHeaderMediaComponent(
+  media: WhatsAppHeaderMedia
+): WhatsAppTemplateComponent {
+  if (media.kind === "document") {
+    return {
+      type: "HEADER",
+      // The WPBox JSON shape uses dynamic keys keyed by media kind, so
+      // we cast the parameter object once rather than fight the typed
+      // shape (which only models the BODY-text variant).
+      parameters: [
+        {
+          type: "document",
+          document: { link: media.link, ...(media.filename ? { filename: media.filename } : {}) },
+        } as unknown as { type: "text"; text: string },
+      ],
+    }
+  }
+  if (media.kind === "image") {
+    return {
+      type: "HEADER",
+      parameters: [
+        { type: "image", image: { link: media.link } } as unknown as {
+          type: "text"
+          text: string
+        },
+      ],
+    }
+  }
+  return {
+    type: "HEADER",
+    parameters: [
+      { type: "video", video: { link: media.link } } as unknown as {
+        type: "text"
+        text: string
+      },
+    ],
+  }
+}
+
 export interface MakeContactInput {
   phone: string
   name: string
@@ -217,7 +272,34 @@ export function createWhatsAppService(config: WhatsAppConfig): WhatsAppService {
       }
     }
 
-    /* ── Application-level failure (HTTP 200 + error body) ── */
+    /* ── Application-level failure (HTTP 200 + error body) ──
+     *
+     * Two failure shapes WPBox emits with HTTP 200:
+     *
+     *  1. `{ status: "error", message: "..." }` — explicit error envelope.
+     *  2. `{ status: "success", message_id: N, message_wamid: null }` —
+     *     **silent rejection**. WPBox accepted our request but WhatsApp
+     *     itself refused to send (template requires HEADER but we sent
+     *     BODY only, template not approved, recipient blocked, etc.).
+     *     The null WAMID is the actual signal of failure for any send
+     *     path (`/sendmessage` or `/sendtemplatemessage`). Treat as
+     *     failure on those endpoints.
+     */
+    const isSendEndpoint = path.includes("sendmessage") || path.includes("sendtemplatemessage")
+    if (isSendEndpoint && data && typeof data === "object") {
+      const obj = data as Record<string, unknown>
+      // null literal — JSON.parse leaves this as JS `null`
+      if (Object.prototype.hasOwnProperty.call(obj, "message_wamid") && obj.message_wamid === null) {
+        return {
+          ok: false,
+          error:
+            "WhatsApp rejected the message (message_wamid: null). The template likely requires a HEADER component, the recipient isn't reachable, or the template is unapproved.",
+          status: res.status,
+          rawResponse: text.slice(0, 1000),
+        }
+      }
+    }
+
     if (data && typeof data === "object") {
       const obj = data as Record<string, unknown>
       const isErrorStatus =

@@ -160,6 +160,9 @@ export function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientProps) {
         templateName: values.templateName,
         templateLanguage: values.templateLanguage,
         templateParams: values.templateParams,
+        templateMediaUrl: values.templateMediaUrl,
+        templateMediaFilename: values.templateMediaFilename,
+        templateMediaKind: values.templateMediaKind,
       })
 
       // Direct mode: be honest about WhatsApp's 24h policy. The API

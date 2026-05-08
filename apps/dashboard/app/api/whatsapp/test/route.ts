@@ -1,11 +1,6 @@
-import { cookies } from "next/headers"
-import { NextResponse } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 
-import { getServerAuth } from "@workspace/auth/server"
-import { isManagerOrAbove } from "@workspace/auth/rbac"
-import { UserRole } from "@workspace/types"
 import { createWhatsAppServiceFromEnv } from "@workspace/services/whatsapp.service"
-import { checkWhatsApp } from "@/lib/rate-limit"
 
 /**
  * GET /api/whatsapp/test
@@ -13,20 +8,11 @@ import { checkWhatsApp } from "@/lib/rate-limit"
  * Verifies the WPBox configuration AND fetches the list of approved
  * templates the user can pick from when sending invoices.
  *
- * The dialog uses this to:
- *   - Show a status pill BEFORE the user clicks Send
- *   - Populate the template dropdown when "Send as template" is selected
- *
- * Auth:
- *   - Requires authenticated user
- *   - Role: MANAGER or above (template catalog reveals operational metadata)
- *
- * Response shape:
- *   { ok, configured, connected, error?, templates? }
- *
- * `templates` is an array of `{ name, language, status?, body? }` objects
- * — best-effort extraction since WPBox's getTemplates response shape isn't
- * fully documented. We pass through whatever is recognizably present.
+ * Returns each template's `name`, `language`, `status`, `body`, and —
+ * critically — `headerFormat` (DOCUMENT / IMAGE / VIDEO / undefined).
+ * The dialog uses `headerFormat` to decide whether to require a media
+ * URL field. Sending a template with HEADER but omitting the media
+ * causes WhatsApp to silently reject the message (returns null WAMID).
  */
 export const dynamic = "force-dynamic"
 
@@ -35,62 +21,25 @@ interface TemplateSummary {
   language: string
   status?: string
   body?: string
+  /** "DOCUMENT" | "IMAGE" | "VIDEO" | "TEXT" | undefined */
+  headerFormat?: string
 }
 
-export async function GET() {
-  /* ── 0. Server-side kill switch (matches /send-invoice). ───────────
-   * Set `WHATSAPP_ENABLED=true` to permit calls. Any other value returns
-   * 503 immediately. The dialog reads the 503 status and surfaces a
-   * "WhatsApp disabled" pill so users don't try to send. Tracked: #12. */
-  if (process.env.WHATSAPP_ENABLED !== "true") {
-    return NextResponse.json(
-      {
-        ok: false,
-        configured: false,
-        connected: false,
-        error: "WhatsApp sending is disabled. Set WHATSAPP_ENABLED=true to enable.",
-      },
-      { status: 503 },
-    )
-  }
-
-  /* ── 1. Authn + Authz ── */
-  const cookieStore = await cookies()
-  const auth = getServerAuth(cookieStore)
-  const user = await auth.getUser().catch(() => null)
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-  const role =
-    (user.user_metadata?.role as UserRole | undefined) ??
-    (user.app_metadata?.role as UserRole | undefined)
-  if (!role || !isManagerOrAbove(role)) {
-    return NextResponse.json(
-      { error: "Insufficient permissions. Requires MANAGER or above." },
-      { status: 403 },
-    )
-  }
-
-  /* ── 0a. Per-user rate limit (shares the WhatsApp bucket with /send-invoice) ── */
-  const rl = await checkWhatsApp(`user:${user.id}`)
-  if (!rl.success) {
-    return NextResponse.json(
-      {
-        error: "Too many requests. Try again in a minute.",
-        limit: rl.limit,
-        remaining: rl.remaining,
-        reset: rl.reset,
-      },
-      {
-        status: 429,
-        headers: {
-          "X-RateLimit-Limit": String(rl.limit),
-          "X-RateLimit-Remaining": String(rl.remaining),
-          "X-RateLimit-Reset": String(rl.reset),
-        },
-      },
-    )
-  }
+export async function GET(req: NextRequest) {
+  /* ── 0. PDF auto-gen availability ──
+   *
+   * The dialog uses this flag to hide the manual "Document URL" field
+   * when the server can produce signed `/api/public/invoice-pdf` URLs
+   * itself. Two preconditions:
+   *   - `INVOICE_PDF_SIGNING_SECRET` is set (server can HMAC-sign).
+   *   - The dashboard origin is publicly reachable (WhatsApp can fetch it).
+   *
+   * `localhost` / `127.0.0.1` resolve to "no" because Meta's servers
+   * can't reach the dev machine. Tunneling tools (ngrok, Cloudflare
+   * Tunnel) flip this to true once `NEXT_PUBLIC_DASHBOARD_URL` is set
+   * to the tunneled origin.
+   */
+  const pdfAutoGenAvailable = checkPdfAutoGenAvailable(req)
 
   /* ── 1. Config check ── */
   let svc
@@ -101,6 +50,7 @@ export async function GET() {
       ok: false,
       configured: false,
       connected: false,
+      pdfAutoGenAvailable,
       error: err instanceof Error ? err.message : String(err),
     })
   }
@@ -112,6 +62,7 @@ export async function GET() {
       ok: false,
       configured: true,
       connected: false,
+      pdfAutoGenAvailable,
       error: result.error,
       rawResponse: result.rawResponse,
       status: result.status,
@@ -128,8 +79,33 @@ export async function GET() {
     ok: true,
     configured: true,
     connected: true,
+    pdfAutoGenAvailable,
     templates,
   })
+}
+
+/**
+ * Returns true when the server is able to mint a signed PDF URL that
+ * WhatsApp can reach. Two preconditions:
+ *   1. `INVOICE_PDF_SIGNING_SECRET` is set (HMAC signing works).
+ *   2. The resolved public origin is not `localhost` / `127.0.0.1`.
+ *
+ * Mirrors the logic in `apps/dashboard/app/api/whatsapp/send-invoice/route.ts`'s
+ * `resolvePublicOrigin` so the dialog's "URL needed?" gate matches the
+ * server's "auto-inject?" decision exactly.
+ */
+function checkPdfAutoGenAvailable(req: NextRequest): boolean {
+  if (!process.env.INVOICE_PDF_SIGNING_SECRET) return false
+
+  const explicit = process.env.NEXT_PUBLIC_DASHBOARD_URL?.trim()
+  if (explicit) {
+    return !/localhost|127\.0\.0\.1/.test(explicit)
+  }
+
+  const host =
+    req.headers.get("x-forwarded-host") ?? req.headers.get("host")
+  if (!host) return false
+  return !/localhost|127\.0\.0\.1/.test(host)
 }
 
 /* ════════════════════════════════════════════════════════════════════════ */
@@ -147,10 +123,23 @@ function extractTemplatesArray(data: unknown): unknown[] {
   return []
 }
 
+interface TemplateComponentLike {
+  type?: unknown
+  format?: unknown
+  text?: unknown
+  body?: unknown
+  content?: unknown
+}
+
 /**
  * Normalize a single template entry to the lean shape the dialog needs.
- * Different WhatsApp tooling uses slightly different keys; we look for
- * any of the common ones.
+ *
+ * WPBox returns `components` as a JSON STRING (escaped JSON). We unwrap
+ * it once before walking, then look for:
+ *   - HEADER component → expose its `format` so the dialog can decide
+ *     whether to require a media URL
+ *   - BODY component → expose its `text` so the dialog can count `{{N}}`
+ *     placeholders for parameter prefilling
  */
 function normalizeTemplate(t: unknown): TemplateSummary | null {
   if (!t || typeof t !== "object") return null
@@ -163,23 +152,41 @@ function normalizeTemplate(t: unknown): TemplateSummary | null {
     pickString(obj, ["language", "template_language", "lang", "locale"]) ?? "en"
   const status = pickString(obj, ["status", "template_status"])
 
-  /* Body extraction — some APIs flatten the body into `body_text`; others
-   * nest it inside a `components` array (as the docs example shows).      */
-  let body: string | undefined = pickString(obj, ["body", "body_text", "text", "content"])
-  if (!body && Array.isArray(obj.components)) {
-    const bodyComp = obj.components.find(
-      (c) =>
-        c &&
-        typeof c === "object" &&
-        ((c as Record<string, unknown>).type === "BODY" ||
-          (c as Record<string, unknown>).type === "body")
-    ) as Record<string, unknown> | undefined
-    if (bodyComp) {
-      body = pickString(bodyComp, ["text", "body", "content"]) ?? undefined
+  // First: try the flat top-level shapes some APIs use.
+  let body = pickString(obj, ["body", "body_text", "text", "content"])
+  let headerFormat: string | undefined
+
+  // Then: parse `components`. WPBox returns this as either an array or a
+  // JSON-encoded string, so handle both.
+  const componentsField = obj.components
+  let components: TemplateComponentLike[] = []
+  if (Array.isArray(componentsField)) {
+    components = componentsField as TemplateComponentLike[]
+  } else if (typeof componentsField === "string") {
+    try {
+      const parsed = JSON.parse(componentsField)
+      if (Array.isArray(parsed)) components = parsed as TemplateComponentLike[]
+    } catch {
+      /* malformed JSON — skip */
     }
   }
 
-  return { name, language, status, body }
+  for (const c of components) {
+    if (!c || typeof c !== "object") continue
+    const cType = String(c.type ?? "").toUpperCase()
+    if (cType === "HEADER") {
+      const fmt = c.format
+      if (typeof fmt === "string" && fmt.length > 0) {
+        headerFormat = fmt.toUpperCase()
+      }
+    }
+    if (cType === "BODY" && !body) {
+      const t = c.text ?? c.body ?? c.content
+      if (typeof t === "string" && t.length > 0) body = t
+    }
+  }
+
+  return { name, language, status, body, headerFormat }
 }
 
 function pickString(

@@ -6,14 +6,18 @@ import { getServerAuth } from "@workspace/auth/server"
 import { isAdminOrAbove, isManagerOrAbove } from "@workspace/auth/rbac"
 import { UserRole } from "@workspace/types"
 import {
+  createAdminServerService,
   createCustomerServerService,
   createInvoiceServerService,
 } from "@workspace/services/server"
 import {
   createWhatsAppServiceFromEnv,
   normalizePhone,
+  buildHeaderMediaComponent,
   type WhatsAppTemplateComponent,
 } from "@workspace/services/whatsapp.service"
+import { buildSignedInvoicePdfUrl } from "@workspace/services/pdf/invoice-pdf-token"
+import type { InvoicePdfData } from "@workspace/services/pdf/invoice-pdf"
 import { checkWhatsApp } from "@/lib/rate-limit"
 
 /**
@@ -83,16 +87,40 @@ const TemplateModeSchema = BaseBodySchema.extend({
     .string()
     .min(1, "templateLanguage is required for template mode"),
   templateParams: z.array(TemplateParamSchema).max(20).optional(),
+  /**
+   * Public URL of the document (PDF) to attach to the template's HEADER
+   * component. Required for templates whose HEADER format is DOCUMENT,
+   * IMAGE, or VIDEO. WhatsApp fetches this URL server-side, so it must
+   * be publicly resolvable (no auth, no localhost).
+   */
+  templateMediaUrl: z.string().url().max(2048).optional(),
+  /** Display filename for the document attachment (HEADER format=DOCUMENT). */
+  templateMediaFilename: z.string().max(200).optional(),
+  /** Override the default header media kind. Defaults to "document". */
+  templateMediaKind: z.enum(["document", "image", "video"]).optional(),
 })
 
 const RequestBodySchema = z.union([DirectModeSchema, TemplateModeSchema])
 
 interface InvoiceLike {
   invoiceNumber: string
+  status: string
+  createdAt: string
   customerName: string
   customerId?: string | null
+  customerGstin?: string | null
   awbNumber?: string | null
+  baseFreight: number
+  docketCharge: number
+  pickupCharge?: number | null
+  packingCharge?: number | null
+  fuelSurcharge: number
+  handlingFee: number
+  insurance: number
+  discount: number
+  tax: { cgst: number; sgst: number; igst: number; total: number }
   totalAmount: number
+  advancePaid: number
   balance: number
   dueDate?: string | null
   notes?: string | null
@@ -129,10 +157,21 @@ export async function POST(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
-  // user_metadata.role is the canonical place for role per existing usage.
-  const role =
-    (user.user_metadata?.role as UserRole | undefined) ??
-    (user.app_metadata?.role as UserRole | undefined)
+  /**
+   * Role lives on the `public.profiles` row mirrored against each signed-in
+   * user — single source of truth across the whole codebase. The dashboard's
+   * `useRBAC()` hook (packages/ui/src/hooks/use-rbac.ts:67) and the
+   * admin/staff list (packages/services/src/admin.service.ts:32) both read
+   * from there. RLS lets a user read their own row.
+   *
+   * NOT `user.user_metadata?.role` / `user.app_metadata?.role` — those are
+   * unused for auth in this codebase. An earlier version of this route read
+   * from metadata, which produced a 403 for every operator (because nobody's
+   * metadata had ever been populated).
+   */
+  const adminService = createAdminServerService(cookieStore)
+  const profile = await adminService.getProfileById(user.id).catch(() => null)
+  const role = profile?.role as UserRole | undefined
   if (!role || !isManagerOrAbove(role)) {
     return NextResponse.json(
       {
@@ -223,14 +262,31 @@ export async function POST(req: NextRequest) {
 
   const expectedRawPhones: string[] = []
   if (customer?.phone) expectedRawPhones.push(customer.phone)
-  const notesPhone = extractPhoneFromInvoice(invoice)
-  if (notesPhone) expectedRawPhones.push(notesPhone)
+  const notesPhones = extractPhonesFromInvoice(invoice) // [consignor?, consignee?]
+  for (const p of notesPhones) expectedRawPhones.push(p)
 
   const expectedNormalised = new Set(
     expectedRawPhones
       .map((p) => normalizePhone(p))
       .filter((p): p is string => Boolean(p)),
   )
+
+  /**
+   * **Duplicate-phone shortcut.** When the consignor and consignee are
+   * recorded with the same phone (a common case — same operator on both
+   * legs, family-run businesses, point-to-point B2B routes), there's only
+   * one possible destination. Treat it as a high-confidence single
+   * recipient — no confirmation prompt, no override required even if the
+   * caller omits `body.phone`. The trust bound is unchanged (still a
+   * MANAGER-authored invoice), but the ambiguity that would normally
+   * warrant a UI confirm step doesn't exist.
+   */
+  const consignorPhone = notesPhones[0] ? normalizePhone(notesPhones[0]) : null
+  const consigneePhone = notesPhones[1] ? normalizePhone(notesPhones[1]) : null
+  const isDuplicateContact =
+    consignorPhone !== null &&
+    consigneePhone !== null &&
+    consignorPhone === consigneePhone
 
   /* ─── 3b. Resolve phone — explicit body.phone (with IDOR guard) > customer > notes ─── */
   let rawPhone: string | null = null
@@ -275,10 +331,16 @@ export async function POST(req: NextRequest) {
       rawPhone = parsed.phone
       usingOverride = true
     }
+  } else if (isDuplicateContact && notesPhones[0]) {
+    // Consignor === consignee — unambiguous destination. Fast-path skips
+    // any UI-side confirmation gate.
+    rawPhone = notesPhones[0]
   } else if (customer?.phone) {
     rawPhone = customer.phone
-  } else if (notesPhone) {
-    rawPhone = notesPhone
+  } else if (notesPhones[0]) {
+    rawPhone = notesPhones[0]
+  } else if (notesPhones[1]) {
+    rawPhone = notesPhones[1]
   }
 
   if (!rawPhone) {
@@ -311,11 +373,62 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  /* ─── 5. Dispatch — direct or template ─── */
+  /* ─── 5. Auto-generate signed PDF URL when template mode + no media URL ───
+   *
+   * If the caller is sending a template and didn't supply a
+   * `templateMediaUrl`, build one ourselves: render the invoice as a PDF
+   * via `/api/public/invoice-pdf` and pass that signed URL through to
+   * WhatsApp. This is the production path for templates whose HEADER is
+   * `DOCUMENT` — the dashboard owns the PDF generation rather than
+   * asking the operator to host the file somewhere else.
+   *
+   * Skipped silently if the signing secret isn't configured — the
+   * dialog's manual URL field still works as a fallback.                */
+  let resolvedMediaUrl = parsed.mode === "template" ? parsed.templateMediaUrl : undefined
+  let resolvedMediaFilename = parsed.mode === "template" ? parsed.templateMediaFilename : undefined
+  let resolvedMediaKind = parsed.mode === "template" ? parsed.templateMediaKind : undefined
+
+  if (parsed.mode === "template" && !resolvedMediaUrl) {
+    const origin = resolvePublicOrigin(req)
+    if (origin && process.env.INVOICE_PDF_SIGNING_SECRET) {
+      try {
+        // Tracking URL — encoded in the QR rendered inside the PDF.
+        // Falls back to the dashboard origin alone when there's no AWB
+        // (the public /track/[awb] page handles the bare-origin case).
+        const trackingUrl = invoice.awbNumber
+          ? `${origin}/track/${encodeURIComponent(invoice.awbNumber)}`
+          : `${origin}/track`
+
+        const pdfData = {
+          ...buildPdfData(invoice, customer),
+          trackingUrl,
+        }
+        resolvedMediaUrl = buildSignedInvoicePdfUrl({ origin, data: pdfData })
+        resolvedMediaKind = "document"
+        resolvedMediaFilename = `TAC-Invoice-${invoice.invoiceNumber}.pdf`
+        if (process.env.NODE_ENV !== "production") {
+          console.log(
+            `[whatsapp] auto-generated signed PDF URL for ${invoice.invoiceNumber} ` +
+              `(${resolvedMediaUrl.length} chars, tracking ${trackingUrl})`,
+          )
+        }
+      } catch (err) {
+        console.warn(
+          `[whatsapp] could not auto-generate signed PDF URL: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        )
+      }
+    }
+  }
+
+  /* ─── 6. Dispatch — direct or template ─── */
   if (process.env.NODE_ENV !== "production") {
     console.log(
       `[whatsapp] sending invoice ${invoice.invoiceNumber} → ${phone} ` +
-        `(mode=${mode}, by=${user.id}${usingOverride ? ", OVERRIDE_PHONE" : ""})`,
+        `(mode=${mode}, by=${user.id}` +
+        `${usingOverride ? ", OVERRIDE_PHONE" : ""}` +
+        `${isDuplicateContact ? ", DUPLICATE_CONTACT_FAST_PATH" : ""})`,
     )
   }
 
@@ -325,7 +438,13 @@ export async function POST(req: NextRequest) {
           phone,
           templateName: parsed.templateName,
           templateLanguage: parsed.templateLanguage,
-          components: buildTemplateComponents(parsed.templateParams, invoice),
+          components: buildTemplateComponents({
+            params: parsed.templateParams,
+            mediaUrl: resolvedMediaUrl,
+            mediaFilename: resolvedMediaFilename,
+            mediaKind: resolvedMediaKind,
+            invoice,
+          }),
         })
       : await svc.sendMessage({
           phone,
@@ -382,23 +501,131 @@ export async function POST(req: NextRequest) {
 /*  Helpers                                                                  */
 /* ════════════════════════════════════════════════════════════════════════ */
 
-function extractPhoneFromInvoice(invoice: InvoiceLike): string | null {
-  if (!invoice.notes) return null
-  // Cap to avoid event-loop block from an oversized notes blob.
-  if (invoice.notes.length > MAX_NOTES_BYTES) return null
+/**
+ * Resolve the public origin WhatsApp will use to fetch our PDF.
+ *
+ * Order of preference:
+ *   1. `NEXT_PUBLIC_DASHBOARD_URL` — explicit env override (production).
+ *   2. The request's `Host` header — works for any deployed host.
+ *   3. `req.url` — last resort.
+ *
+ * Returns `null` when the resolved origin is `localhost` or `127.0.0.1`,
+ * because WhatsApp's servers can't fetch from the dev machine. Callers
+ * fall back to letting the operator paste a public URL manually (e.g.
+ * an ngrok tunnel for testing).
+ */
+function resolvePublicOrigin(req: NextRequest): string | null {
+  const explicit = process.env.NEXT_PUBLIC_DASHBOARD_URL?.trim()
+  if (explicit) {
+    if (/localhost|127\.0\.0\.1/.test(explicit)) return null
+    return explicit.replace(/\/+$/, "")
+  }
+
+  const host =
+    req.headers.get("x-forwarded-host") ?? req.headers.get("host")
+  if (host) {
+    if (/localhost|127\.0\.0\.1/.test(host)) return null
+    const proto =
+      req.headers.get("x-forwarded-proto") ??
+      (host.includes(".") ? "https" : "http")
+    return `${proto}://${host}`
+  }
+
+  return null
+}
+
+/**
+ * Build the compact `InvoicePdfData` payload from the loaded invoice
+ * (RLS-checked) and customer (RLS-checked) records. The notes JSON is
+ * parsed once for billing-address surfacing.
+ */
+function buildPdfData(
+  invoice: InvoiceLike,
+  customer: { phone?: string | null; address?: unknown } | null,
+): InvoicePdfData {
+  let billingAddress: string | undefined
+  // Prefer a structured billingAddress out of the notes JSON the wizard
+  // persists; fall back to a stringified customer.address when absent.
+  if (invoice.notes && invoice.notes.length <= MAX_NOTES_BYTES) {
+    try {
+      const trimmed = invoice.notes.trim()
+      if (trimmed.startsWith("{")) {
+        const parsed = JSON.parse(trimmed) as { billingAddress?: unknown }
+        if (typeof parsed.billingAddress === "string" && parsed.billingAddress) {
+          billingAddress = parsed.billingAddress
+        }
+      }
+    } catch {
+      /* noop */
+    }
+  }
+  if (!billingAddress && customer?.address) {
+    if (typeof customer.address === "string") {
+      billingAddress = customer.address
+    } else if (typeof customer.address === "object") {
+      billingAddress = JSON.stringify(customer.address)
+    }
+  }
+
+  return {
+    invoiceNumber: invoice.invoiceNumber,
+    status: invoice.status,
+    createdAt: invoice.createdAt,
+    dueDate: invoice.dueDate ?? null,
+    paymentMode: invoice.paymentMode,
+    awbNumber: invoice.awbNumber ?? null,
+    customerName: invoice.customerName,
+    customerGstin: invoice.customerGstin ?? null,
+    customerPhone: customer?.phone ?? null,
+    customerAddress: billingAddress ?? null,
+    baseFreight: invoice.baseFreight,
+    docketCharge: invoice.docketCharge,
+    pickupCharge: invoice.pickupCharge ?? 0,
+    packingCharge: invoice.packingCharge ?? 0,
+    fuelSurcharge: invoice.fuelSurcharge,
+    handlingFee: invoice.handlingFee,
+    insurance: invoice.insurance,
+    discount: invoice.discount,
+    cgst: invoice.tax?.cgst ?? 0,
+    sgst: invoice.tax?.sgst ?? 0,
+    igst: invoice.tax?.igst ?? 0,
+    totalAmount: invoice.totalAmount,
+    advancePaid: invoice.advancePaid,
+    balance: invoice.balance,
+    notes: invoice.notes ?? null,
+  }
+}
+
+/**
+ * Returns the consignor and consignee phones in that order. Either or
+ * both may be missing — callers should treat the result as a possibly
+ * sparse 2-tuple. Used to build the per-invoice phone allow-list and to
+ * detect the "consignor === consignee" duplicate-contact shortcut.
+ *
+ * History: this helper used to return ONE phone (consignor preferred),
+ * which excluded the consignee from the allow-list and forced operators
+ * to use `overridePhone: true` whenever they wanted to dispatch to the
+ * receiving party. Returning both is safe because the trust boundary
+ * doesn't change — the same MANAGER who authored the invoice authored
+ * both fields.
+ */
+function extractPhonesFromInvoice(invoice: InvoiceLike): string[] {
+  const out: string[] = []
+  if (!invoice.notes) return out
+  if (invoice.notes.length > MAX_NOTES_BYTES) return out
   const trimmed = invoice.notes.trim()
-  if (!trimmed.startsWith("{")) return null
+  if (!trimmed.startsWith("{")) return out
   try {
     const parsed = JSON.parse(trimmed) as {
       consignor?: { phone?: string }
       consignee?: { phone?: string }
     }
-    if (parsed.consignor?.phone) return String(parsed.consignor.phone)
-    if (parsed.consignee?.phone) return String(parsed.consignee.phone)
+    if (parsed.consignor?.phone) out.push(String(parsed.consignor.phone))
+    if (parsed.consignee?.phone) out.push(String(parsed.consignee.phone))
   } catch {
     /* fall through */
   }
-  return null
+  return out
 }
 
 /**
@@ -436,18 +663,26 @@ function buildInvoiceMessage(invoice: InvoiceLike): string {
 }
 
 /**
- * Translate the dialog's flat `templateParams` array into the nested
- * `components` shape WPBox expects:
+ * Translate the dialog's flat template inputs into the nested
+ * `components` array WPBox expects.
  *
- *   [{ type: "BODY", parameters: [{ type: "text", text: "..." }, ...] }]
+ * Output shape (in order):
+ *   1. HEADER (optional — only when `mediaUrl` is provided; matches
+ *      the structure required by templates whose HEADER is DOCUMENT,
+ *      IMAGE, or VIDEO).
+ *   2. BODY (always — N text parameters matching the template's
+ *      `{{1}}…{{N}}` placeholders).
  *
  * Falls back to sensible defaults from the invoice when no params were
  * supplied (lets a user fire-and-forget against any 3-param template).
  */
-function buildTemplateComponents(
-  params: Array<{ text: string }> | undefined,
-  invoice: InvoiceLike,
-): WhatsAppTemplateComponent[] {
+function buildTemplateComponents(input: {
+  params: Array<{ text: string }> | undefined
+  mediaUrl?: string
+  mediaFilename?: string
+  mediaKind?: "document" | "image" | "video"
+  invoice: InvoiceLike
+}): WhatsAppTemplateComponent[] {
   const formatINR = (n: number) =>
     `₹${Number(n).toLocaleString("en-IN", {
       minimumFractionDigits: 2,
@@ -455,23 +690,43 @@ function buildTemplateComponents(
     })}`
 
   const effectiveParams =
-    params && params.length > 0
-      ? params
+    input.params && input.params.length > 0
+      ? input.params
       : [
-          { text: invoice.customerName || "Customer" },
-          { text: invoice.invoiceNumber },
-          { text: formatINR(invoice.totalAmount) },
+          { text: input.invoice.customerName || "Customer" },
+          { text: input.invoice.invoiceNumber },
+          { text: formatINR(input.invoice.totalAmount) },
         ]
 
-  return [
-    {
-      type: "BODY",
-      parameters: effectiveParams.map((p) => ({
-        type: "text" as const,
-        text: p.text,
-      })),
-    },
-  ]
+  const components: WhatsAppTemplateComponent[] = []
+
+  if (input.mediaUrl) {
+    const kind = input.mediaKind ?? "document"
+    if (kind === "document") {
+      components.push(
+        buildHeaderMediaComponent({
+          kind: "document",
+          link: input.mediaUrl,
+          filename:
+            input.mediaFilename ?? `TAC-Invoice-${input.invoice.invoiceNumber}.pdf`,
+        }),
+      )
+    } else if (kind === "image") {
+      components.push(buildHeaderMediaComponent({ kind: "image", link: input.mediaUrl }))
+    } else {
+      components.push(buildHeaderMediaComponent({ kind: "video", link: input.mediaUrl }))
+    }
+  }
+
+  components.push({
+    type: "BODY",
+    parameters: effectiveParams.map((p) => ({
+      type: "text" as const,
+      text: p.text,
+    })),
+  })
+
+  return components
 }
 
 /**

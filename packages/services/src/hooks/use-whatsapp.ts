@@ -41,6 +41,17 @@ export interface SendInvoiceWhatsappInput {
   templateLanguage?: string
   /** Body parameters for the template. Order matches `{{1}}`, `{{2}}`, … */
   templateParams?: WhatsappTemplateParam[]
+  /**
+   * Public URL of the document/image/video that fills the template's
+   * HEADER component. Required for templates whose HEADER format is
+   * DOCUMENT, IMAGE, or VIDEO. WhatsApp fetches this URL server-side,
+   * so it MUST be publicly resolvable (no auth, no localhost).
+   */
+  templateMediaUrl?: string
+  /** Display filename when the HEADER format is DOCUMENT. */
+  templateMediaFilename?: string
+  /** Defaults to `"document"` when `templateMediaUrl` is set. */
+  templateMediaKind?: "document" | "image" | "video"
 }
 
 export interface SendInvoiceWhatsappResult {
@@ -64,7 +75,6 @@ export function useSendInvoiceWhatsapp() {
   return useMutation<SendInvoiceWhatsappResult, SendInvoiceWhatsappError, SendInvoiceWhatsappInput>(
     {
       mutationFn: async (input) => {
-        console.log("[whatsapp:client] POST /api/whatsapp/send-invoice", input)
         const res = await fetch("/api/whatsapp/send-invoice", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -80,10 +90,6 @@ export function useSendInvoiceWhatsapp() {
           rawResponse?: string
           status?: number
         } | null
-        console.log(
-          `[whatsapp:client] /api/whatsapp/send-invoice ← ${res.status}`,
-          data
-        )
 
         if (!res.ok) {
           const err = new Error(
@@ -114,12 +120,26 @@ export interface WhatsappTemplateSummary {
   language: string
   status?: string
   body?: string
+  /**
+   * `"DOCUMENT" | "IMAGE" | "VIDEO" | "TEXT"` (or undefined for templates
+   * without a HEADER). When DOCUMENT/IMAGE/VIDEO, the caller MUST supply
+   * `templateMediaUrl` — otherwise WhatsApp silently rejects the send
+   * (returns null WAMID).
+   */
+  headerFormat?: string
 }
 
 export interface WhatsappTestResult {
   ok: boolean
   configured: boolean
   connected: boolean
+  /**
+   * True when the server can mint signed `/api/public/invoice-pdf` URLs
+   * that WhatsApp can fetch (signing secret is set + dashboard origin
+   * is publicly reachable, not localhost). When true, the dialog hides
+   * the manual "Document URL" field — the server fills it in.
+   */
+  pdfAutoGenAvailable?: boolean
   error?: string
   rawResponse?: string
   /** Approved template catalog for this WPBox account. */
@@ -136,13 +156,8 @@ export function useWhatsappTest(enabled: boolean) {
   return useQuery<WhatsappTestResult>({
     queryKey: ["whatsapp", "test"],
     queryFn: async () => {
-      console.log("[whatsapp:client] GET /api/whatsapp/test")
       const res = await fetch("/api/whatsapp/test")
       const data = (await res.json().catch(() => null)) as WhatsappTestResult | null
-      console.log(
-        `[whatsapp:client] /api/whatsapp/test ← ${res.status}`,
-        data
-      )
       if (!data) {
         return {
           ok: false,
