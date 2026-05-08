@@ -164,20 +164,22 @@ const ShippingLabel = React.forwardRef<HTMLDivElement, ShippingLabelProps>(
         data-label-size={size}
         aria-label={`Shipping label · AWB ${data.awbNumber}`}
         className={cn(
-          // Print-invariant: paper-white, ink-black, monospaced tactical type.
-          // Direct hex values intentionally — labels are theme-independent
-          // print artifacts and must never inherit dark-mode tokens.
-          "bg-white text-black font-mono",
-          "border-2 border-black",
+          // Print-invariant: paper-white ink-black, monospaced tactical
+          // type. Tokens (`--print-bg`, `--print-fg`, `--print-border`,
+          // `--spacing-label-4in`) are defined in globals.css and are
+          // deliberately NOT themed — print artifacts must read the same
+          // regardless of dark-mode preference (issue #31).
+          "bg-print-bg text-print-fg font-mono",
+          "border-2 border-print-border",
           "[color-scheme:light]",
           "px-4 pt-3.5 pb-3 w-full mx-auto",
-          size === "print" ? "max-w-[4in]" : "max-w-[26.25rem]",
-          "print:max-w-[4in] print:border-0",
+          size === "print" ? "max-w-label-4in" : "max-w-label-preview",
+          "print:max-w-label-4in print:border-0",
           className
         )}
       >
         {/* ━━━━━━━━━━━━ Zone 1: brand mark + box meta ━━━━━━━━━━━━ */}
-        <header className="flex items-baseline justify-between border-b-2 border-black pb-2">
+        <header className="flex items-baseline justify-between border-b-2 border-print-border pb-2">
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-medium tracking-[0.04em] leading-none">
               {data.companyName ? data.companyName.split(" ")[0] : "TAC"}
@@ -198,7 +200,7 @@ const ShippingLabel = React.forwardRef<HTMLDivElement, ShippingLabelProps>(
         </div>
 
         {/* ━━━━━━━━━━━━ Zone 3: inverted MSN bar ━━━━━━━━━━━━ */}
-        <div className="bg-black text-white px-2 py-1 flex justify-between items-center text-[10px] tracking-[0.08em] font-medium">
+        <div className="bg-print-fg text-print-bg px-2 py-1 flex justify-between items-center text-[10px] tracking-[0.08em] font-medium">
           <span className="uppercase">MSN ({mission.timestampUtc})</span>
           <span>— {pad2(mission.sequence)}</span>
         </div>
@@ -210,7 +212,7 @@ const ShippingLabel = React.forwardRef<HTMLDivElement, ShippingLabelProps>(
         </div>
 
         {/* ━━━━━━━━━━━━ Zones 5 + 6: tracking number + manifest stack ━━━━━━━━━━━━ */}
-        <div className="flex justify-between items-start gap-3 border-b border-black pb-2">
+        <div className="flex justify-between items-start gap-3 border-b border-print-border pb-2">
           <span className="text-sm font-medium tracking-[0.14em] tabular-nums pt-0.5 whitespace-nowrap">
             {data.awbNumber}
           </span>
@@ -322,7 +324,7 @@ function BarcodeMissing({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center border-2 border-dashed border-black p-2 text-center",
+        "flex flex-col items-center justify-center border-2 border-dashed border-print-border p-2 text-center",
         flex ? "flex-1" : "shrink-0 w-[86px] h-[86px]",
       )}
       role="alert"

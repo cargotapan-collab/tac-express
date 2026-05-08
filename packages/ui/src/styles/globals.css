@@ -414,6 +414,26 @@
   --spacing-panel-xl: 18.75rem; /* 300px — KPI panel min-height                */
   --spacing-hero-vh: 60vh;      /* 60vh   — auth/error hero vertical centering */
 
+  /* ── Print-surface tokens (LAW 1/9/11 for shipping/tax labels) ──
+     Print artifacts (thermal labels, tax-invoice headers) intentionally
+     bypass theming — they're physical paper outputs that must read the
+     same regardless of dark-mode preference. These tokens encode the
+     print invariants so the labels reference NAMED tokens rather than
+     hand-written `bg-white`/`text-black` literals.
+
+     `--print-bg` / `--print-fg` are physical ink colors on paper. They
+     are NOT thumbed at runtime by dark mode — see the absence of any
+     override in the `.dark` block below. */
+  --print-bg: #ffffff;        /* paper white — never themed */
+  --print-fg: #000000;        /* ink black — never themed */
+  --print-border: #000000;    /* solid black border for print rules */
+
+  /* Named print widths matching common thermal/laser label stocks.
+     Components reference these as `max-w-label-4in`, `w-label-a6`. */
+  --spacing-label-4in: 4in;       /* 4×6 thermal shipping label width */
+  --spacing-label-a6: 148mm;      /* A6 standard label width */
+  --spacing-label-preview: 26.25rem; /* 420px — screen-preview width */
+
   --radius-sm: var(--radius);
   --radius-md: var(--radius);
   --radius-lg: var(--radius);
