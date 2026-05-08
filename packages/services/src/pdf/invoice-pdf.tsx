@@ -28,7 +28,7 @@ import {
   type DocumentProps,
 } from "@react-pdf/renderer"
 
-import { PDF_TOKENS } from "../branding/pdf-tokens"
+import { PDF_FONT_SIZES, PDF_TOKENS } from "../branding/pdf-tokens"
 
 /* ────────────────────────────────────────────────────────────────────────
  * Font strategy: rely on @react-pdf/renderer's built-in PDF fonts
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 60, // leave room for fixed footer
     fontFamily: FONT_SANS,
-    fontSize: 9,
+    fontSize: PDF_FONT_SIZES.BODY,
     lineHeight: 1.4,
   },
 
@@ -263,18 +263,18 @@ const styles = StyleSheet.create({
   companyName: {
     fontFamily: FONT_SANS,
     fontWeight: 700,
-    fontSize: 12,
+    fontSize: PDF_FONT_SIZES.H_TOTALS,
     color: PDF_TOKENS.FG_PRIMARY,
     marginBottom: 2,
   },
   companyMeta: {
-    fontSize: 8,
+    fontSize: PDF_FONT_SIZES.CAPTION,
     color: PDF_TOKENS.FG_MUTED,
     lineHeight: 1.4,
   },
   companyMetaMono: {
     fontFamily: FONT_MONO,
-    fontSize: 8,
+    fontSize: PDF_FONT_SIZES.CAPTION,
     color: PDF_TOKENS.FG_MUTED,
   },
   companyRight: {
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   invoiceTitle: {
     fontFamily: FONT_SANS,
     fontWeight: 700,
-    fontSize: 22,
+    fontSize: PDF_FONT_SIZES.DISPLAY,
     color: PDF_TOKENS.BRAND_PRIMARY,
     letterSpacing: 1,
   },
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
 
   sectionLabel: {
     fontFamily: FONT_MONO,
-    fontSize: 7,
+    fontSize: PDF_FONT_SIZES.LABEL,
     letterSpacing: 1.4,
     color: PDF_TOKENS.BRAND_PRIMARY,
     fontWeight: 700,
@@ -320,18 +320,18 @@ const styles = StyleSheet.create({
   customerName: {
     fontFamily: FONT_SANS,
     fontWeight: 700,
-    fontSize: 13,
+    fontSize: PDF_FONT_SIZES.H_SECTION,
     marginBottom: 3,
     color: PDF_TOKENS.FG_PRIMARY,
   },
   bodyText: {
-    fontSize: 9,
+    fontSize: PDF_FONT_SIZES.BODY,
     color: PDF_TOKENS.FG_SECONDARY,
     marginTop: 1,
   },
   monoText: {
     fontFamily: FONT_MONO,
-    fontSize: 8,
+    fontSize: PDF_FONT_SIZES.CAPTION,
     color: PDF_TOKENS.FG_MUTED,
     marginTop: 1,
   },
@@ -339,13 +339,13 @@ const styles = StyleSheet.create({
   invoiceNumberValue: {
     fontFamily: FONT_SANS,
     fontWeight: 700,
-    fontSize: 14,
+    fontSize: PDF_FONT_SIZES.H_TITLE,
     color: PDF_TOKENS.FG_PRIMARY,
     marginBottom: 2,
   },
   invoiceMetaValue: {
     fontFamily: FONT_MONO,
-    fontSize: 9,
+    fontSize: PDF_FONT_SIZES.BODY,
     fontWeight: 700,
     color: PDF_TOKENS.FG_SECONDARY,
     marginTop: 1,
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   },
   qrCaption: {
     fontFamily: FONT_MONO,
-    fontSize: 6,
+    fontSize: PDF_FONT_SIZES.MICRO_SM,
     letterSpacing: 1,
     color: PDF_TOKENS.FG_FAINT,
     marginTop: 2,
@@ -383,13 +383,13 @@ const styles = StyleSheet.create({
   },
   consignmentLabel: {
     fontFamily: FONT_MONO,
-    fontSize: 6,
+    fontSize: PDF_FONT_SIZES.MICRO_SM,
     letterSpacing: 1.2,
     color: PDF_TOKENS.FG_DISABLED,
   },
   consignmentValue: {
     fontFamily: FONT_MONO,
-    fontSize: 9,
+    fontSize: PDF_FONT_SIZES.BODY,
     fontWeight: 700,
     color: PDF_TOKENS.FG_PRIMARY,
     marginTop: 1,
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   },
   thLabel: {
     flex: 5,
-    fontSize: 8,
+    fontSize: PDF_FONT_SIZES.CAPTION,
     fontWeight: 700,
     fontFamily: FONT_MONO,
     letterSpacing: 0.8,
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   },
   thQty: {
     flex: 1,
-    fontSize: 8,
+    fontSize: PDF_FONT_SIZES.CAPTION,
     fontWeight: 700,
     fontFamily: FONT_MONO,
     letterSpacing: 0.8,
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   },
   thPrice: {
     flex: 1.6,
-    fontSize: 8,
+    fontSize: PDF_FONT_SIZES.CAPTION,
     fontWeight: 700,
     fontFamily: FONT_MONO,
     letterSpacing: 0.8,
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
   },
   thTotal: {
     flex: 1.6,
-    fontSize: 8,
+    fontSize: PDF_FONT_SIZES.CAPTION,
     fontWeight: 700,
     fontFamily: FONT_MONO,
     letterSpacing: 0.8,
@@ -453,13 +453,13 @@ const styles = StyleSheet.create({
   },
   tdLabel: {
     flex: 5,
-    fontSize: 9,
+    fontSize: PDF_FONT_SIZES.BODY,
     color: PDF_TOKENS.FG_SECONDARY,
     paddingHorizontal: 4,
   },
   tdQty: {
     flex: 1,
-    fontSize: 9,
+    fontSize: PDF_FONT_SIZES.BODY,
     fontFamily: FONT_MONO,
     color: PDF_TOKENS.FG_SECONDARY,
     textAlign: "center",
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   },
   tdPrice: {
     flex: 1.6,
-    fontSize: 9,
+    fontSize: PDF_FONT_SIZES.BODY,
     fontFamily: FONT_MONO,
     color: PDF_TOKENS.FG_SECONDARY,
     textAlign: "right",
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   },
   tdTotal: {
     flex: 1.6,
-    fontSize: 9,
+    fontSize: PDF_FONT_SIZES.BODY,
     fontFamily: FONT_MONO,
     color: PDF_TOKENS.FG_SECONDARY,
     textAlign: "right",
@@ -495,12 +495,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   totalsLabel: {
-    fontSize: 9,
+    fontSize: PDF_FONT_SIZES.BODY,
     color: PDF_TOKENS.FG_MUTED,
   },
   totalsAmount: {
     fontFamily: FONT_MONO,
-    fontSize: 9,
+    fontSize: PDF_FONT_SIZES.BODY,
     color: PDF_TOKENS.FG_SECONDARY,
   },
   grandTotalRow: {
@@ -514,13 +514,13 @@ const styles = StyleSheet.create({
   grandTotalLabel: {
     fontFamily: FONT_SANS,
     fontWeight: 700,
-    fontSize: 10,
+    fontSize: PDF_FONT_SIZES.TABLE_HEADER,
     color: PDF_TOKENS.FG_PRIMARY,
   },
   grandTotalAmount: {
     fontFamily: FONT_MONO,
     fontWeight: 700,
-    fontSize: 11,
+    fontSize: PDF_FONT_SIZES.H_LABEL,
     color: PDF_TOKENS.FG_PRIMARY,
   },
   balanceDueRow: {
@@ -536,13 +536,13 @@ const styles = StyleSheet.create({
   balanceDueLabel: {
     fontFamily: FONT_SANS,
     fontWeight: 700,
-    fontSize: 11,
+    fontSize: PDF_FONT_SIZES.H_LABEL,
     color: PDF_TOKENS.BRAND_PRIMARY,
   },
   balanceDueAmount: {
     fontFamily: FONT_MONO,
     fontWeight: 700,
-    fontSize: 14,
+    fontSize: PDF_FONT_SIZES.H_TITLE,
     color: PDF_TOKENS.BRAND_PRIMARY,
   },
 
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   },
   bankLine: {
     fontFamily: FONT_MONO,
-    fontSize: 8,
+    fontSize: PDF_FONT_SIZES.CAPTION,
     color: PDF_TOKENS.FG_SECONDARY,
     marginTop: 2,
   },
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
   },
   signCaption: {
     fontFamily: FONT_MONO,
-    fontSize: 7,
+    fontSize: PDF_FONT_SIZES.LABEL,
     letterSpacing: 1.2,
     color: PDF_TOKENS.FG_FAINT,
     textAlign: "right",
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
   signCompany: {
     fontFamily: FONT_SANS,
     fontWeight: 700,
-    fontSize: 9,
+    fontSize: PDF_FONT_SIZES.BODY,
     color: PDF_TOKENS.FG_PRIMARY,
     textAlign: "right",
   },
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
     backgroundColor: PDF_TOKENS.SURFACE_TINT,
   },
   notesText: {
-    fontSize: 8.5,
+    fontSize: PDF_FONT_SIZES.BODY_SM,
     color: PDF_TOKENS.FG_SECONDARY,
     lineHeight: 1.45,
   },
@@ -613,14 +613,14 @@ const styles = StyleSheet.create({
   },
   termsTitle: {
     fontFamily: FONT_MONO,
-    fontSize: 7,
+    fontSize: PDF_FONT_SIZES.LABEL,
     letterSpacing: 1.4,
     color: PDF_TOKENS.BRAND_PRIMARY,
     fontWeight: 700,
     marginBottom: 6,
   },
   termText: {
-    fontSize: 7.5,
+    fontSize: PDF_FONT_SIZES.CAPTION_SM,
     color: PDF_TOKENS.FG_MUTED,
     lineHeight: 1.45,
   },
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
     left: 36,
     right: 36,
     fontFamily: FONT_MONO,
-    fontSize: 6.5,
+    fontSize: PDF_FONT_SIZES.MICRO,
     letterSpacing: 1.2,
     color: PDF_TOKENS.FG_DISABLED,
     textAlign: "center",

@@ -83,3 +83,57 @@ export const PDF_TOKENS = {
 } as const
 
 export type PdfTokenName = keyof typeof PDF_TOKENS
+
+/**
+ * PDF font-size scale (closes #24's font half).
+ *
+ * `@react-pdf/renderer` uses unitless numeric `fontSize` (interpreted
+ * as PDF points). Hardcoding 13+ unique numbers across the StyleSheet
+ * blocks made size adjustments require multi-line find/replace. This
+ * scale gives each semantic role a name; one-off values (singletons
+ * not covered here) stay as numeric literals with a comment at the
+ * call site.
+ *
+ * Scale was extracted by running:
+ *   grep -oE "fontSize: [0-9.]+" packages/services/src/pdf/invoice-pdf.tsx \
+ *     | sort | uniq -c | sort -rn
+ *
+ * which surfaced the distribution: 9 (11×), 8 (8×), 7 (3×), 6/14/11
+ * (2× each), .5-variants + 22/13/12/10 (1× each). The named tokens
+ * cover the values used 2+ times; singletons stay numeric.
+ *
+ * Cross-system note: these are NOT the same scale as the browser-side
+ * `--text-*` tokens in `globals.css`. Browser type lives at viewport
+ * sizes (display/h1/h2/.../caption); PDF type lives at print-point
+ * sizes for an A4 invoice. They serve different surfaces.
+ */
+export const PDF_FONT_SIZES = {
+  /** 22pt — single-line display ("TAX INVOICE" header). One callsite. */
+  DISPLAY: 22,
+  /** 14pt — primary section heading. Used for the company / invoice-meta strip. */
+  H_TITLE: 14,
+  /** 13pt — secondary heading. */
+  H_SECTION: 13,
+  /** 12pt — totals "GRAND TOTAL" / "BALANCE DUE" amount. */
+  H_TOTALS: 12,
+  /** 11pt — sub-heading inside the bill-to / consignment band. */
+  H_LABEL: 11,
+  /** 10pt — table-header text. */
+  TABLE_HEADER: 10,
+  /** 9pt — body text default. Most common size in the document. */
+  BODY: 9,
+  /** 8.5pt — body slightly tightened. */
+  BODY_SM: 8.5,
+  /** 8pt — caption / secondary label text. */
+  CAPTION: 8,
+  /** 7.5pt — caption tightened. */
+  CAPTION_SM: 7.5,
+  /** 7pt — small label text inside the totals stack. */
+  LABEL: 7,
+  /** 6.5pt — micro-label (footer page number). */
+  MICRO: 6.5,
+  /** 6pt — smallest microcopy (footer fine-print, terms one-liner). */
+  MICRO_SM: 6,
+} as const
+
+export type PdfFontSize = keyof typeof PDF_FONT_SIZES
