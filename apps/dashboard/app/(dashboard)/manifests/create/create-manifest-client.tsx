@@ -12,6 +12,7 @@ import { useHubs } from "@workspace/services/hooks/use-hubs"
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
 
 import { ManifestBuilderWizard } from "@workspace/ui/components/composed/manifests/manifest-builder/manifest-builder-wizard"
+import { PageShell } from "@workspace/ui/components/composed/page-shell"
 import type { ManifestSetupValue } from "@workspace/ui/components/composed/manifests/manifest-builder/step-setup"
 import type {
   ManifestShipmentRow,
@@ -102,13 +103,15 @@ export function CreateManifestClient() {
   }
 
   return (
-    <ManifestBuilderWizard
-      hubs={hubOptions}
-      onSetupCommit={handleSetupCommit}
-      onAddAwb={handleAddAwb}
-      onSaveOpen={handleSaveOpen}
-      onClose={handleClose}
-      onExit={() => router.push("/manifests")}
-    />
+    <PageShell>
+      <ManifestBuilderWizard
+        hubs={hubOptions}
+        onSetupCommit={handleSetupCommit}
+        onAddAwb={handleAddAwb}
+        onSaveOpen={handleSaveOpen}
+        onClose={handleClose}
+        onExit={() => router.push("/manifests")}
+      />
+    </PageShell>
   )
 }

@@ -14,6 +14,7 @@ import {
   type InboxNotification,
 } from "@workspace/ui/components/composed/notifications/notification-inbox"
 import { EmptyState } from "@workspace/ui/components/primitives/empty-state"
+import { PageShell } from "@workspace/ui/components/composed/page-shell"
 import { RiNotification3Line } from "@workspace/ui/icons"
 
 interface NotificationsClientProps {
@@ -53,21 +54,25 @@ export function NotificationsClient({ userId }: NotificationsClientProps) {
 
   if (!userId) {
     return (
-      <EmptyState
-        icon={<RiNotification3Line />}
-        title="Sign in required"
-        description="Sign in to view your notifications."
-      />
+      <PageShell>
+        <EmptyState
+          icon={<RiNotification3Line />}
+          title="Sign in required"
+          description="Sign in to view your notifications."
+        />
+      </PageShell>
     )
   }
 
   return (
-    <NotificationInbox
-      notifications={inboxItems}
-      unreadCount={unreadCount}
-      loading={isLoading}
-      onMarkRead={(id) => markRead.mutate({ id, userId })}
-      onMarkAllRead={() => markAllRead.mutate()}
-    />
+    <PageShell>
+      <NotificationInbox
+        notifications={inboxItems}
+        unreadCount={unreadCount}
+        loading={isLoading}
+        onMarkRead={(id) => markRead.mutate({ id, userId })}
+        onMarkAllRead={() => markAllRead.mutate()}
+      />
+    </PageShell>
   )
 }

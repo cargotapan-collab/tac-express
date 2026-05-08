@@ -9,6 +9,7 @@ import { useUpdateOwnProfile } from "@workspace/services/hooks/use-admin"
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
 
 import { PageHeader } from "@workspace/ui/components/composed/page-header"
+import { PageShell } from "@workspace/ui/components/composed/page-shell"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/primitives/input"
 import { Label } from "@workspace/ui/components/primitives/label"
@@ -78,7 +79,7 @@ export function SettingsClient() {
   }
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <PageShell>
       <PageHeader
         overline="Account"
         title="Settings"
@@ -288,7 +289,7 @@ export function SettingsClient() {
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   )
 }
 

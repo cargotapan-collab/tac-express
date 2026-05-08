@@ -18,6 +18,7 @@ import type { UserRole, HubInput } from "@workspace/types"
 
 import { StaffTable } from "@workspace/ui/components/composed/admin/staff-table"
 import { PageHeader } from "@workspace/ui/components/composed/page-header"
+import { PageShell } from "@workspace/ui/components/composed/page-shell"
 import { HubsManager } from "@workspace/ui/components/composed/management/hubs-manager"
 import { RolesMatrix } from "@workspace/ui/components/composed/management/roles-matrix"
 import { EmptyState } from "@workspace/ui/components/primitives/empty-state"
@@ -121,7 +122,7 @@ export function ManagementClient() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader
         overline="Administration"
         title="Operations & Access"
@@ -179,6 +180,6 @@ export function ManagementClient() {
           <RolesMatrix />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   )
 }
