@@ -11,9 +11,11 @@ import { useNotificationStore } from "@workspace/services/stores/notification.st
 import { PageHeader } from "@workspace/ui/components/composed/page-header"
 import { PageShell } from "@workspace/ui/components/composed/page-shell"
 import { ProfileCompletionCard } from "@workspace/ui/components/composed/settings/profile-completion-card"
+import {
+  ProfileForm,
+  type ProfileSubmitValues,
+} from "@workspace/ui/components/composed/settings/profile-form"
 import { ShortcutsCard } from "@workspace/ui/components/composed/settings/shortcuts-card"
-import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/primitives/input"
 import { Label } from "@workspace/ui/components/primitives/label"
 import {
   Tabs,
@@ -47,22 +49,28 @@ export function SettingsClient() {
   const addNotification = useNotificationStore((s) => s.addNotification)
   const { theme, setTheme } = useTheme()
 
-  const [name, setName] = React.useState("")
-  const [hubCode, setHubCode] = React.useState("")
   const [saved, setSaved] = React.useState(false)
+  // Live form values lifted from ProfileForm via onValuesChange so the
+  // sidebar ProfileCompletionCard can update as the operator types.
+  const [liveValues, setLiveValues] = React.useState<{
+    name: string
+    hubCode: string
+  }>({ name: "", hubCode: "" })
 
-  React.useEffect(() => {
-    if (session?.user) {
-      setName((session.user.user_metadata?.name as string) ?? "")
-    }
-  }, [session])
+  const profileDefaults = React.useMemo(
+    () => ({
+      name: (session?.user?.user_metadata?.name as string) ?? "",
+      hubCode: (session?.user?.user_metadata?.hubCode as string) ?? "",
+    }),
+    [session],
+  )
 
-  async function handleSave() {
+  async function handleProfileSubmit(values: ProfileSubmitValues) {
     if (!session?.user?.id) return
     try {
       await updateProfile.mutateAsync({
         userId: session.user.id,
-        payload: { name, hubCode: hubCode || undefined },
+        payload: { name: values.name, hubCode: values.hubCode },
       })
       addNotification({
         type: "success",
@@ -116,50 +124,21 @@ export function SettingsClient() {
         <TabsContent value="profile" className="pt-4">
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
-              <div className="tac-fui-panel space-y-4 bg-card p-5">
-                <p className="border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Profile
-                </p>
-                <Field label="Email">
-                  <ReadOnly value={session?.user?.email ?? "—"} />
-                </Field>
-                <Field label="Display name">
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="h-9 font-mono text-sm uppercase"
-                  />
-                </Field>
-                <Field label="Hub code">
-                  <Input
-                    value={hubCode}
-                    onChange={(e) => setHubCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. IMPHAL"
-                    className="h-9 font-mono text-sm uppercase"
-                  />
-                </Field>
-                <div className="flex items-center justify-between pt-1">
-                  {saved && (
-                    <p className="font-mono text-xs text-primary">Saved.</p>
-                  )}
-                  <div className="ml-auto">
-                    <Button
-                      onClick={handleSave}
-                      disabled={updateProfile.isPending}
-                      className="h-8 px-5 font-mono text-xs uppercase tracking-wider"
-                    >
-                      {updateProfile.isPending ? "Saving…" : "Save changes"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <ProfileForm
+                email={session?.user?.email ?? "—"}
+                defaultValues={profileDefaults}
+                isSaving={updateProfile.isPending}
+                saved={saved}
+                onSubmit={handleProfileSubmit}
+                onValuesChange={setLiveValues}
+              />
             </div>
 
             <aside className="space-y-6">
               <ProfileCompletionCard
                 fields={[
-                  { label: "Display name", filled: Boolean(name.trim()) },
-                  { label: "Hub code", filled: Boolean(hubCode.trim()) },
+                  { label: "Display name", filled: Boolean(liveValues.name.trim()) },
+                  { label: "Hub code", filled: Boolean(liveValues.hubCode.trim()) },
                 ]}
               />
               <ShortcutsCard />
@@ -323,15 +302,6 @@ function Field({
   )
 }
 
-function ReadOnly({ value }: { value: string }) {
-  return (
-    <div className="flex h-9 items-center border border-border bg-muted/30 px-3">
-      <span className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
-        {value}
-      </span>
-    </div>
-  )
-}
 
 function SecurityItem({
   icon,
