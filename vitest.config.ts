@@ -21,8 +21,20 @@ export default defineConfig({
         '**/*.config.*',
       ],
     },
-    alias: {
-      '@workspace': path.resolve(__dirname, './packages'),
-    },
+    alias: [
+      // packages/ui exposes its source via `./src/*` in package.json `exports`.
+      // Vitest's substring alias can't follow that exports map, so add an
+      // explicit rule that includes the `src/` segment for UI subpaths.
+      {
+        find: /^@workspace\/ui\/(.+)$/,
+        replacement: path.resolve(__dirname, './packages/ui/src/$1'),
+      },
+      // Catchall for the remaining workspace packages — relied on by existing
+      // services tests; leave behavior unchanged.
+      {
+        find: '@workspace',
+        replacement: path.resolve(__dirname, './packages'),
+      },
+    ],
   },
 });

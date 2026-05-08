@@ -5,14 +5,11 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { cn } from "@workspace/ui/lib/utils"
-import { Button } from "@workspace/ui/components/button"
+import { RiUserLine, RiMapPinLine } from "@workspace/ui/icons"
 import {
-  RiArrowLeftLine,
-  RiArrowRightLine,
-  RiCheckLine,
-  RiUserLine,
-  RiMapPinLine,
-} from "@workspace/ui/icons"
+  Wizard,
+  WizardActions,
+} from "@workspace/ui/components/primitives/wizard"
 import {
   SmartAddressFields,
   type SmartAddressValue,
@@ -106,77 +103,6 @@ function Input({
   )
 }
 
-function Stepper({ current }: { current: number }) {
-  return (
-    <ol
-      data-slot="customer-form-stepper"
-      aria-label="New customer progress"
-      className="flex w-full border border-border bg-card overflow-hidden"
-    >
-      {STEPS.map((step, idx) => {
-        const isActive = idx === current
-        const isCompleted = idx < current
-        const Icon = step.icon
-        return (
-          <li
-            key={step.id}
-            data-state={isActive ? "active" : isCompleted ? "done" : "pending"}
-            aria-current={isActive ? "step" : undefined}
-            className={cn(
-              "group/step flex-1 relative border-r border-border last:border-r-0",
-              isActive && "bg-primary/5"
-            )}
-          >
-            <div className="px-4 py-3 flex items-center gap-3">
-              <span
-                className={cn(
-                  "flex h-7 w-7 shrink-0 items-center justify-center border font-mono text-xs font-semibold tabular-nums",
-                  isCompleted
-                    ? "bg-primary border-primary text-primary-foreground"
-                    : isActive
-                      ? "border-primary text-primary bg-card"
-                      : "border-border text-muted-foreground bg-card"
-                )}
-              >
-                {isCompleted ? (
-                  <RiCheckLine className="h-3.5 w-3.5" aria-hidden="true" />
-                ) : (
-                  idx + 1
-                )}
-              </span>
-              <div className="flex flex-col min-w-0">
-                <span
-                  className={cn(
-                    "font-mono text-2xs uppercase tracking-widest",
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  )}
-                >
-                  Step {idx + 1} / {STEPS.length}
-                </span>
-                <span
-                  className={cn(
-                    "font-sans text-sm font-medium truncate flex items-center gap-1.5",
-                    isActive ? "text-foreground" : "text-muted-foreground"
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  {step.label}
-                </span>
-              </div>
-            </div>
-            {isActive && (
-              <span
-                aria-hidden="true"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-              />
-            )}
-          </li>
-        )
-      })}
-    </ol>
-  )
-}
-
 export function CustomerForm({
   defaultValues,
   onSubmit,
@@ -229,6 +155,10 @@ export function CustomerForm({
   const currentStep = STEPS[step]!
 
   const handleNext = async () => {
+    if (isLastStep) {
+      await handleSubmit(onSubmit)()
+      return
+    }
     const valid = await trigger(currentStep.fields, { shouldFocus: true })
     if (valid) setStep((s) => Math.min(s + 1, STEPS.length - 1))
   }
@@ -241,7 +171,10 @@ export function CustomerForm({
       className="space-y-5"
       data-slot="customer-form"
     >
-      <Stepper current={step} />
+      <Wizard
+        steps={STEPS.map((s) => ({ id: s.id, label: s.label, icon: s.icon }))}
+        currentIndex={step}
+      />
 
       <div className="bg-background border border-border p-5 space-y-4">
         <div className="flex items-baseline justify-between border-b border-border pb-3">
@@ -316,45 +249,15 @@ export function CustomerForm({
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-3 pt-1">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleBack}
-          disabled={step === 0 || isLoading}
-          className="font-mono text-2xs uppercase tracking-widest"
-        >
-          <RiArrowLeftLine className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-          Back
-        </Button>
-
-        <span className="font-mono text-2xs uppercase tracking-widest text-muted-foreground/60">
-          {currentStep.label}
-        </span>
-
-        {isLastStep ? (
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="font-mono text-2xs font-bold uppercase tracking-widest"
-          >
-            {isLoading ? "Saving…" : "Save Customer"}
-            {!isLoading && (
-              <RiCheckLine className="h-3.5 w-3.5 ml-1.5" aria-hidden="true" />
-            )}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            onClick={handleNext}
-            disabled={isLoading}
-            className="font-mono text-2xs font-bold uppercase tracking-widest"
-          >
-            Next
-            <RiArrowRightLine className="h-3.5 w-3.5 ml-1.5" aria-hidden="true" />
-          </Button>
-        )}
-      </div>
+      <WizardActions
+        currentIndex={step}
+        totalSteps={STEPS.length}
+        onBack={handleBack}
+        onNext={handleNext}
+        isSubmitting={isLoading}
+        finalLabel="SAVE CUSTOMER"
+        submittingLabel="SAVING…"
+      />
     </form>
   )
 }

@@ -60,7 +60,7 @@ const ManifestPrintView = React.forwardRef<
       data-slot="manifest-print-view"
       className={cn(
         "mx-auto bg-background text-foreground print:bg-white print:text-black",
-        "w-[210mm] min-h-[297mm] p-8 font-sans text-[11px] leading-snug",
+        "w-print-a4-w min-h-print-a4-h p-8 font-sans text-pdf-11 leading-snug",
         "border border-border print:border-0",
         className
       )}
@@ -69,13 +69,13 @@ const ManifestPrintView = React.forwardRef<
       {/* Header band */}
       <header className="grid grid-cols-[1fr_auto_1fr] items-end gap-4 border-b-2 border-current pb-3">
         <div>
-          <p className="font-mono text-[9px] uppercase tracking-[0.25em] opacity-70">
+          <p className="font-mono text-3xs uppercase tracking-pdf-strip opacity-70">
             TAC EXPRESS // CARGO MANIFEST
           </p>
           <h1 className="mt-1 font-heading text-2xl font-black tracking-tight">
             CARGO MANIFEST
           </h1>
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-widest opacity-80">
+          <p className="mt-1 font-mono text-2xs uppercase tracking-widest opacity-80">
             TAC Logistics Pvt Ltd · Imphal Airport
           </p>
         </div>
@@ -92,11 +92,11 @@ const ManifestPrintView = React.forwardRef<
           </p>
         </div>
         <div className="text-right">
-          <p className="font-mono text-[9px] uppercase tracking-[0.25em] opacity-70">
+          <p className="font-mono text-3xs uppercase tracking-pdf-strip opacity-70">
             Generated
           </p>
           <p className="font-mono text-xs">{created}</p>
-          <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.25em] opacity-70">
+          <p className="mt-1 font-mono text-3xs uppercase tracking-pdf-strip opacity-70">
             Status
           </p>
           <p className="font-mono text-xs font-semibold">
@@ -108,23 +108,23 @@ const ManifestPrintView = React.forwardRef<
       {/* Sector + Transport */}
       <section className="mt-4 grid grid-cols-2 gap-px bg-current/30">
         <div className="bg-background p-3 print:bg-white">
-          <p className="font-mono text-[9px] uppercase tracking-[0.25em] opacity-70">
+          <p className="font-mono text-3xs uppercase tracking-pdf-strip opacity-70">
             Sector
           </p>
           <p className="mt-0.5 font-heading text-base font-semibold">
             {manifest.originHub.replace(/_/g, " ")} →{" "}
             {manifest.destHub.replace(/_/g, " ")}
           </p>
-          <p className="font-mono text-[10px] opacity-80">
+          <p className="font-mono text-2xs opacity-80">
             {manifest.transportMode}
           </p>
         </div>
         <div className="bg-background p-3 print:bg-white">
-          <p className="font-mono text-[9px] uppercase tracking-[0.25em] opacity-70">
+          <p className="font-mono text-3xs uppercase tracking-pdf-strip opacity-70">
             Transport Details
           </p>
           {manifest.transportMode === "AIR" ? (
-            <dl className="mt-0.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[10px]">
+            <dl className="mt-0.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-2xs">
               <dt className="font-mono uppercase opacity-70">Carrier</dt>
               <dd className="font-mono">{carrier ?? "—"}</dd>
               <dt className="font-mono uppercase opacity-70">Flight No</dt>
@@ -137,7 +137,7 @@ const ManifestPrintView = React.forwardRef<
               </dd>
             </dl>
           ) : (
-            <dl className="mt-0.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[10px]">
+            <dl className="mt-0.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-2xs">
               <dt className="font-mono uppercase opacity-70">Vehicle</dt>
               <dd className="font-mono">{vehicleNumber ?? "—"}</dd>
               <dt className="font-mono uppercase opacity-70">Driver</dt>
@@ -157,7 +157,7 @@ const ManifestPrintView = React.forwardRef<
       <section className="mt-4">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b-2 border-current text-left font-mono text-[9px] uppercase tracking-widest opacity-80">
+            <tr className="border-b-2 border-current text-left font-mono text-3xs uppercase tracking-widest opacity-80">
               <th className="w-8 py-1.5 pr-2">#</th>
               <th className="py-1.5 pr-2">CN Number</th>
               <th className="py-1.5 pr-2">Consignee</th>
@@ -172,7 +172,7 @@ const ManifestPrintView = React.forwardRef<
               <tr>
                 <td
                   colSpan={7}
-                  className="py-6 text-center font-mono text-[10px] uppercase tracking-widest opacity-60"
+                  className="py-6 text-center font-mono text-2xs uppercase tracking-widest opacity-60"
                 >
                   No shipments on this manifest
                 </td>
@@ -183,36 +183,36 @@ const ManifestPrintView = React.forwardRef<
                   key={l.awbNumber}
                   className="border-b border-current/20 align-top"
                 >
-                  <td className="py-1.5 pr-2 font-mono text-[10px]">
+                  <td className="py-1.5 pr-2 font-mono text-2xs">
                     {String(i + 1).padStart(2, "0")}
                   </td>
-                  <td className="py-1.5 pr-2 font-mono text-[10px] font-semibold">
+                  <td className="py-1.5 pr-2 font-mono text-2xs font-semibold">
                     {l.awbNumber}
                   </td>
                   <td className="py-1.5 pr-2">
                     <div className="font-medium">{l.consigneeName}</div>
                     {l.consigneeCity && (
-                      <div className="font-mono text-[9px] uppercase opacity-70">
+                      <div className="font-mono text-3xs uppercase opacity-70">
                         {l.consigneeCity}
                       </div>
                     )}
                   </td>
-                  <td className="py-1.5 pr-2 font-mono text-[10px]">
+                  <td className="py-1.5 pr-2 font-mono text-2xs">
                     {l.destination}
                   </td>
-                  <td className="py-1.5 pr-2 text-right font-mono text-[10px]">
+                  <td className="py-1.5 pr-2 text-right font-mono text-2xs">
                     {l.pieces}
                   </td>
-                  <td className="py-1.5 pr-2 text-right font-mono text-[10px]">
+                  <td className="py-1.5 pr-2 text-right font-mono text-2xs">
                     {l.weightKg.toFixed(1)}
                   </td>
-                  <td className="py-1.5 text-[10px]">{l.remarks ?? ""}</td>
+                  <td className="py-1.5 text-2xs">{l.remarks ?? ""}</td>
                 </tr>
               ))
             )}
           </tbody>
           <tfoot>
-            <tr className="border-t-2 border-current font-mono text-[10px] font-semibold uppercase tracking-widest">
+            <tr className="border-t-2 border-current font-mono text-2xs font-semibold uppercase tracking-widest">
               <td colSpan={4} className="py-2">
                 Totals
               </td>
@@ -228,23 +228,23 @@ const ManifestPrintView = React.forwardRef<
       <section className="mt-10 grid grid-cols-2 gap-8">
         <div>
           <div className="h-12 border-b border-current" />
-          <p className="mt-2 font-mono text-[9px] uppercase tracking-widest opacity-70">
+          <p className="mt-2 font-mono text-3xs uppercase tracking-widest opacity-70">
             Dispatch Officer
           </p>
-          <p className="font-mono text-[10px]">{dispatchedBy ?? "—"}</p>
-          <p className="font-mono text-[9px] opacity-70">{created}</p>
+          <p className="font-mono text-2xs">{dispatchedBy ?? "—"}</p>
+          <p className="font-mono text-3xs opacity-70">{created}</p>
         </div>
         <div>
           <div className="h-12 border-b border-current" />
-          <p className="mt-2 font-mono text-[9px] uppercase tracking-widest opacity-70">
+          <p className="mt-2 font-mono text-3xs uppercase tracking-widest opacity-70">
             Received By
           </p>
-          <p className="font-mono text-[10px]">Name · Sign · Date</p>
+          <p className="font-mono text-2xs">Name · Sign · Date</p>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="mt-8 flex items-center justify-between border-t border-current pt-2 font-mono text-[9px] uppercase tracking-[0.25em] opacity-70">
+      <footer className="mt-8 flex items-center justify-between border-t border-current pt-2 font-mono text-3xs uppercase tracking-pdf-strip opacity-70">
         <span>Manifest UUID: {manifest.id}</span>
         <span>Page 1 of 1</span>
       </footer>

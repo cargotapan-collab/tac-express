@@ -205,14 +205,14 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
         {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
         {/* GRAY HEADER ZONE — compact to fit A4 in one page */}
         {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-        <div className="relative bg-muted/40 print:bg-zinc-100 px-8 pt-5 pb-4">
+        <div className="relative bg-muted/40 print:bg-print-surface-muted px-8 pt-5 pb-4">
           {/* Vertical brand strip on far left */}
           <div
             aria-hidden="true"
             className="absolute left-2.5 top-0 bottom-0 flex items-center"
           >
             <span
-              className="font-sans font-bold text-[13px] tracking-[0.2em] uppercase text-primary print:text-violet-600 leading-none whitespace-nowrap"
+              className="font-sans font-bold text-pdf-13 tracking-pdf-emboss uppercase text-primary print:text-print-accent leading-none whitespace-nowrap"
               style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
             >
               {company.name.split(" ")[0] ?? "TAC"}&nbsp;Express
@@ -222,16 +222,16 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
           {/* Top: company contact info | Invoice headline */}
           <div className="flex items-start justify-between gap-6 pl-7">
             <div className="space-y-0.5">
-              <p className="font-sans font-semibold text-[13px] leading-tight text-foreground">
+              <p className="font-sans font-semibold text-pdf-13 leading-tight text-foreground">
                 {company.name}
               </p>
-              <p className="font-sans text-[11px] leading-tight text-foreground/80">
+              <p className="font-sans text-pdf-11 leading-tight text-foreground/80">
                 {company.address}
               </p>
-              <p className="font-mono text-[10.5px] leading-tight text-foreground/80">
+              <p className="font-mono text-pdf-10p5 leading-tight text-foreground/80">
                 Tel: {company.phone} · E-mail: {company.email}
               </p>
-              <p className="font-mono text-[10.5px] leading-tight pt-0.5">
+              <p className="font-mono text-pdf-10p5 leading-tight pt-0.5">
                 <span className="font-bold text-foreground">ID:</span>{" "}
                 <span className="text-foreground/90">{company.id}</span>
                 {"  ·  "}
@@ -240,7 +240,7 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
               </p>
             </div>
 
-            <p className="font-sans font-light text-[24px] leading-none text-primary print:text-violet-600 tracking-tight shrink-0">
+            <p className="font-sans font-light text-2xl leading-none text-primary print:text-print-accent tracking-tight shrink-0">
               Invoice
             </p>
           </div>
@@ -248,13 +248,13 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
           {/* Bill to / Invoice number two-column block */}
           <div className="grid grid-cols-2 gap-6 mt-4 pl-7">
             <div className="space-y-1">
-              <p className="font-sans font-bold text-[10px] uppercase tracking-[0.04em] text-foreground">
+              <p className="font-sans font-bold text-2xs uppercase tracking-pdf-label text-foreground">
                 Bill to:
               </p>
-              <p className="font-mono font-bold text-[17px] leading-tight tracking-tight text-foreground uppercase">
+              <p className="font-mono font-bold text-pdf-17 leading-tight tracking-tight text-foreground uppercase">
                 {data.customerName}
               </p>
-              <div className="font-mono text-[10.5px] leading-snug text-foreground/80 space-y-0 pt-0.5">
+              <div className="font-mono text-pdf-10p5 leading-snug text-foreground/80 space-y-0 pt-0.5">
                 {data.customerPhone && <p>Tel: {data.customerPhone}</p>}
                 {data.customerEmail && <p>E-mail: {data.customerEmail}</p>}
                 {data.billingAddress && (
@@ -271,17 +271,17 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
             </div>
 
             <div className="space-y-1">
-              <p className="font-sans font-bold text-[10px] uppercase tracking-[0.04em] text-foreground">
+              <p className="font-sans font-bold text-2xs uppercase tracking-pdf-label text-foreground">
                 Invoice number:
               </p>
-              <p className="font-sans font-bold text-[19px] leading-tight tracking-tight text-foreground">
+              <p className="font-sans font-bold text-pdf-19 leading-tight tracking-tight text-foreground">
                 #{data.invoiceNumber.replace(/^INV-?/i, "")}
               </p>
-              <p className="font-mono text-[10.5px] leading-snug text-foreground/80 pt-0.5">
+              <p className="font-mono text-pdf-10p5 leading-snug text-foreground/80 pt-0.5">
                 {company.address.split(",")[0]} · {formatDateShort(data.createdAt)}
               </p>
               {data.awbNumber && (
-                <p className="font-mono text-[10.5px] leading-snug text-foreground/80">
+                <p className="font-mono text-pdf-10p5 leading-snug text-foreground/80">
                   AWB: <span className="font-bold">{data.awbNumber}</span>
                 </p>
               )}
@@ -296,7 +296,7 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
           {/* Vertical violet accent bar on left edge of the body */}
           <div
             aria-hidden="true"
-            className="absolute left-2.5 top-5 bottom-6 w-[3px] bg-primary print:bg-violet-600"
+            className="absolute left-2.5 top-5 bottom-6 w-pdf-rule bg-primary print:bg-print-accent"
           />
 
           <div className="pl-5">
@@ -304,16 +304,16 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-foreground/15">
-                  <th className="text-left font-sans font-bold text-[11.5px] py-1.5 pr-2">
+                  <th className="text-left font-sans font-bold text-pdf-11p5 py-1.5 pr-2">
                     Service description
                   </th>
-                  <th className="text-right font-sans font-bold text-[11.5px] py-1.5 px-2 w-20">
+                  <th className="text-right font-sans font-bold text-pdf-11p5 py-1.5 px-2 w-20">
                     Quantity
                   </th>
-                  <th className="text-right font-sans font-bold text-[11.5px] py-1.5 px-2 w-24">
+                  <th className="text-right font-sans font-bold text-pdf-11p5 py-1.5 px-2 w-24">
                     Price
                   </th>
-                  <th className="text-right font-sans font-bold text-[11.5px] py-1.5 pl-2 w-24">
+                  <th className="text-right font-sans font-bold text-pdf-11p5 py-1.5 pl-2 w-24">
                     Total
                   </th>
                 </tr>
@@ -321,16 +321,16 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
               <tbody>
                 {lines.map((line) => (
                   <tr key={line.label} className="border-b border-foreground/10">
-                    <td className="py-1.5 pr-2 font-mono text-[11.5px] text-foreground">
+                    <td className="py-1.5 pr-2 font-mono text-pdf-11p5 text-foreground">
                       {line.label}
                     </td>
-                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/80">
+                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-pdf-11p5 text-foreground/80">
                       1
                     </td>
-                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/80">
+                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-pdf-11p5 text-foreground/80">
                       {formatINR(line.value)}
                     </td>
-                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-[11.5px] text-foreground">
+                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-pdf-11p5 text-foreground">
                       {formatINR(line.value)}
                     </td>
                   </tr>
@@ -338,16 +338,16 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
 
                 {data.discount > 0 && (
                   <tr className="border-b border-foreground/10">
-                    <td className="py-1.5 pr-2 font-mono text-[11.5px] text-foreground">
+                    <td className="py-1.5 pr-2 font-mono text-pdf-11p5 text-foreground">
                       Discount
                     </td>
-                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/80">
+                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-pdf-11p5 text-foreground/80">
                       1
                     </td>
-                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/80">
+                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-pdf-11p5 text-foreground/80">
                       −{formatINR(data.discount)}
                     </td>
-                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-[11.5px] text-foreground">
+                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-pdf-11p5 text-foreground">
                       −{formatINR(data.discount)}
                     </td>
                   </tr>
@@ -356,48 +356,48 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
                 {/* Tax rows roll into the table for visual consistency */}
                 {(data.cgst > 0 || data.sgst > 0 || data.igst > 0) && (
                   <tr className="border-b border-foreground/10">
-                    <td className="py-1.5 pr-2 font-mono text-[11.5px] text-foreground/70">
+                    <td className="py-1.5 pr-2 font-mono text-pdf-11p5 text-foreground/70">
                       Taxable Amount
                     </td>
                     <td className="py-1.5 px-2" />
                     <td className="py-1.5 px-2" />
-                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/70">
+                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-pdf-11p5 text-foreground/70">
                       {formatINR(taxable)}
                     </td>
                   </tr>
                 )}
                 {data.cgst > 0 && (
                   <tr className="border-b border-foreground/10">
-                    <td className="py-1.5 pr-2 font-mono text-[11.5px] text-foreground/70">
+                    <td className="py-1.5 pr-2 font-mono text-pdf-11p5 text-foreground/70">
                       CGST (9%)
                     </td>
                     <td className="py-1.5 px-2" />
                     <td className="py-1.5 px-2" />
-                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/70">
+                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-pdf-11p5 text-foreground/70">
                       {formatINR(data.cgst)}
                     </td>
                   </tr>
                 )}
                 {data.sgst > 0 && (
                   <tr className="border-b border-foreground/10">
-                    <td className="py-1.5 pr-2 font-mono text-[11.5px] text-foreground/70">
+                    <td className="py-1.5 pr-2 font-mono text-pdf-11p5 text-foreground/70">
                       SGST (9%)
                     </td>
                     <td className="py-1.5 px-2" />
                     <td className="py-1.5 px-2" />
-                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/70">
+                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-pdf-11p5 text-foreground/70">
                       {formatINR(data.sgst)}
                     </td>
                   </tr>
                 )}
                 {data.igst > 0 && (
                   <tr className="border-b border-foreground/10">
-                    <td className="py-1.5 pr-2 font-mono text-[11.5px] text-foreground/70">
+                    <td className="py-1.5 pr-2 font-mono text-pdf-11p5 text-foreground/70">
                       IGST (18%)
                     </td>
                     <td className="py-1.5 px-2" />
                     <td className="py-1.5 px-2" />
-                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-[11.5px] text-foreground/70">
+                    <td className="py-1.5 pl-2 text-right font-mono tabular-nums text-pdf-11p5 text-foreground/70">
                       {formatINR(data.igst)}
                     </td>
                   </tr>
@@ -408,18 +408,18 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
             {/* Balance due / Due date — violet right-aligned values */}
             <div className="mt-3 space-y-1">
               <div className="flex items-baseline justify-between">
-                <span className="font-sans font-bold text-[12px] text-foreground">
+                <span className="font-sans font-bold text-xs text-foreground">
                   Balance due:
                 </span>
-                <span className="font-mono font-bold text-[15px] tabular-nums text-primary print:text-violet-600">
+                <span className="font-mono font-bold text-pdf-15 tabular-nums text-primary print:text-print-accent">
                   {formatINR(balanceDue)}
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
-                <span className="font-sans font-bold text-[12px] text-foreground">
+                <span className="font-sans font-bold text-xs text-foreground">
                   Due date:
                 </span>
-                <span className="font-mono font-bold text-[13px] tabular-nums text-primary print:text-violet-600">
+                <span className="font-mono font-bold text-pdf-13 tabular-nums text-primary print:text-print-accent">
                   {data.dueDate
                     ? formatDateShort(data.dueDate)
                     : formatDateShort(
@@ -441,10 +441,10 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
             {/* Bank info / Signature footer */}
             <div className="mt-5 grid grid-cols-2 gap-6 [page-break-inside:avoid]">
               <div className="space-y-1">
-                <p className="font-sans font-bold text-[10px] uppercase tracking-[0.04em] text-foreground">
+                <p className="font-sans font-bold text-2xs uppercase tracking-pdf-label text-foreground">
                   Bank information:
                 </p>
-                <div className="font-mono text-[10.5px] leading-tight text-primary print:text-violet-600 space-y-0 pt-0.5">
+                <div className="font-mono text-pdf-10p5 leading-tight text-primary print:text-print-accent space-y-0 pt-0.5">
                   <p>
                     <span className="font-bold">IBAN:</span> {COMPANY_DEFAULTS.bank.iban}
                   </p>
@@ -458,20 +458,20 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
               </div>
 
               <div className="flex flex-col items-end">
-                <p className="font-sans font-bold text-[10px] uppercase tracking-[0.04em] text-foreground self-end">
+                <p className="font-sans font-bold text-2xs uppercase tracking-pdf-label text-foreground self-end">
                   Invoiced by {company.name.split(" ").slice(0, 2).join(" ")}:
                 </p>
-                <div className="w-full max-w-[14rem] border-b border-foreground/40 mt-7" />
+                <div className="w-full max-w-pdf-signature border-b border-foreground/40 mt-7" />
               </div>
             </div>
 
             {/* Optional notes block */}
             {data.notes && (
               <div className="mt-4 pt-2 border-t border-foreground/10 [page-break-inside:avoid]">
-                <p className="font-sans font-bold text-[10px] uppercase tracking-[0.04em] text-foreground mb-0.5">
+                <p className="font-sans font-bold text-2xs uppercase tracking-pdf-label text-foreground mb-0.5">
                   Notes:
                 </p>
-                <p className="font-mono text-[10.5px] leading-tight text-foreground/80 whitespace-pre-line">
+                <p className="font-mono text-pdf-10p5 leading-tight text-foreground/80 whitespace-pre-line">
                   {data.notes}
                 </p>
               </div>
@@ -484,15 +484,15 @@ const InvoicePrintView = React.forwardRef<HTMLDivElement, InvoicePrintViewProps>
             {data.awbNumber && data.awbNumber !== "—" && (
               <div className="mt-4 pt-2 border-t border-foreground/10 flex items-end justify-between gap-6 [page-break-inside:avoid]">
                 <div className="flex flex-col items-start gap-0.5">
-                  <p className="font-sans font-bold text-[9px] uppercase tracking-[0.18em] text-foreground/60">
+                  <p className="font-sans font-bold text-3xs uppercase tracking-pdf-tag text-foreground/60">
                     Tracking
                   </p>
                   <AwbBarcode value={data.awbNumber} height={32} barWidth={1.2} showText={false} />
-                  <p className="font-mono text-[10.5px] font-bold tracking-[0.16em] tabular-nums text-foreground">
+                  <p className="font-mono text-pdf-10p5 font-bold tracking-pdf-awb tabular-nums text-foreground">
                     {data.awbNumber}
                   </p>
                 </div>
-                <p className="font-mono text-[8.5px] uppercase tracking-[0.2em] text-foreground/50 text-right">
+                <p className="font-mono text-pdf-8p5 uppercase tracking-pdf-emboss text-foreground/50 text-right">
                   Computer-generated invoice<br />No signature required
                 </p>
               </div>
@@ -526,12 +526,12 @@ function TermsBlock({ variant }: { variant: "numbered" | "paragraph" | "none" })
 
   return (
     <section className="mt-3 pt-2 border-t border-foreground [page-break-inside:avoid]">
-      <p className="font-sans font-bold text-[9px] uppercase tracking-[0.22em] text-foreground mb-1">
+      <p className="font-sans font-bold text-3xs uppercase tracking-pdf-terms text-foreground mb-1">
         Terms &amp; Conditions
       </p>
 
       {variant === "numbered" ? (
-        <ol className="space-y-0.5 text-[7.5px] leading-snug text-foreground/85">
+        <ol className="space-y-0.5 text-pdf-7p5 leading-snug text-foreground/85">
           {TERMS_NUMBERED.map((clause, i) => (
             <li key={i} className="flex gap-1.5">
               <span className="font-mono font-bold tabular-nums shrink-0 w-3 text-foreground/70">
@@ -542,7 +542,7 @@ function TermsBlock({ variant }: { variant: "numbered" | "paragraph" | "none" })
           ))}
         </ol>
       ) : (
-        <p className="text-[7.5px] leading-snug text-foreground/85 text-justify">
+        <p className="text-pdf-7p5 leading-snug text-foreground/85 text-justify">
           {TERMS_PARAGRAPH}
         </p>
       )}

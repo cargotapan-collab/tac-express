@@ -115,6 +115,11 @@ export function FinanceClient() {
     },
   ], [router])
 
+  // TanStack Table's useReactTable() returns row-model methods that close
+  // over the data ref. React Compiler skips memoizing this hook by design;
+  // values used downstream (table.getRowModel(), etc.) are read fresh on
+  // every render anyway, so the skip is correct and safe.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: data ?? [],
     columns,

@@ -181,10 +181,10 @@ const ShippingLabel = React.forwardRef<HTMLDivElement, ShippingLabelProps>(
         {/* ━━━━━━━━━━━━ Zone 1: brand mark + box meta ━━━━━━━━━━━━ */}
         <header className="flex items-baseline justify-between border-b-2 border-print-border pb-2">
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-medium tracking-[0.04em] leading-none">
+            <span className="text-2xl font-medium tracking-pdf-label leading-none">
               {data.companyName ? data.companyName.split(" ")[0] : "TAC"}
             </span>
-            <span className="text-[11px] font-medium tracking-[0.18em]">
+            <span className="text-pdf-11 font-medium tracking-pdf-tag">
               EXPRESS
             </span>
           </div>
@@ -200,7 +200,7 @@ const ShippingLabel = React.forwardRef<HTMLDivElement, ShippingLabelProps>(
         </div>
 
         {/* ━━━━━━━━━━━━ Zone 3: inverted MSN bar ━━━━━━━━━━━━ */}
-        <div className="bg-print-fg text-print-bg px-2 py-1 flex justify-between items-center text-[10px] tracking-[0.08em] font-medium">
+        <div className="bg-print-fg text-print-bg px-2 py-1 flex justify-between items-center text-2xs tracking-pdf-band font-medium">
           <span className="uppercase">MSN ({mission.timestampUtc})</span>
           <span>— {pad2(mission.sequence)}</span>
         </div>
@@ -213,10 +213,10 @@ const ShippingLabel = React.forwardRef<HTMLDivElement, ShippingLabelProps>(
 
         {/* ━━━━━━━━━━━━ Zones 5 + 6: tracking number + manifest stack ━━━━━━━━━━━━ */}
         <div className="flex justify-between items-start gap-3 border-b border-print-border pb-2">
-          <span className="text-sm font-medium tracking-[0.14em] tabular-nums pt-0.5 whitespace-nowrap">
+          <span className="text-sm font-medium tracking-pdf-id tabular-nums pt-0.5 whitespace-nowrap">
             {data.awbNumber}
           </span>
-          <div className="text-right text-[10px] leading-snug whitespace-nowrap">
+          <div className="text-right text-2xs leading-snug whitespace-nowrap">
             <div className="font-medium">{manifest.type}</div>
             <div className="break-all">{manifest.sku}</div>
             <div>Qty {manifest.quantity}</div>
@@ -224,7 +224,7 @@ const ShippingLabel = React.forwardRef<HTMLDivElement, ShippingLabelProps>(
         </div>
 
         {/* ━━━━━━━━━━━━ Zone 7: handler instruction ━━━━━━━━━━━━ */}
-        <p className="text-center pt-2 text-[9.5px] tracking-[0.22em] font-medium uppercase">
+        <p className="text-center pt-2 text-pdf-9p5 tracking-pdf-terms font-medium uppercase">
           {handlerInstruction}
         </p>
       </div>
@@ -249,8 +249,8 @@ function AddressColumn({
   address: DerivedAddress
 }) {
   return (
-    <div className="text-[11px] leading-snug min-w-0">
-      <div className="text-[9px] font-medium tracking-[0.2em] mb-1.5 uppercase">
+    <div className="text-pdf-11 leading-snug min-w-0">
+      <div className="text-3xs font-medium tracking-pdf-emboss mb-1.5 uppercase">
         {label}
       </div>
       <div className="font-medium break-words">{address.heading}</div>
@@ -276,7 +276,7 @@ function Code128({ svg, awbNumber }: { svg: string | undefined; awbNumber: strin
   if (!svg) return <BarcodeMissing kind="Code 128" awbNumber={awbNumber} flex />
   return (
     <div
-      className="flex-1 min-w-0 [&>svg]:block [&>svg]:h-[86px] [&>svg]:w-full"
+      className="flex-1 min-w-0 [&>svg]:block [&>svg]:h-label-barcode [&>svg]:w-full"
       role="img"
       aria-label={`Code 128 barcode for ${awbNumber}`}
       // The encoder output is generated server-side from a known
@@ -297,7 +297,7 @@ function DataMatrix({
   if (!svg) return <BarcodeMissing kind="Data Matrix" awbNumber={awbNumber} />
   return (
     <div
-      className="shrink-0 w-[86px] h-[86px] [&>svg]:block [&>svg]:w-full [&>svg]:h-full"
+      className="shrink-0 w-label-barcode h-label-barcode [&>svg]:block [&>svg]:w-full [&>svg]:h-full"
       role="img"
       aria-label={`Data Matrix code for ${awbNumber}`}
       dangerouslySetInnerHTML={{ __html: svg }}
@@ -325,14 +325,14 @@ function BarcodeMissing({
     <div
       className={cn(
         "flex flex-col items-center justify-center border-2 border-dashed border-print-border p-2 text-center",
-        flex ? "flex-1" : "shrink-0 w-[86px] h-[86px]",
+        flex ? "flex-1" : "shrink-0 w-label-barcode h-label-barcode",
       )}
       role="alert"
     >
-      <span className="text-[9px] font-medium tracking-widest uppercase">
+      <span className="text-3xs font-medium tracking-widest uppercase">
         {kind} missing
       </span>
-      <span className="text-[8px] mt-0.5 break-all">{awbNumber}</span>
+      <span className="text-pdf-8 mt-0.5 break-all">{awbNumber}</span>
     </div>
   )
 }
