@@ -28,6 +28,8 @@ import {
   type DocumentProps,
 } from "@react-pdf/renderer"
 
+import { PDF_TOKENS } from "../branding/pdf-tokens"
+
 /* ────────────────────────────────────────────────────────────────────────
  * Font strategy: rely on @react-pdf/renderer's built-in PDF fonts
  * (Helvetica / Helvetica-Bold / Courier). The previous version registered
@@ -57,9 +59,11 @@ const FONT_MONO = "Courier"
  * In v3 these will move to `packages/services/src/branding/company.ts`
  * so the dashboard, the tax-report exporter, and the PDF all share one
  * canonical record. Hard-coded here for now to keep this change focused.
+ *
+ * COLOR TOKENS: All color values come from `../branding/pdf-tokens.ts`.
+ * Don't introduce raw hex literals into this file — the token map is
+ * the single source of truth that mirrors `globals.css` for PDF render.
  * ──────────────────────────────────────────────────────────────────────── */
-const BRAND_VIOLET = "#6D28D9" // matches Violet Grid v6 primary
-const BRAND_VIOLET_SOFT = "#EDE9FE"
 
 /**
  * Company + bank details rendered on the invoice. Sourced from env so we
@@ -224,8 +228,8 @@ export interface InvoicePdfProps {
  * ──────────────────────────────────────────────────────────────────────── */
 const styles = StyleSheet.create({
   page: {
-    backgroundColor: "#ffffff",
-    color: "#111111",
+    backgroundColor: PDF_TOKENS.SURFACE_WHITE,
+    color: PDF_TOKENS.FG_PRIMARY,
     paddingHorizontal: 36,
     paddingTop: 20,
     paddingBottom: 60, // leave room for fixed footer
@@ -249,7 +253,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     paddingBottom: 10,
     borderBottomWidth: 2,
-    borderBottomColor: BRAND_VIOLET,
+    borderBottomColor: PDF_TOKENS.BRAND_PRIMARY,
     marginBottom: 14,
   },
   companyLeft: {
@@ -260,18 +264,18 @@ const styles = StyleSheet.create({
     fontFamily: FONT_SANS,
     fontWeight: 700,
     fontSize: 12,
-    color: "#111",
+    color: PDF_TOKENS.FG_PRIMARY,
     marginBottom: 2,
   },
   companyMeta: {
     fontSize: 8,
-    color: "#444",
+    color: PDF_TOKENS.FG_MUTED,
     lineHeight: 1.4,
   },
   companyMetaMono: {
     fontFamily: FONT_MONO,
     fontSize: 8,
-    color: "#444",
+    color: PDF_TOKENS.FG_MUTED,
   },
   companyRight: {
     flexDirection: "column",
@@ -281,7 +285,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT_SANS,
     fontWeight: 700,
     fontSize: 22,
-    color: BRAND_VIOLET,
+    color: PDF_TOKENS.BRAND_PRIMARY,
     letterSpacing: 1,
   },
 
@@ -309,7 +313,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT_MONO,
     fontSize: 7,
     letterSpacing: 1.4,
-    color: BRAND_VIOLET,
+    color: PDF_TOKENS.BRAND_PRIMARY,
     fontWeight: 700,
     marginBottom: 4,
   },
@@ -318,17 +322,17 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     fontSize: 13,
     marginBottom: 3,
-    color: "#111",
+    color: PDF_TOKENS.FG_PRIMARY,
   },
   bodyText: {
     fontSize: 9,
-    color: "#222",
+    color: PDF_TOKENS.FG_SECONDARY,
     marginTop: 1,
   },
   monoText: {
     fontFamily: FONT_MONO,
     fontSize: 8,
-    color: "#444",
+    color: PDF_TOKENS.FG_MUTED,
     marginTop: 1,
   },
 
@@ -336,14 +340,14 @@ const styles = StyleSheet.create({
     fontFamily: FONT_SANS,
     fontWeight: 700,
     fontSize: 14,
-    color: "#111",
+    color: PDF_TOKENS.FG_PRIMARY,
     marginBottom: 2,
   },
   invoiceMetaValue: {
     fontFamily: FONT_MONO,
     fontSize: 9,
     fontWeight: 700,
-    color: "#222",
+    color: PDF_TOKENS.FG_SECONDARY,
     marginTop: 1,
   },
 
@@ -360,7 +364,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT_MONO,
     fontSize: 6,
     letterSpacing: 1,
-    color: "#666",
+    color: PDF_TOKENS.FG_FAINT,
     marginTop: 2,
     textAlign: "right",
   },
@@ -368,7 +372,7 @@ const styles = StyleSheet.create({
   /* ── Consignment band ── */
   consignmentBand: {
     flexDirection: "row",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: PDF_TOKENS.SURFACE_MUTED,
     paddingVertical: 6,
     paddingHorizontal: 10,
     marginBottom: 12,
@@ -381,13 +385,13 @@ const styles = StyleSheet.create({
     fontFamily: FONT_MONO,
     fontSize: 6,
     letterSpacing: 1.2,
-    color: "#777",
+    color: PDF_TOKENS.FG_DISABLED,
   },
   consignmentValue: {
     fontFamily: FONT_MONO,
     fontSize: 9,
     fontWeight: 700,
-    color: "#111",
+    color: PDF_TOKENS.FG_PRIMARY,
     marginTop: 1,
   },
 
@@ -398,15 +402,15 @@ const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: "row",
     borderBottomWidth: 1.5,
-    borderBottomColor: "#111",
+    borderBottomColor: PDF_TOKENS.BORDER_STRONG,
     paddingVertical: 5,
-    backgroundColor: "#fafafa",
+    backgroundColor: PDF_TOKENS.SURFACE_TINT,
   },
   tableRow: {
     flexDirection: "row",
     paddingVertical: 5,
     borderBottomWidth: 0.5,
-    borderColor: "#e5e5e5",
+    borderColor: PDF_TOKENS.BORDER_DEFAULT,
   },
   thLabel: {
     flex: 5,
@@ -414,7 +418,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     fontFamily: FONT_MONO,
     letterSpacing: 0.8,
-    color: "#111",
+    color: PDF_TOKENS.FG_PRIMARY,
     paddingHorizontal: 4,
   },
   thQty: {
@@ -423,7 +427,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     fontFamily: FONT_MONO,
     letterSpacing: 0.8,
-    color: "#111",
+    color: PDF_TOKENS.FG_PRIMARY,
     textAlign: "center",
     paddingHorizontal: 4,
   },
@@ -433,7 +437,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     fontFamily: FONT_MONO,
     letterSpacing: 0.8,
-    color: "#111",
+    color: PDF_TOKENS.FG_PRIMARY,
     textAlign: "right",
     paddingHorizontal: 4,
   },
@@ -443,21 +447,21 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     fontFamily: FONT_MONO,
     letterSpacing: 0.8,
-    color: "#111",
+    color: PDF_TOKENS.FG_PRIMARY,
     textAlign: "right",
     paddingHorizontal: 4,
   },
   tdLabel: {
     flex: 5,
     fontSize: 9,
-    color: "#222",
+    color: PDF_TOKENS.FG_SECONDARY,
     paddingHorizontal: 4,
   },
   tdQty: {
     flex: 1,
     fontSize: 9,
     fontFamily: FONT_MONO,
-    color: "#222",
+    color: PDF_TOKENS.FG_SECONDARY,
     textAlign: "center",
     paddingHorizontal: 4,
   },
@@ -465,7 +469,7 @@ const styles = StyleSheet.create({
     flex: 1.6,
     fontSize: 9,
     fontFamily: FONT_MONO,
-    color: "#222",
+    color: PDF_TOKENS.FG_SECONDARY,
     textAlign: "right",
     paddingHorizontal: 4,
   },
@@ -473,7 +477,7 @@ const styles = StyleSheet.create({
     flex: 1.6,
     fontSize: 9,
     fontFamily: FONT_MONO,
-    color: "#222",
+    color: PDF_TOKENS.FG_SECONDARY,
     textAlign: "right",
     paddingHorizontal: 4,
   },
@@ -492,54 +496,54 @@ const styles = StyleSheet.create({
   },
   totalsLabel: {
     fontSize: 9,
-    color: "#444",
+    color: PDF_TOKENS.FG_MUTED,
   },
   totalsAmount: {
     fontFamily: FONT_MONO,
     fontSize: 9,
-    color: "#222",
+    color: PDF_TOKENS.FG_SECONDARY,
   },
   grandTotalRow: {
     flexDirection: "row",
     paddingVertical: 6,
     marginTop: 4,
     borderTopWidth: 1,
-    borderTopColor: "#111",
+    borderTopColor: PDF_TOKENS.BORDER_STRONG,
     justifyContent: "space-between",
   },
   grandTotalLabel: {
     fontFamily: FONT_SANS,
     fontWeight: 700,
     fontSize: 10,
-    color: "#111",
+    color: PDF_TOKENS.FG_PRIMARY,
   },
   grandTotalAmount: {
     fontFamily: FONT_MONO,
     fontWeight: 700,
     fontSize: 11,
-    color: "#111",
+    color: PDF_TOKENS.FG_PRIMARY,
   },
   balanceDueRow: {
     flexDirection: "row",
     paddingVertical: 8,
     paddingHorizontal: 10,
     marginTop: 4,
-    backgroundColor: BRAND_VIOLET_SOFT,
+    backgroundColor: PDF_TOKENS.BRAND_PRIMARY_SOFT,
     borderLeftWidth: 3,
-    borderLeftColor: BRAND_VIOLET,
+    borderLeftColor: PDF_TOKENS.BRAND_PRIMARY,
     justifyContent: "space-between",
   },
   balanceDueLabel: {
     fontFamily: FONT_SANS,
     fontWeight: 700,
     fontSize: 11,
-    color: BRAND_VIOLET,
+    color: PDF_TOKENS.BRAND_PRIMARY,
   },
   balanceDueAmount: {
     fontFamily: FONT_MONO,
     fontWeight: 700,
     fontSize: 14,
-    color: BRAND_VIOLET,
+    color: PDF_TOKENS.BRAND_PRIMARY,
   },
 
   /* ── Bank + signature row ── */
@@ -555,7 +559,7 @@ const styles = StyleSheet.create({
   bankLine: {
     fontFamily: FONT_MONO,
     fontSize: 8,
-    color: "#222",
+    color: PDF_TOKENS.FG_SECONDARY,
     marginTop: 2,
   },
   signBlock: {
@@ -566,7 +570,7 @@ const styles = StyleSheet.create({
   signLine: {
     width: 140,
     height: 1,
-    backgroundColor: "#222",
+    backgroundColor: PDF_TOKENS.BORDER_STRONG,
     marginTop: 28,
     marginBottom: 4,
   },
@@ -574,14 +578,14 @@ const styles = StyleSheet.create({
     fontFamily: FONT_MONO,
     fontSize: 7,
     letterSpacing: 1.2,
-    color: "#666",
+    color: PDF_TOKENS.FG_FAINT,
     textAlign: "right",
   },
   signCompany: {
     fontFamily: FONT_SANS,
     fontWeight: 700,
     fontSize: 9,
-    color: "#111",
+    color: PDF_TOKENS.FG_PRIMARY,
     textAlign: "right",
   },
 
@@ -591,12 +595,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderLeftWidth: 2,
-    borderLeftColor: "#bbb",
-    backgroundColor: "#fafafa",
+    borderLeftColor: PDF_TOKENS.BORDER_SOFT,
+    backgroundColor: PDF_TOKENS.SURFACE_TINT,
   },
   notesText: {
     fontSize: 8.5,
-    color: "#333",
+    color: PDF_TOKENS.FG_SECONDARY,
     lineHeight: 1.45,
   },
 
@@ -605,19 +609,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 8,
     borderTopWidth: 0.5,
-    borderTopColor: "#bbb",
+    borderTopColor: PDF_TOKENS.BORDER_SOFT,
   },
   termsTitle: {
     fontFamily: FONT_MONO,
     fontSize: 7,
     letterSpacing: 1.4,
-    color: BRAND_VIOLET,
+    color: PDF_TOKENS.BRAND_PRIMARY,
     fontWeight: 700,
     marginBottom: 6,
   },
   termText: {
     fontSize: 7.5,
-    color: "#444",
+    color: PDF_TOKENS.FG_MUTED,
     lineHeight: 1.45,
   },
 
@@ -630,10 +634,10 @@ const styles = StyleSheet.create({
     fontFamily: FONT_MONO,
     fontSize: 6.5,
     letterSpacing: 1.2,
-    color: "#888",
+    color: PDF_TOKENS.FG_DISABLED,
     textAlign: "center",
     borderTopWidth: 0.5,
-    borderColor: "#cccccc",
+    borderColor: PDF_TOKENS.BORDER_SOFT,
     paddingTop: 6,
   },
 })
@@ -1012,7 +1016,7 @@ export function InvoicePdf({
         <View style={{ marginTop: 10 }}>
           <Text style={styles.monoText}>
             Amount in words:{" "}
-            <Text style={{ color: "#111" }}>
+            <Text style={{ color: PDF_TOKENS.FG_PRIMARY }}>
               {amountInWords(data.totalAmount)}
             </Text>
           </Text>
