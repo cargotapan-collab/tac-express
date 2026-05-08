@@ -98,6 +98,11 @@ describe("Wizard", () => {
     render(<Wizard steps={stepsWithIcon} currentIndex={0} />)
     expect(screen.getByTestId("test-icon")).toBeInTheDocument()
   })
+
+  it("renders nothing when steps is empty (defensive guard)", () => {
+    const { container } = render(<Wizard steps={[]} currentIndex={0} />)
+    expect(container.firstChild).toBeNull()
+  })
 })
 
 describe("WizardActions", () => {
@@ -229,6 +234,41 @@ describe("WizardActions", () => {
       />
     )
     expect(screen.getByRole("button", { name: /^next$/i })).toBeDisabled()
+  })
+
+  it("renders nothing when totalSteps is zero (defensive guard)", () => {
+    const { container } = render(
+      <WizardActions
+        currentIndex={0}
+        totalSteps={0}
+        onBack={onBack}
+        onNext={onNext}
+      />
+    )
+    expect(container.firstChild).toBeNull()
+  })
+
+  it("swallows async-handler rejections without throwing (fire-and-forget catch)", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {})
+    const rejecting: Mock<() => Promise<void>> = vi.fn<() => Promise<void>>(() =>
+      Promise.reject(new Error("simulated handler failure"))
+    )
+    render(
+      <WizardActions
+        currentIndex={1}
+        totalSteps={4}
+        onBack={onBack}
+        onNext={rejecting}
+      />
+    )
+    fireEvent.click(screen.getByRole("button", { name: /^next$/i }))
+    // The promise rejects on the microtask queue; flush before assertion.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(rejecting).toHaveBeenCalledTimes(1)
+    expect(consoleError).toHaveBeenCalled()
+    consoleError.mockRestore()
   })
 
   it("renders step counter by default and hides it when showStepCounter=false", () => {

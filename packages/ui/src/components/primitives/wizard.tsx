@@ -50,6 +50,9 @@ function Wizard({
   ...props
 }: WizardProps) {
   const total = steps.length
+  // Defensive: a wizard with no steps shouldn't render anything (avoids
+  // rendering an empty <ol> with malformed accessibility tree).
+  if (total <= 0) return null
   const clamped = Math.max(0, Math.min(currentIndex, total - 1))
 
   return (
@@ -199,23 +202,50 @@ function WizardActions({
   className,
   ...props
 }: WizardActionsProps) {
+  // Defensive: a wizard with no steps would render "Step 1 of 0" and break
+  // final-step detection. Bail out so consumers with degenerate state don't
+  // surface broken UI.
+  if (totalSteps <= 0) return null
+
   const final = isFinalStep ?? currentIndex === totalSteps - 1
   const isFirst = currentIndex === 0
   const cancellable = typeof onCancel === "function"
   const backDisabled = isFirst && !cancellable
 
+  // Fire-and-forget at the primitive boundary: consumers manage loading
+  // state via isSubmitting / nextDisabled. We still capture failures so
+  // an async consumer that rejects won't surface as a global
+  // unhandledrejection event in Sentry — the primitive doesn't render the
+  // error itself, but it does ensure it's logged. The consumer remains
+  // responsible for surfacing user-facing error state (toast, inline).
+  //
+  // The call must fire SYNCHRONOUSLY (test-visible click handler), so we
+  // invoke immediately and only attach .catch when a Promise is returned.
+  const fireAndForget = (fn?: () => void | Promise<void>) => {
+    if (!fn) return
+    try {
+      const result = fn()
+      if (result instanceof Promise) {
+        result.catch((error: unknown) => {
+          console.error("[WizardActions] action handler rejected", error)
+        })
+      }
+    } catch (error: unknown) {
+      // Sync throw from the handler — same containment policy.
+      console.error("[WizardActions] action handler threw", error)
+    }
+  }
+
   const handleBackClick = () => {
-    // Discard any returned promise — fire-and-forget at the primitive
-    // boundary. Consumers manage their own loading state via isSubmitting.
     if (isFirst) {
-      void onCancel?.()
+      fireAndForget(onCancel)
     } else {
-      void onBack()
+      fireAndForget(onBack)
     }
   }
 
   const handleNextClick = () => {
-    void onNext()
+    fireAndForget(onNext)
   }
 
   return (
