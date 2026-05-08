@@ -119,6 +119,10 @@ const BANK = {
  * with `[unset]` GSTIN or "1234..." account numbers.
  */
 export function assertCompanyConfig(): void {
+  // Every field rendered into the PDF gets validated. SWIFT/UPI are in
+  // the bank stack alongside name/account/ifsc — leaving them out would
+  // let `[unset]` placeholders reach the rendered document for accounts
+  // that don't fill those env vars.
   const required: Array<[string, string]> = [
     ["COMPANY_LEGAL_NAME", COMPANY.legalName],
     ["COMPANY_GSTIN", COMPANY.gstin],
@@ -130,11 +134,21 @@ export function assertCompanyConfig(): void {
     ["BANK_NAME", BANK.name],
     ["BANK_ACCOUNT", BANK.account],
     ["BANK_IFSC", BANK.ifsc],
+    ["BANK_SWIFT", BANK.swift],
+    ["BANK_UPI", BANK.upi],
   ]
   const missing = required
     .filter(([, value]) => !value || value === PLACEHOLDER)
     .map(([key]) => key)
-  if (COMPANY.addressLines.length === 0) missing.push("COMPANY_ADDRESS")
+  // `parseAddressLines()` already returns `[]` when the env equals the
+  // placeholder, but defensively also reject any line that equals it
+  // (e.g. a misconfigured `"|[unset]|"` would otherwise sneak through).
+  if (
+    COMPANY.addressLines.length === 0 ||
+    COMPANY.addressLines.some((line) => line === PLACEHOLDER)
+  ) {
+    missing.push("COMPANY_ADDRESS")
+  }
   if (missing.length > 0) {
     throw new Error(
       `Invoice PDF cannot render — missing required company/bank env vars: ${missing.join(", ")}. ` +

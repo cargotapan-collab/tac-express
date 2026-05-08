@@ -7,6 +7,7 @@ import { UserRole } from "@workspace/types"
 import { createAdminServerService } from "@workspace/services/server"
 import { createWhatsAppServiceFromEnv } from "@workspace/services/whatsapp.service"
 import { checkWhatsApp } from "@/lib/rate-limit"
+import { isPdfAutoGenAvailable } from "@/lib/public-origin"
 
 /**
  * GET /api/whatsapp/test
@@ -91,7 +92,7 @@ export async function GET(req: NextRequest) {
    * Tunnel) flip this to true once `NEXT_PUBLIC_DASHBOARD_URL` is set
    * to the tunneled origin.
    */
-  const pdfAutoGenAvailable = checkPdfAutoGenAvailable(req)
+  const pdfAutoGenAvailable = isPdfAutoGenAvailable(req)
 
   /* ── 2. Config check ── */
   let svc
@@ -136,29 +137,10 @@ export async function GET(req: NextRequest) {
   })
 }
 
-/**
- * Returns true when the server is able to mint a signed PDF URL that
- * WhatsApp can reach. Two preconditions:
- *   1. `INVOICE_PDF_SIGNING_SECRET` is set (HMAC signing works).
- *   2. The resolved public origin is not `localhost` / `127.0.0.1`.
- *
- * Mirrors the logic in `apps/dashboard/app/api/whatsapp/send-invoice/route.ts`'s
- * `resolvePublicOrigin` so the dialog's "URL needed?" gate matches the
- * server's "auto-inject?" decision exactly.
- */
-function checkPdfAutoGenAvailable(req: NextRequest): boolean {
-  if (!process.env.INVOICE_PDF_SIGNING_SECRET) return false
-
-  const explicit = process.env.NEXT_PUBLIC_DASHBOARD_URL?.trim()
-  if (explicit) {
-    return !/localhost|127\.0\.0\.1|\[?::1\]?/.test(explicit)
-  }
-
-  const host =
-    req.headers.get("x-forwarded-host") ?? req.headers.get("host")
-  if (!host) return false
-  return !/localhost|127\.0\.0\.1|\[?::1\]?/.test(host)
-}
+/* `isPdfAutoGenAvailable` is imported from `@/lib/public-origin` so the
+ * dialog's "URL needed?" gate matches the send route's auto-gen path
+ * EXACTLY — both use the same `isPubliclyReachableHttpUrl` predicate
+ * (loopback + RFC1918 + link-local + IPv6 ULA all rejected). */
 
 /* ════════════════════════════════════════════════════════════════════════ */
 /*  Helpers — defensive parsers, since the WPBox response shape varies      */

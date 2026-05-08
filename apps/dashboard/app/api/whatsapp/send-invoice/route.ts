@@ -19,6 +19,10 @@ import {
 import { buildSignedInvoicePdfUrl } from "@workspace/services/pdf/invoice-pdf-token"
 import type { InvoicePdfData } from "@workspace/services/pdf/invoice-pdf"
 import { checkWhatsApp } from "@/lib/rate-limit"
+import {
+  isPubliclyReachableHttpUrl,
+  resolvePublicOrigin,
+} from "@/lib/public-origin"
 
 /**
  * POST /api/whatsapp/send-invoice
@@ -543,81 +547,10 @@ export async function POST(req: NextRequest) {
 /*  Helpers                                                                  */
 /* ════════════════════════════════════════════════════════════════════════ */
 
-/**
- * Resolve the public origin WhatsApp will use to fetch our PDF.
- *
- * Order of preference:
- *   1. `NEXT_PUBLIC_DASHBOARD_URL` — explicit env override (production).
- *   2. The request's `Host` header — works for any deployed host.
- *   3. `req.url` — last resort.
- *
- * Returns `null` when the resolved origin is `localhost` or `127.0.0.1`,
- * because WhatsApp's servers can't fetch from the dev machine. Callers
- * fall back to letting the operator paste a public URL manually (e.g.
- * an ngrok tunnel for testing).
- */
-function resolvePublicOrigin(req: NextRequest): string | null {
-  const explicit = process.env.NEXT_PUBLIC_DASHBOARD_URL?.trim()
-  if (explicit) {
-    if (/localhost|127\.0\.0\.1|\[?::1\]?/.test(explicit)) return null
-    return explicit.replace(/\/+$/, "")
-  }
-
-  const host =
-    req.headers.get("x-forwarded-host") ?? req.headers.get("host")
-  if (host) {
-    if (/localhost|127\.0\.0\.1|\[?::1\]?/.test(host)) return null
-    // `x-forwarded-proto` may carry a comma-separated list when multiple
-    // proxies have prepended their own value (e.g. "https, http"). Take
-    // the first entry — it's the one closest to the original client.
-    const protoHeader = req.headers.get("x-forwarded-proto")
-    const proto =
-      protoHeader?.split(",")[0]?.trim() ||
-      (host.includes(".") ? "https" : "http")
-    return `${proto}://${host}`
-  }
-
-  return null
-}
-
-/**
- * Returns true when `url` is a syntactically-valid http(s) URL pointing
- * at a publicly-routable host. Rejects:
- *   - non-http(s) schemes (file:, data:, javascript:, etc.)
- *   - localhost, 127.0.0.0/8, ::1
- *   - RFC 1918 private ranges (10/8, 172.16/12, 192.168/16)
- *   - link-local 169.254.0.0/16
- *   - IPv6 unique-local fc00::/7
- *
- * WhatsApp's media fetcher is on the public internet, so URLs that
- * resolve to private space are guaranteed to fail at delivery time —
- * better to refuse them at the schema boundary.
- */
-function isPubliclyReachableHttpUrl(value: string): boolean {
-  let u: URL
-  try {
-    u = new URL(value)
-  } catch {
-    return false
-  }
-  if (u.protocol !== "http:" && u.protocol !== "https:") return false
-  const host = u.hostname.toLowerCase()
-  if (host === "localhost" || host === "::1") return false
-  // IPv4 dotted-quad checks
-  const v4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
-  if (v4) {
-    const [, a, b] = v4
-    const o1 = Number(a), o2 = Number(b)
-    if (o1 === 10) return false                                 // 10/8
-    if (o1 === 127) return false                                // loopback
-    if (o1 === 169 && o2 === 254) return false                  // link-local
-    if (o1 === 172 && o2 >= 16 && o2 <= 31) return false        // 172.16/12
-    if (o1 === 192 && o2 === 168) return false                  // 192.168/16
-  }
-  // IPv6 unique-local fc00::/7 — match leading fc/fd nybble
-  if (/^\[?(fc|fd)[0-9a-f]{2}:/i.test(host)) return false
-  return true
-}
+/* `resolvePublicOrigin` and `isPubliclyReachableHttpUrl` are shared
+ * with `apps/dashboard/app/api/whatsapp/test/route.ts` via
+ * `@/lib/public-origin` so the dialog's "hide manual URL field" flag
+ * matches the send route's auto-gen capability exactly. */
 
 /**
  * Build the compact `InvoicePdfData` payload from the loaded invoice

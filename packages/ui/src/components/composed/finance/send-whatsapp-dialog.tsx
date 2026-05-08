@@ -129,10 +129,21 @@ export function SendWhatsAppDialog({
    *
    * Match order: explicit env var → name pattern (`*invoice*`) → first
    * approved template only when there's exactly one (degenerate case
-   * where ordering is moot). Otherwise fall back to undefined and the
-   * dialog disables the send button.
+   * where ordering is moot). Otherwise return undefined.
    */
   const invoiceTemplate = pickInvoiceTemplate(templates)
+  /**
+   * **Misconfigured template state.** When the WPBox account has
+   * approved templates but `pickInvoiceTemplate()` couldn't identify
+   * the invoice one (e.g. naming convention drifted, env var unset
+   * with multiple templates), DON'T silently fall back to direct mode
+   * — that would defeat the deterministic-template guarantee and
+   * reintroduce the 24h-window failure. Treat as a blocking config
+   * error: the send button stays disabled and a status message
+   * surfaces. Operators should set `NEXT_PUBLIC_WHATSAPP_INVOICE_TEMPLATE`
+   * to the exact template name.
+   */
+  const isTemplateMisconfigured = templates.length > 0 && invoiceTemplate === undefined
   const hasTemplates = invoiceTemplate !== undefined
   /* Implicit delivery mode — operator doesn't see this decision. */
   const mode: DeliveryMode = hasTemplates ? "template" : "direct"
@@ -263,7 +274,8 @@ export function SendWhatsAppDialog({
   const sendDisabled =
     isSubmitting ||
     Boolean(testStatus && !testStatus.ok) ||
-    Boolean(testLoading)
+    Boolean(testLoading) ||
+    isTemplateMisconfigured
 
   /* Show the connectivity pill ONLY when the connection is broken or
    * still loading — once verified, hide it so production users don't
@@ -294,11 +306,22 @@ export function SendWhatsAppDialog({
             />
           )}
 
+          {/* Template-misconfigured: blocking error. We have approved
+              templates but couldn't resolve which one is the invoice
+              template. Don't silently fall back to direct. */}
+          {isTemplateMisconfigured && testStatus?.ok && (
+            <TemplateMisconfiguredNotice
+              templateCount={templates.length}
+            />
+          )}
+
           {/* 24-hour policy notice — only when we'll send via direct
               mode (no approved templates available) and the connection
               is healthy. Surfaces the only delivery caveat the operator
               needs to know about. */}
-          {mode === "direct" && testStatus?.ok && <Direct24hNotice />}
+          {mode === "direct" && testStatus?.ok && !isTemplateMisconfigured && (
+            <Direct24hNotice />
+          )}
 
           {/* Recipient name (read-only) */}
           <div className="space-y-1.5">
@@ -496,6 +519,33 @@ function ConfigStatusPill({
           Contact an administrator to enable invoice messaging.
         </p>
       )}
+    </div>
+  )
+}
+
+function TemplateMisconfiguredNotice({
+  templateCount,
+}: {
+  templateCount: number
+}) {
+  return (
+    <div className="border border-destructive/40 bg-destructive/5 px-3 py-2 space-y-1">
+      <div className="flex items-center gap-2">
+        <RiErrorWarningLine
+          className="h-3.5 w-3.5 text-destructive shrink-0"
+          aria-hidden="true"
+        />
+        <p className="font-mono text-2xs uppercase tracking-widest text-destructive">
+          Template not configured
+        </p>
+      </div>
+      <p className="font-sans text-2xs leading-snug text-muted-foreground pl-5">
+        {templateCount === 1
+          ? "The single approved template doesn't match the invoice naming pattern. "
+          : `Found ${templateCount} approved templates but none matches the invoice pattern. `}
+        Set <code className="font-mono">NEXT_PUBLIC_WHATSAPP_INVOICE_TEMPLATE</code>{" "}
+        to the exact template name and restart the dashboard.
+      </p>
     </div>
   )
 }

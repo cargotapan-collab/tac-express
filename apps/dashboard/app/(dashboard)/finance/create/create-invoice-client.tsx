@@ -280,7 +280,7 @@ export function CreateInvoiceClient() {
         description="Generate an invoice for an existing AWB with automatic rate-card lookup"
         actions={
           autosave.savedAt ? (
-            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <div className="flex items-center gap-2 t-overline text-muted-foreground">
               <span>
                 Draft saved · {format(new Date(autosave.savedAt), "HH:mm:ss")}
               </span>
