@@ -3,6 +3,8 @@ import type { TablesInsert } from "@workspace/database/database.types"
 import type { Shipment, ShipmentSummary, ShipmentFilters, TrackingEvent } from "@workspace/types"
 import { ShipmentStatus } from "@workspace/types"
 
+import { isMissingRpcOrRelation } from "./shared/rpc-errors"
+
 /**
  * The canonical insert shape for `shipments` rows, derived from the generated
  * Supabase `Database` type. Use this at the service boundary instead of a
@@ -95,9 +97,14 @@ export function createShipmentService(db: SupabaseClient) {
 
     /**
      * Bulk-create shipments. Tries `bulk_create_shipments` RPC first
-     * (validation + atomic batch); falls back to a chunked .insert() if
-     * the RPC isn't deployed yet. Returns per-row outcome so the UI can
-     * surface partial-success cleanly.
+     * (validation + atomic batch); falls back to a chunked .insert()
+     * if the RPC isn't deployed yet. Returns per-row outcome so the
+     * UI can surface partial-success cleanly.
+     *
+     * Fallback discriminator (issue #19): only fall through when the
+     * RPC is missing from the schema cache. RLS denials, FK errors,
+     * and business-rule rejections re-throw — letting them bypass to
+     * the JS path would silently void future server-side validation.
      */
     async bulkCreateShipments(
       inputs: CreateShipmentDbInput[]
@@ -122,6 +129,9 @@ export function createShipmentService(db: SupabaseClient) {
           failed: out.failed ?? 0,
           errors: out.errors ?? [],
         }
+      }
+      if (rpc.error && !isMissingRpcOrRelation(rpc.error)) {
+        throw rpc.error
       }
 
       // Fallback: client-side chunked inserts of 100 rows each.
