@@ -11,7 +11,7 @@ import { Input } from "@workspace/ui/components/primitives/input"
 import { RiAddLine, RiSearchLine, RiUserLine } from "@workspace/ui/icons"
 import { cn } from "@workspace/ui/lib/utils"
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
-import { DataTable } from "./data-table"
+import { DataTable } from "@workspace/ui/components/composed/data-table"
 import { columns } from "./columns"
 
 export function CustomersClient() {
@@ -97,7 +97,13 @@ export function CustomersClient() {
           ))}
         </div>
       ) : (
-        <DataTable data={customers ?? []} columns={columns} />
+        <DataTable
+          data={customers ?? []}
+          columns={columns}
+          searchKey="name"
+          searchPlaceholder="Filter customers"
+          onRowClick={(customer) => router.push(`/customers/${customer.id}`)}
+        />
       )}
     </div>
   )

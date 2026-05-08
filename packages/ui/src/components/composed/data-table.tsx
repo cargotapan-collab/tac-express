@@ -22,6 +22,14 @@ interface DataTableProps<TData, TValue> {
   searchKey?: string
   searchPlaceholder?: string
   pageSize?: number
+  /**
+   * Optional click handler — when provided, every body row becomes
+   * clickable and forwards the row's `original` value to this
+   * callback. Each caller decides what to do with it (navigation,
+   * selection, drill-down, etc.); routing concerns stay outside the
+   * generic table per LAW 5 / LAW 7.
+   */
+  onRowClick?: (row: TData) => void
 }
 
 /**
@@ -49,6 +57,7 @@ function DataTable<TData, TValue>({
   searchKey,
   searchPlaceholder = "Search...",
   pageSize = 20,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -193,9 +202,11 @@ function DataTable<TData, TValue>({
                     "col-span-full grid grid-cols-subgrid bg-card transition-[background-color,border-color] duration-[80ms] ease-linear",
                     "hover:bg-surface-hover",
                     "data-[state=selected]:bg-primary-subtle data-[state=selected]:border-l-2 data-[state=selected]:border-l-primary",
+                    onRowClick && "cursor-pointer",
                   )}
                   data-state={row.getIsSelected() ? "selected" : undefined}
                   aria-selected={row.getIsSelected() ? true : undefined}
+                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td
