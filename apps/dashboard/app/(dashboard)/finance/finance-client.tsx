@@ -115,6 +115,12 @@ export function FinanceClient() {
     },
   ], [router])
 
+  // TanStack Table opts out of React Compiler memoization: `useReactTable`
+  // returns functions whose identities the Compiler can't memoize without
+  // risking stale UI (the table instance itself is internally stable). The
+  // shared `react-internal` config disables this rule globally for the UI
+  // package, but the dashboard's `next-js` config doesn't — disable inline.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: data ?? [],
     columns,

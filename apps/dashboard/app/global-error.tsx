@@ -35,7 +35,7 @@ export default function GlobalError({ error }: GlobalErrorProps) {
               Something went wrong
             </h1>
             <p className="font-sans text-sm text-muted-foreground">
-              The dashboard hit an unexpected error and couldn't render this
+              The dashboard hit an unexpected error and couldn&apos;t render this
               page. Our ops team has been notified — please reload and try
               again.
             </p>

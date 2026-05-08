@@ -28,7 +28,6 @@ import {
 import {
   SendWhatsAppDialog,
   type SendWhatsAppValues,
-  type WhatsappTestStatus,
 } from "@workspace/ui/components/composed/finance/send-whatsapp-dialog"
 
 interface InvoiceDetailClientProps {
