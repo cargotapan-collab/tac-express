@@ -236,6 +236,39 @@ describe("WizardActions", () => {
     expect(screen.getByRole("button", { name: /^next$/i })).toBeDisabled()
   })
 
+  it("clamps out-of-range currentIndex when computing UI state and counter", () => {
+    const onCancel = vi.fn<() => void>()
+    // currentIndex=99, totalSteps=4 — should clamp to step 3 (final)
+    const { rerender } = render(
+      <WizardActions
+        currentIndex={99}
+        totalSteps={4}
+        onBack={onBack}
+        onCancel={onCancel}
+        onNext={onNext}
+        finalLabel="DONE"
+      />
+    )
+    // Counter shows clamped value, not raw 100
+    expect(screen.getByText(/step 4 of 4/i)).toBeInTheDocument()
+    // Final-step detection works on clamped index → finalLabel button visible
+    expect(screen.getByRole("button", { name: /done/i })).toBeInTheDocument()
+
+    // Negative index — should clamp to step 0 (first)
+    rerender(
+      <WizardActions
+        currentIndex={-5}
+        totalSteps={4}
+        onBack={onBack}
+        onCancel={onCancel}
+        onNext={onNext}
+      />
+    )
+    expect(screen.getByText(/step 1 of 4/i)).toBeInTheDocument()
+    // First-step UI: with onCancel provided, label is CANCEL
+    expect(screen.getByRole("button", { name: /^cancel$/i })).toBeInTheDocument()
+  })
+
   it("renders nothing when totalSteps is zero (defensive guard)", () => {
     const { container } = render(
       <WizardActions

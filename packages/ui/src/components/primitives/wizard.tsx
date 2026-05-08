@@ -207,8 +207,13 @@ function WizardActions({
   // surface broken UI.
   if (totalSteps <= 0) return null
 
-  const final = isFinalStep ?? currentIndex === totalSteps - 1
-  const isFirst = currentIndex === 0
+  // Clamp currentIndex to [0, totalSteps - 1] so out-of-range input from a
+  // misbehaving consumer doesn't surface garbage like "Step 100 of 4" or
+  // misclassify the final step.
+  const safeIndex = Math.max(0, Math.min(currentIndex, totalSteps - 1))
+
+  const final = isFinalStep ?? safeIndex === totalSteps - 1
+  const isFirst = safeIndex === 0
   const cancellable = typeof onCancel === "function"
   const backDisabled = isFirst && !cancellable
 
@@ -273,7 +278,7 @@ function WizardActions({
           aria-live="polite"
           className="font-mono text-2xs uppercase tracking-widest text-muted-foreground"
         >
-          Step {currentIndex + 1} of {totalSteps}
+          Step {safeIndex + 1} of {totalSteps}
         </div>
       ) : null}
 
