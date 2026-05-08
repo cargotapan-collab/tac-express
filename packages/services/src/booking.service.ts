@@ -7,6 +7,8 @@
 
 import type { SupabaseClient } from "@workspace/database/supabase.types"
 
+import { isMissingRpcOrRelation } from "./shared/rpc-errors"
+
 export type BookingStatus = "PENDING" | "APPROVED" | "CONVERTED" | "REJECTED"
 
 export interface VolumeMatrixRow {
@@ -183,7 +185,14 @@ export function createBookingService(db: SupabaseClient) {
      * Convert an APPROVED booking into a real shipment. Tries the
      * `convert_booking_to_shipment` Postgres RPC for atomic
      * (insert shipment + update booking) semantics; falls back to a
-     * client-side two-step insert + update when the RPC isn't deployed.
+     * client-side two-step insert + update when the RPC isn't
+     * deployed.
+     *
+     * Fallback discriminator (issue #19): only fall through when the
+     * RPC is missing from the schema cache. RLS denials, constraint
+     * violations, FK errors, and business-logic rejections all
+     * re-throw — bypassing those via the JS path would silently void
+     * future server-side rules.
      */
     async convertBookingToShipment(
       bookingId: string
@@ -197,6 +206,9 @@ export function createBookingService(db: SupabaseClient) {
           shipmentId: out.shipment_id,
           awbNumber: out.awb_number,
         }
+      }
+      if (rpc.error && !isMissingRpcOrRelation(rpc.error)) {
+        throw rpc.error
       }
 
       // Fallback: read the booking, build a minimal shipment, link the two.
