@@ -1015,14 +1015,17 @@ function InvoiceWizard({
     else onIndexChange(currentIndex + 1)
   }
 
-  const handleBack = () => {
+  const handlePrevious = () => {
     setErrors({})
-    if (currentIndex === 0) {
-      onCancel?.()
-    } else {
-      onIndexChange(currentIndex - 1)
-    }
+    onIndexChange(currentIndex - 1)
   }
+
+  const handleCancel = onCancel
+    ? () => {
+        setErrors({})
+        onCancel()
+      }
+    : undefined
 
   return (
     <div data-slot="invoice-wizard" className={cn("space-y-5", className)}>
@@ -1067,7 +1070,8 @@ function InvoiceWizard({
       <WizardActions
         currentIndex={currentIndex}
         totalSteps={INVOICE_WIZARD_STEPS.length}
-        onBack={handleBack}
+        onBack={handlePrevious}
+        onCancel={handleCancel}
         onNext={handleNext}
         isSubmitting={isSubmitting}
         finalLabel="CREATE INVOICE"

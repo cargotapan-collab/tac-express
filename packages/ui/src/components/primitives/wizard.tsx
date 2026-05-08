@@ -13,12 +13,6 @@ import {
 /**
  * Wizard — canonical multi-step indicator primitive for TAC Express.
  *
- * Replaces ad-hoc step indicators across:
- *   - composed/finance/wizard-stepper.tsx           (deleted in the same PR as this file)
- *   - composed/manifests/manifest-builder/wizard-stepper.tsx (pending migration)
- *   - composed/customers/customer-form.tsx · inline `Stepper` (pending extraction)
- *   - composed/shipments/create-shipment-form.tsx · inline `STEPS` (pending migration)
- *
  * Pairs with <WizardActions> for the canonical back/next/submit row.
  * The consumer owns step state — this primitive is presentational.
  *
@@ -35,7 +29,7 @@ interface WizardStep {
   label: string
   description?: string
   /** Optional icon rendered next to the label (e.g. RiUserLine for an "Identity" step). */
-  icon?: React.ComponentType<{ className?: string }>
+  icon?: React.ElementType
 }
 
 interface WizardProps extends Omit<React.HTMLAttributes<HTMLOListElement>, "children"> {
@@ -155,15 +149,21 @@ interface WizardActionsProps
   currentIndex: number
   totalSteps: number
   /**
-   * Consumer routes the back action. At step 0 the button is labelled "CANCEL"
-   * — typically dismiss the wizard. At step > 0 it is labelled "← BACK"
-   * — typically `onIndexChange(currentIndex - 1)`.
+   * Called when the user clicks the back button at step > 0.
+   * Typically `onIndexChange(currentIndex - 1)`.
    */
   onBack: () => void
   /**
-   * Consumer routes the forward action. At the final step the button is
-   * labelled with `finalLabel` — typically `onSubmit()`. Otherwise "NEXT →"
-   * — typically `onIndexChange(currentIndex + 1)`.
+   * Called when the user clicks the back button at step 0. When provided the
+   * button is labelled "CANCEL" — typically dismiss the wizard / close an
+   * inline panel. When omitted, step-0 BACK renders as a disabled button —
+   * appropriate for full-page routes that have no in-flow cancel target.
+   */
+  onCancel?: () => void
+  /**
+   * Called when the user clicks the forward button. At the final step the
+   * button is labelled with `finalLabel` — typically `onSubmit()`. Otherwise
+   * "NEXT →" — typically `onIndexChange(currentIndex + 1)`.
    */
   onNext: () => void
   isSubmitting?: boolean
@@ -183,6 +183,7 @@ function WizardActions({
   currentIndex,
   totalSteps,
   onBack,
+  onCancel,
   onNext,
   isSubmitting = false,
   isFinalStep,
@@ -195,6 +196,16 @@ function WizardActions({
 }: WizardActionsProps) {
   const final = isFinalStep ?? currentIndex === totalSteps - 1
   const isFirst = currentIndex === 0
+  const cancellable = typeof onCancel === "function"
+  const backDisabled = isFirst && !cancellable
+
+  const handleBackClick = () => {
+    if (isFirst) {
+      onCancel?.()
+    } else {
+      onBack()
+    }
+  }
 
   return (
     <div
@@ -202,7 +213,13 @@ function WizardActions({
       className={cn("flex items-center justify-between gap-3", className)}
       {...props}
     >
-      <Button type="button" variant="outline" size="sm" onClick={onBack}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleBackClick}
+        disabled={backDisabled}
+      >
         {!isFirst ? <RiArrowLeftLine aria-hidden="true" /> : null}
         <span className={cn("font-mono uppercase tracking-wider", !isFirst && "ml-1.5")}>
           {isFirst ? "CANCEL" : "BACK"}
