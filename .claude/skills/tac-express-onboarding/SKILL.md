@@ -10,6 +10,27 @@ description: >-
 
 ---
 
+## Step 0 — The GBrain enforcement gate (MANDATORY)
+
+After this onboarding, your very next action is:
+
+1. **Open [`.claude/skills/RESOLVER.md`](../RESOLVER.md)** — the intent→skill dispatch table.
+2. Match the user's request to a specialist skill (or two).
+3. Load the matched skill BEFORE writing any code.
+4. Apply the cross-cutting rules in [`.claude/skills/conventions/`](../conventions/):
+   - `quality-gates.md` (5 must-pass commands)
+   - `architecture-flow.md` (UI → services → database)
+   - `brain-first.md` (codebase + skills + memory FIRST)
+   - `test-before-bulk.md` (test on 1 before bulk)
+   - `subagent-routing.md` (Agent tool vs inline)
+   - `friction-protocol.md` (refusal format when asked to violate a law)
+5. If the same fix recurs 2+ times → load [`tac-skillify`](../tac-skillify/SKILL.md)
+   and turn it into a permanent skill. The 10-item conformance audit is the gate.
+
+> Skipping the resolver = non-conforming task. Restart from step 1.
+
+---
+
 ## What is TAC Express?
 
 A **logistics mission-control platform** for the North-East corridor. Public marketing site (`apps/web`) + operations dashboard (`apps/dashboard`) + shared monorepo packages.

@@ -2,7 +2,7 @@
 
 > This file is the Claude Code / Claude API specific companion to `AGENTS.md`.
 > **MANDATORY:** Read both `AGENTS.md` AND this file before any task.
-> **VERSION:** 5.0 — TAC Express v5.0 Violet Grid (May 2026)
+> **VERSION:** 5.1 — TAC Express v5.0 Violet Grid + GBrain enforcement layer (May 2026)
 
 ---
 
@@ -16,19 +16,57 @@ AGENTS.md (master rules)
 PROJECT-RULES.md (enforcement)
   ↓ defers to
 DESIGN_SYSTEM.md (visual spec)
+  ↓ dispatches via
+.claude/skills/RESOLVER.md  (intent → skill dispatcher, GBrain pattern)
+  ↓ enforces
+.claude/skills/conventions/* (cross-cutting rules)
 ```
 
 All files are co-equal on hard violations. When in conflict, be MORE restrictive, not less.
 
 ---
 
+## 0.5. GBRAIN ENFORCEMENT (MANDATORY ON EVERY TASK)
+
+> Adopted from GBrain (https://github.com/garrytan/gbrain) — **thin harness, fat skills**.
+> The skill files are the durable artifacts; this section is the enforcement gate.
+
+**Every task — no exceptions, no "just this once":**
+
+1. **Read [`.claude/skills/RESOLVER.md`](.claude/skills/RESOLVER.md)** to dispatch the
+   user's intent to the correct specialist skill. The resolver IS the routing table.
+2. **Load the matched skill** via the Skill tool BEFORE writing any code.
+3. **Apply the cited conventions** in [`.claude/skills/conventions/`](.claude/skills/conventions/):
+   - `quality-gates.md` — the 5 must-pass commands before commit
+   - `architecture-flow.md` — UI → services → database (LAW 6/7/8)
+   - `brain-first.md` — check codebase + skills + memory BEFORE external lookup
+   - `test-before-bulk.md` — test on 1 before bulk
+   - `subagent-routing.md` — Agent tool vs inline
+   - `friction-protocol.md` — refusal format when asked to violate a law
+4. **If you add a new skill or trigger phrase** → add a line to
+   [`.claude/skills/evals/routing.jsonl`](.claude/skills/evals/routing.jsonl).
+   PRs that add skills without the routing-eval line are non-conforming.
+5. **If the user keeps asking for the same fix 2+ times → load `tac-skillify`**
+   and turn the recurring pattern into a permanent skill. This is the
+   **skillify loop** — feedback becomes enforced behavior, not advice that drifts.
+
+**Authority:** [`.claude/skills/MANIFEST.json`](.claude/skills/MANIFEST.json) is the
+versioned skillpack manifest (current version: `1.0.0`).
+
+> If a task starts and you have not consulted RESOLVER.md, the task is non-conforming.
+> Restart from step 1.
+
+---
+
 ## 1. CLAUDE-SPECIFIC WORKFLOW
 
 ### Before ANY Task
-1. Claude Code should natively read `.claude/skills/` via progressive disclosure.
-2. If the skill is not automatically loaded, manually load the `tac-express-onboarding` skill from `.claude/skills/` first.
-3. If a required skill isn't in `.claude/skills/`, fallback to `.agents/skills/`.
-4. Identify which specialist skill applies to this task.
+1. Claude Code natively reads `.claude/skills/` via progressive disclosure.
+2. **Open [`.claude/skills/RESOLVER.md`](.claude/skills/RESOLVER.md)** — that is the
+   single dispatch table. Match the user's intent to a skill (or two).
+3. If the skill description in the available-skills list isn't enough, load it via
+   the Skill tool FIRST. Onboarding (`tac-express-onboarding`) loads first every session.
+4. If a required skill isn't in `.claude/skills/`, fallback to `.agents/skills/`.
 5. **NEVER write a single line of code without first invoking the relevant skill.**
 
 ### Task Classification
@@ -51,6 +89,8 @@ All files are co-equal on hard violations. When in conflict, be MORE restrictive
 | Domain (shipments / manifests / AWBs) | `tac-domain-logistics` | Status lifecycles + branded types |
 | Accessibility review | `tac-accessibility` | WCAG 2.1 AA |
 | Pre-merge | `tac-code-review` | All quality gates pass |
+| Recurring fix / "we keep doing X" / new skill | `tac-skillify` | 10-item conformance audit (RESOLVER + eval + tests) |
+| Cross-cutting rule (quality / architecture / brain-first / etc.) | `conventions/*.md` | See `RESOLVER.md` Disambiguation rules |
 
 ---
 

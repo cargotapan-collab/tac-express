@@ -2,28 +2,77 @@
 
 > **MANDATORY:** Read this file fully at the start of EVERY conversation before writing any code.
 > **AUTHORITY:** This file + `PROJECT-RULES.md` + `DESIGN_SYSTEM.md` supersede all other instructions.
-> **VERSION:** 7.0 — TAC Express v5.0 Violet Grid (May 2026)
+> **VERSION:** 7.1 — TAC Express v5.0 Violet Grid + GBrain enforcement layer (May 2026)
 
 ---
 
-## 0. SKILL SYSTEM
+## 0. SKILL SYSTEM (GBrain-pattern enforcement)
 
-This project uses agent **Skills** in `.agents/skills/` and `.agent/skills/`.
+> Adopted from GBrain (https://github.com/garrytan/gbrain) — **thin harness, fat skills**.
+> The skill files in `.claude/skills/` are the durable, executable artifacts.
+> This section is the enforcement gate.
+
+### The four-step gate (every task, no exceptions)
+
+1. **Read [`.claude/skills/RESOLVER.md`](./.claude/skills/RESOLVER.md)** — the
+   intent → skill dispatch table. Match the user's request to a specialist skill
+   (or two). The resolver is the truth, not your memory.
+2. **Load the matched skill** via the Skill tool BEFORE writing code.
+3. **Apply the cited cross-cutting conventions** from
+   [`.claude/skills/conventions/`](./.claude/skills/conventions/):
+   - `quality-gates.md` — the 5 must-pass commands
+   - `architecture-flow.md` — UI → services → database (LAW 6/7/8)
+   - `brain-first.md` — codebase + skills + memory FIRST
+   - `test-before-bulk.md` — test on 1 before bulk
+   - `subagent-routing.md` — Agent tool vs inline
+   - `friction-protocol.md` — refusal format when asked to violate a law
+4. **If you skipped step 1 or 2, the work is non-conforming.** Restart.
+
+### Skillify loop (recurring fix → permanent skill)
+
+If the same fix / pattern / question comes up 2+ times, load
+[`tac-skillify`](./.claude/skills/tac-skillify/SKILL.md) and turn it into a
+properly-skilled, tested, resolvable unit. The 10-item conformance checklist
+gates the work as "shipped." This is how feedback memories become enforced
+behavior instead of advice that drifts.
+
+### Routing eval
+
+Adding a new skill OR a new trigger phrase REQUIRES a corresponding line in
+[`.claude/skills/evals/routing.jsonl`](./.claude/skills/evals/routing.jsonl).
+The eval is what protects future resolver edits from silently breaking dispatch.
+
+### Skillpack manifest
+
+[`.claude/skills/MANIFEST.json`](./.claude/skills/MANIFEST.json) is the versioned
+skill bundle (current: `1.0.0`, conformance: `1.0.0`). It enumerates skills,
+conventions, evals, and the audit command (`pnpm audit:skills`).
+
+### Quick-route table (see RESOLVER.md for the full one)
 
 | Trigger | Skill | When |
 |---------|-------|------|
 | Session start | `tac-express-onboarding` | First skill every session |
-| Every task | `karpathy-coding` | Before ANY non-trivial task |
-| New feature/component | `tac-brainstorming` | Before writing any code |
-| Auth/session/middleware | `tac-express-auth` | Any auth-related work |
-| Writing components | `tac-ui-authoring` | Every UI task |
-| Writing services/DB | `tac-data-layer` | Any data layer work |
-| Test writing | `tac-tdd` | All test tasks |
-| Debugging | `tac-debug` | Any bug or failure |
-| Code review | `tac-code-review` | Pre-merge, post-feature |
-| GSD workflow | `tac-gsd` | Planning and execution |
+| Any non-trivial task | `tac-karpathy-discipline` | Before any code |
+| Law / forbidden-package question | `tac-fourteen-laws` | Before any install or violation |
+| New feature / component | `tac-brainstorming` → `tac-tdd` → `tac-ui-authoring` | Before any code |
+| Auth / session / middleware / RBAC | `tac-auth` | Any auth work |
+| UI component | `tac-ui-authoring` | Every UI task |
+| Premium UI surface (hero, KPI) | `tac-design-tokens` → `tac-ui-authoring` | Every premium surface |
+| Form | `tac-forms` | Every form |
+| Service / hook / data fetch | `tac-data-layer` | Every data path |
+| Route / server action / edge function | `tac-api-surface` | Every API surface |
+| Schema / RLS / migration / RPC | `tac-supabase-schema` | Every schema change |
+| Domain (shipments, AWBs, manifests) | `tac-domain-logistics` | Every domain task |
+| Test | `tac-tdd` | Every non-trivial implementation |
+| Bug / failure | `tac-debug` | Root-cause first, no guessing |
+| A11y review | `tac-accessibility` | WCAG 2.1 AA gate |
+| Pre-merge | `tac-code-review` | All quality gates pass |
+| Recurring fix / "we keep doing X" / new skill | `tac-skillify` | 10-item conformance audit |
+| Cross-cutting rule | `conventions/*.md` | See RESOLVER Disambiguation rules |
 
-> **Skills are mandatory workflows, not suggestions.** The agent MUST invoke the relevant skill before proceeding with any task that matches its trigger.
+> **Skills are mandatory workflows, not suggestions.** The agent MUST invoke the
+> relevant skill before proceeding with any task that matches its trigger.
 
 ---
 
