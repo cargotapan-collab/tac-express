@@ -64,7 +64,7 @@ export function ProfileCompletionCard({
           aria-label="Profile completion"
         >
           <div
-            className="h-full bg-primary transition-all duration-150"
+            className="h-full bg-primary transition-all duration-[var(--duration-base)]"
             style={{ width: `${percent}%` }}
           />
         </div>

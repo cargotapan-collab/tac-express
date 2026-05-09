@@ -62,10 +62,19 @@ export function ManagementClient() {
     // client integration becomes a one-line swap when the server action
     // lands. For now we surface an honest "captured, delivery pending"
     // notification rather than fake a success.
+    //
+    // Email is masked before it reaches the in-memory notification store
+    // — the store is exposed in the notification panel + persisted in
+    // session history, and surfacing full email PII there for transient
+    // confirmations is unnecessary risk.
+    const maskedEmail = input.email.replace(
+      /^(.).*?(@.*)$/,
+      (_, first: string, domain: string) => `${first}***${domain}`,
+    )
     addNotification({
       type: "info",
       title: "Invitation captured",
-      message: `${input.email} · ${input.role}${
+      message: `${maskedEmail} · ${input.role}${
         input.hubCode ? ` · ${input.hubCode}` : ""
       }. Email delivery via the Supabase admin API is configured in a follow-up PR.`,
     })

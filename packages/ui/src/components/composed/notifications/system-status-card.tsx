@@ -39,16 +39,27 @@ export function SystemStatusCard({
   className,
   ...props
 }: SystemStatusCardProps) {
-  const overall = services.every((s) => s.status === "ok")
-    ? "All systems normal"
-    : services.some((s) => s.status === "down")
-      ? "Service incident"
-      : "Degraded performance"
-  const pulseTone = services.every((s) => s.status === "ok")
-    ? "bg-accent-success"
-    : services.some((s) => s.status === "down")
-      ? "bg-accent-danger"
-      : "bg-accent-warning"
+  // Empty `services` must NOT report "all systems normal" — that's a
+  // false-positive health signal. Treat the empty case as "unknown" so
+  // an operator never reads a comforting status from a missing feed.
+  const hasServices = services.length > 0
+  const hasDown = services.some((s) => s.status === "down")
+  const allOk = hasServices && services.every((s) => s.status === "ok")
+
+  const overall = !hasServices
+    ? "Status unavailable"
+    : allOk
+      ? "All systems normal"
+      : hasDown
+        ? "Service incident"
+        : "Degraded performance"
+  const pulseTone = !hasServices
+    ? "bg-muted-foreground"
+    : allOk
+      ? "bg-accent-success"
+      : hasDown
+        ? "bg-accent-danger"
+        : "bg-accent-warning"
 
   return (
     <div

@@ -16,6 +16,7 @@ import {
   type ProfileSubmitValues,
 } from "@workspace/ui/components/composed/settings/profile-form"
 import { ShortcutsCard } from "@workspace/ui/components/composed/settings/shortcuts-card"
+import { SystemInfoCard } from "@workspace/ui/components/composed/settings/system-info-card"
 import { Label } from "@workspace/ui/components/primitives/label"
 import {
   Tabs,
@@ -361,26 +362,4 @@ function SecurityItem({
   )
 }
 
-function SystemInfoCard({ className }: { className?: string }) {
-  return (
-    <div className={`tac-fui-panel space-y-3 bg-card p-5 ${className ?? ""}`}>
-      <p className="border-b border-border pb-2 font-mono text-2xs uppercase tracking-widest text-muted-foreground">
-        System information
-      </p>
-      <div className="space-y-2">
-        {[
-          { label: "Version", value: "TAC Express v1.0" },
-          { label: "Environment", value: process.env.NODE_ENV ?? "production" },
-        ].map(({ label, value }) => (
-          <div key={label} className="flex items-center justify-between py-1">
-            <span className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
-              {label}
-            </span>
-            <span className="font-mono text-xs text-foreground">{value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 

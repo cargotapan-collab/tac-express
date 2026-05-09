@@ -74,9 +74,16 @@ export function ProfileForm({
 
   // Re-hydrate when the consumer's defaultValues change (e.g. session
   // resolves after first render). reset() also clears the dirty flag.
+  // Pushes the new values to onValuesChange too — watch() doesn't fire
+  // on programmatic resets, so without this the sidebar widgets that
+  // depend on onValuesChange would stay stale until the user types.
   React.useEffect(() => {
     reset(defaultValues)
-  }, [defaultValues, reset])
+    onValuesChange?.({
+      name: defaultValues.name ?? "",
+      hubCode: defaultValues.hubCode ?? "",
+    })
+  }, [defaultValues, onValuesChange, reset])
 
   // Lift live values to the consumer for sidebar widget binding.
   React.useEffect(() => {
@@ -111,14 +118,15 @@ export function ProfileForm({
       </p>
       <div className="grid gap-1.5">
         <Label htmlFor="profile-email">Email</Label>
-        <div
+        <Input
           id="profile-email"
-          className="flex h-9 items-center border border-border bg-muted/30 px-3"
-        >
-          <span className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
-            {email}
-          </span>
-        </div>
+          value={email}
+          readOnly
+          aria-readonly="true"
+          className={cn(
+            "h-9 bg-muted/30 font-mono text-sm uppercase tracking-wider text-muted-foreground",
+          )}
+        />
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="profile-name">Display name</Label>

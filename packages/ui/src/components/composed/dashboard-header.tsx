@@ -117,7 +117,7 @@ function DashboardHeader() {
             "border border-border bg-surface text-muted-foreground",
             "hover:border-primary hover:bg-primary/5 hover:text-foreground",
             "tac-fui-hover transition-colors",
-            "focus:outline-none focus-visible:outline-1 focus-visible:outline-primary focus-visible:[outline-offset:var(--outline-offset-outset)]"
+            "focus:outline-none focus-visible:outline-1 focus-visible:outline-primary focus-visible:outline-offset-1"
           )}
           aria-label="Open search (⌘K)"
         >

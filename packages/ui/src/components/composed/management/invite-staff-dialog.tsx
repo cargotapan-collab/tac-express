@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 
@@ -16,6 +16,13 @@ import {
 } from "@workspace/ui/components/primitives/dialog"
 import { Input } from "@workspace/ui/components/primitives/input"
 import { Label } from "@workspace/ui/components/primitives/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select"
 import { RiUserAddLine } from "@workspace/ui/icons"
 import { UserRole } from "@workspace/types"
 
@@ -24,6 +31,11 @@ import { UserRole } from "@workspace/types"
  * account-creation invitation. Form is wired via react-hook-form +
  * zodResolver per the project's tac-forms convention (mirrors
  * customer-form, shipment-form, sign-in-form patterns).
+ *
+ * The role and hub controls use the project's Radix-based Select
+ * primitive (LAW 14: wrap shadcn, don't rebuild) wired through
+ * Controller because Radix Select is controlled via value/onValueChange
+ * rather than native form events.
  *
  * Server-side delivery (Supabase admin invite-by-email) needs a
  * service-role key configured server-side. The dialog is fully
@@ -53,8 +65,7 @@ interface InviteStaffDialogProps {
   onInvite: (values: InviteStaffValues) => void | Promise<void>
 }
 
-const SELECT_CLASS =
-  "h-9 w-full border border-border bg-background px-3 font-mono text-sm uppercase tracking-wider text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+const NO_HUB_VALUE = "__none__"
 
 export function InviteStaffDialog({
   open,
@@ -64,8 +75,10 @@ export function InviteStaffDialog({
 }: InviteStaffDialogProps) {
   const {
     register,
+    control,
     handleSubmit,
     reset,
+    setError,
     formState: { errors, isValid, isSubmitting },
   } = useForm<InviteStaffFormValues>({
     resolver: zodResolver(inviteStaffSchema),
@@ -78,11 +91,23 @@ export function InviteStaffDialog({
   }, [open, reset])
 
   async function onSubmit(values: InviteStaffFormValues) {
-    await onInvite({
-      email: values.email.trim(),
-      role: values.role,
-      hubCode: values.hubCode || null,
-    })
+    try {
+      await onInvite({
+        email: values.email.trim(),
+        role: values.role,
+        hubCode: values.hubCode || null,
+      })
+    } catch (error) {
+      // Surface the failure inline so the user sees feedback when the
+      // real server-side delivery is wired up and a delivery rejects.
+      setError("email", {
+        type: "manual",
+        message:
+          error instanceof Error && error.message
+            ? error.message
+            : "Failed to send invitation. Please retry.",
+      })
+    }
   }
 
   return (
@@ -119,33 +144,74 @@ export function InviteStaffDialog({
 
             <div className="space-y-1.5">
               <Label htmlFor="invite-role">Role</Label>
-              <select
-                id="invite-role"
-                {...register("role")}
-                className={SELECT_CLASS}
-              >
-                {Object.values(UserRole).map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                control={control}
+                name="role"
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={(v) => field.onChange(v as UserRole)}
+                  >
+                    <SelectTrigger
+                      id="invite-role"
+                      className="h-9 w-full font-mono text-sm uppercase tracking-wider"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(UserRole).map((r) => (
+                        <SelectItem
+                          key={r}
+                          value={r}
+                          className="font-mono text-sm uppercase tracking-wider"
+                        >
+                          {r}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="invite-hub">Hub (optional)</Label>
-              <select
-                id="invite-hub"
-                {...register("hubCode")}
-                className={SELECT_CLASS}
-              >
-                <option value="">— No default hub —</option>
-                {hubOptions.map((h) => (
-                  <option key={h.value} value={h.value}>
-                    {h.label}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                control={control}
+                name="hubCode"
+                render={({ field }) => (
+                  <Select
+                    value={field.value || NO_HUB_VALUE}
+                    onValueChange={(v) =>
+                      field.onChange(v === NO_HUB_VALUE ? "" : v)
+                    }
+                  >
+                    <SelectTrigger
+                      id="invite-hub"
+                      className="h-9 w-full font-mono text-sm uppercase tracking-wider"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        value={NO_HUB_VALUE}
+                        className="font-mono text-sm uppercase tracking-wider"
+                      >
+                        — No default hub —
+                      </SelectItem>
+                      {hubOptions.map((h) => (
+                        <SelectItem
+                          key={h.value}
+                          value={h.value}
+                          className="font-mono text-sm uppercase tracking-wider"
+                        >
+                          {h.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
           </div>
 
