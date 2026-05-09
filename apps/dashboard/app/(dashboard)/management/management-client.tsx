@@ -141,19 +141,23 @@ export function ManagementClient() {
     }
   }
 
-  function handleToggleHubActive(id: string, isActive: boolean) {
-    toggleHubActive.mutate(
-      { id, isActive },
-      {
-        onSuccess: () => {
-          addNotification({
-            type: "success",
-            title: isActive ? "Hub activated" : "Hub deactivated",
-            message: id,
-          })
-        },
-      }
-    )
+  async function handleToggleHubActive(id: string, isActive: boolean) {
+    try {
+      await toggleHubActive.mutateAsync({ id, isActive })
+      addNotification({
+        type: "success",
+        title: isActive ? "Hub activated" : "Hub deactivated",
+        message: id,
+      })
+    } catch (err) {
+      addNotification({
+        type: "error",
+        title: isActive
+          ? "Failed to activate hub"
+          : "Failed to deactivate hub",
+        message: String(err),
+      })
+    }
   }
 
   const hubOptions = React.useMemo(
