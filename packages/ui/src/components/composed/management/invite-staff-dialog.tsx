@@ -44,7 +44,10 @@ import { UserRole } from "@workspace/types"
  */
 
 const inviteStaffSchema = z.object({
-  email: z.string().email("Valid email required"),
+  // .trim() before .email() so addresses with leading/trailing whitespace
+  // (common from clipboard paste) normalise to valid input rather than
+  // tripping the email regex.
+  email: z.string().trim().email("Valid email required"),
   role: z.nativeEnum(UserRole),
   // Empty string in the form maps to null (no default hub) on submit.
   hubCode: z.string(),
@@ -93,7 +96,8 @@ export function InviteStaffDialog({
   async function onSubmit(values: InviteStaffFormValues) {
     try {
       await onInvite({
-        email: values.email.trim(),
+        // schema trims; values.email is already normalised
+        email: values.email,
         role: values.role,
         hubCode: values.hubCode || null,
       })
