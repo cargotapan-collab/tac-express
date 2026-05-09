@@ -16,6 +16,7 @@ import { useSyncScanEvent } from "@workspace/services/hooks/use-scan-sync"
 import { useScanQueueStore } from "@workspace/services/stores/scan-queue.store"
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
 import { ScanSource, HubCode, type UUID } from "@workspace/types"
+import { PageShell } from "@workspace/ui/components/composed/page-shell"
 
 type ManifestContext = {
   id: string
@@ -181,7 +182,7 @@ export function ScanningClient() {
     ) : null
 
   return (
-    <>
+    <PageShell>
       <ScanningConsole
         mode={mode}
         onModeChange={(m) => {
@@ -203,6 +204,6 @@ export function ScanningClient() {
         rightRail={podRail}
       />
       {showDebug && <ScannerDebug onClose={() => setShowDebug(false)} />}
-    </>
+    </PageShell>
   )
 }

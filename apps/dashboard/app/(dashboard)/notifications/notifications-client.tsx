@@ -14,6 +14,9 @@ import {
   type InboxNotification,
 } from "@workspace/ui/components/composed/notifications/notification-inbox"
 import { EmptyState } from "@workspace/ui/components/primitives/empty-state"
+import { PageShell } from "@workspace/ui/components/composed/page-shell"
+import { SystemStatusCard } from "@workspace/ui/components/composed/notifications/system-status-card"
+import { ChannelLegendCard } from "@workspace/ui/components/composed/notifications/channel-legend-card"
 import { RiNotification3Line } from "@workspace/ui/icons"
 
 interface NotificationsClientProps {
@@ -53,21 +56,34 @@ export function NotificationsClient({ userId }: NotificationsClientProps) {
 
   if (!userId) {
     return (
-      <EmptyState
-        icon={<RiNotification3Line />}
-        title="Sign in required"
-        description="Sign in to view your notifications."
-      />
+      <PageShell>
+        <EmptyState
+          icon={<RiNotification3Line />}
+          title="Sign in required"
+          description="Sign in to view your notifications."
+        />
+      </PageShell>
     )
   }
 
   return (
-    <NotificationInbox
-      notifications={inboxItems}
-      unreadCount={unreadCount}
-      loading={isLoading}
-      onMarkRead={(id) => markRead.mutate({ id, userId })}
-      onMarkAllRead={() => markAllRead.mutate()}
-    />
+    <PageShell>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <NotificationInbox
+            notifications={inboxItems}
+            unreadCount={unreadCount}
+            loading={isLoading}
+            onMarkRead={(id) => markRead.mutate({ id, userId })}
+            onMarkAllRead={() => markAllRead.mutate()}
+          />
+        </div>
+        <aside className="space-y-6">
+          <SystemStatusCard />
+          <ChannelLegendCard />
+        </aside>
+      </div>
+    </PageShell>
   )
 }
+

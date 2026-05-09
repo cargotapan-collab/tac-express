@@ -2,7 +2,19 @@ import { readdirSync, readFileSync, statSync } from "node:fs"
 import { extname, join, relative, sep } from "node:path"
 
 const root = process.cwd()
-const excludedDirs = new Set(["node_modules", ".next", "dist", "coverage", "playwright-report", ".turbo"])
+const excludedDirs = new Set([
+  "node_modules",
+  ".next",
+  "dist",
+  "coverage",
+  "playwright-report",
+  ".turbo",
+  // `.claude/` houses git worktrees + skill files — both legitimately
+  // contain source-shaped artefacts (other-branch code under
+  // `worktrees/`, skill markdown that may quote forbidden patterns) that
+  // shouldn't trip the governance scan.
+  ".claude",
+])
 const sourceExtensions = new Set([".ts", ".tsx"])
 const errors = []
 

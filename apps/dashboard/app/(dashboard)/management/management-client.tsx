@@ -18,8 +18,15 @@ import type { UserRole, HubInput } from "@workspace/types"
 
 import { StaffTable } from "@workspace/ui/components/composed/admin/staff-table"
 import { PageHeader } from "@workspace/ui/components/composed/page-header"
+import { PageShell } from "@workspace/ui/components/composed/page-shell"
 import { HubsManager } from "@workspace/ui/components/composed/management/hubs-manager"
 import { RolesMatrix } from "@workspace/ui/components/composed/management/roles-matrix"
+import { StaffStats } from "@workspace/ui/components/composed/management/staff-stats"
+import {
+  InviteStaffDialog,
+  type InviteStaffValues,
+} from "@workspace/ui/components/composed/management/invite-staff-dialog"
+import { Button } from "@workspace/ui/components/button"
 import { EmptyState } from "@workspace/ui/components/primitives/empty-state"
 import {
   Tabs,
@@ -32,6 +39,7 @@ import {
   RiBuilding4Line,
   RiCalculatorLine,
   RiShieldCheckLine,
+  RiUserAddLine,
 } from "@workspace/ui/icons"
 
 export function ManagementClient() {
@@ -44,6 +52,34 @@ export function ManagementClient() {
   const createHub = useCreateHub()
   const updateHub = useUpdateHub()
   const toggleHubActive = useToggleHubActive()
+
+  const [inviteOpen, setInviteOpen] = React.useState(false)
+
+  function handleInvite(input: InviteStaffValues) {
+    // Email-based admin invitation requires Supabase's admin auth API which
+    // needs a server-side service-role key; that wiring is being scoped in
+    // a follow-up PR. The dialog already collects the right shape, so the
+    // client integration becomes a one-line swap when the server action
+    // lands. For now we surface an honest "captured, delivery pending"
+    // notification rather than fake a success.
+    //
+    // Email is masked before it reaches the in-memory notification store
+    // — the store is exposed in the notification panel + persisted in
+    // session history, and surfacing full email PII there for transient
+    // confirmations is unnecessary risk.
+    const maskedEmail = input.email.replace(
+      /^(.).*?(@.*)$/,
+      (_, first: string, domain: string) => `${first}***${domain}`,
+    )
+    addNotification({
+      type: "info",
+      title: "Invitation captured",
+      message: `${maskedEmail} · ${input.role}${
+        input.hubCode ? ` · ${input.hubCode}` : ""
+      }. Email delivery via the Supabase admin API is configured in a follow-up PR.`,
+    })
+    setInviteOpen(false)
+  }
 
   async function handleRoleChange(userId: string, role: UserRole) {
     try {
@@ -105,27 +141,51 @@ export function ManagementClient() {
     }
   }
 
-  function handleToggleHubActive(id: string, isActive: boolean) {
-    toggleHubActive.mutate(
-      { id, isActive },
-      {
-        onSuccess: () => {
-          addNotification({
-            type: "success",
-            title: isActive ? "Hub activated" : "Hub deactivated",
-            message: id,
-          })
-        },
-      }
-    )
+  async function handleToggleHubActive(id: string, isActive: boolean) {
+    try {
+      await toggleHubActive.mutateAsync({ id, isActive })
+      addNotification({
+        type: "success",
+        title: isActive ? "Hub activated" : "Hub deactivated",
+        message: id,
+      })
+    } catch (err) {
+      addNotification({
+        type: "error",
+        title: isActive
+          ? "Failed to activate hub"
+          : "Failed to deactivate hub",
+        message: String(err),
+      })
+    }
   }
 
+  const hubOptions = React.useMemo(
+    () =>
+      hubs
+        .filter((h) => h.isActive)
+        .map((h) => ({ value: h.code, label: `${h.code} · ${h.name}` })),
+    [hubs],
+  )
+
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader
         overline="Administration"
         title="Operations & Access"
         description="Staff, hubs, tariffs, and role-based permissions in one place."
+        actions={
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setInviteOpen(true)}
+          >
+            <RiUserAddLine aria-hidden="true" />
+            <span className="ml-1.5 font-mono uppercase tracking-wider">
+              Invite staff
+            </span>
+          </Button>
+        }
       />
 
       <Tabs defaultValue="staff">
@@ -148,7 +208,11 @@ export function ManagementClient() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="staff" className="pt-4">
+        <TabsContent value="staff" className="space-y-4 pt-4">
+          {/* Gate the KPI strip on staffLoading — passing `staff ?? []`
+              would render zero counts before the query resolves, which
+              reads as a misleading "0 staff, 0 active" admin state. */}
+          {staffLoading ? null : <StaffStats staff={staff ?? []} />}
           <StaffTable
             staff={staff ?? []}
             isLoading={staffLoading}
@@ -179,6 +243,14 @@ export function ManagementClient() {
           <RolesMatrix />
         </TabsContent>
       </Tabs>
-    </div>
+
+      <InviteStaffDialog
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        hubOptions={hubOptions}
+        onInvite={handleInvite}
+      />
+    </PageShell>
   )
 }
+

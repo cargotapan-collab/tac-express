@@ -22,6 +22,11 @@ const allowed = new Set([
   ".agents",
   ".windsurf",
   ".claude/skills",
+  // Sibling git worktrees under `.claude/worktrees/` host other-branch
+  // copies of the repo and may legitimately contain legacy spec strings
+  // from older revisions. They aren't part of the canonical tree this
+  // audit governs.
+  ".claude/worktrees",
   "scripts/audit-design-spec.mjs",
   "scripts/audit-governance.mjs",
   "scripts/generate-claude-skills.js",

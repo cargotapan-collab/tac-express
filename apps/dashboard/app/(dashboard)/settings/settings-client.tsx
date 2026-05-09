@@ -9,8 +9,14 @@ import { useUpdateOwnProfile } from "@workspace/services/hooks/use-admin"
 import { useNotificationStore } from "@workspace/services/stores/notification.store"
 
 import { PageHeader } from "@workspace/ui/components/composed/page-header"
-import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/primitives/input"
+import { PageShell } from "@workspace/ui/components/composed/page-shell"
+import { ProfileCompletionCard } from "@workspace/ui/components/composed/settings/profile-completion-card"
+import {
+  ProfileForm,
+  type ProfileSubmitValues,
+} from "@workspace/ui/components/composed/settings/profile-form"
+import { ShortcutsCard } from "@workspace/ui/components/composed/settings/shortcuts-card"
+import { SystemInfoCard } from "@workspace/ui/components/composed/settings/system-info-card"
 import { Label } from "@workspace/ui/components/primitives/label"
 import {
   Tabs,
@@ -44,22 +50,28 @@ export function SettingsClient() {
   const addNotification = useNotificationStore((s) => s.addNotification)
   const { theme, setTheme } = useTheme()
 
-  const [name, setName] = React.useState("")
-  const [hubCode, setHubCode] = React.useState("")
   const [saved, setSaved] = React.useState(false)
+  // Live form values lifted from ProfileForm via onValuesChange so the
+  // sidebar ProfileCompletionCard can update as the operator types.
+  const [liveValues, setLiveValues] = React.useState<{
+    name: string
+    hubCode: string
+  }>({ name: "", hubCode: "" })
 
-  React.useEffect(() => {
-    if (session?.user) {
-      setName((session.user.user_metadata?.name as string) ?? "")
-    }
-  }, [session])
+  const profileDefaults = React.useMemo(
+    () => ({
+      name: (session?.user?.user_metadata?.name as string) ?? "",
+      hubCode: (session?.user?.user_metadata?.hubCode as string) ?? "",
+    }),
+    [session],
+  )
 
-  async function handleSave() {
+  async function handleProfileSubmit(values: ProfileSubmitValues) {
     if (!session?.user?.id) return
     try {
       await updateProfile.mutateAsync({
         userId: session.user.id,
-        payload: { name, hubCode: hubCode || undefined },
+        payload: { name: values.name, hubCode: values.hubCode },
       })
       addNotification({
         type: "success",
@@ -74,11 +86,15 @@ export function SettingsClient() {
         title: "Save failed",
         message: String(err),
       })
+      // Re-throw so ProfileForm's submit handler rejects and the form
+      // does NOT call reset() — preserves the user's unsaved input
+      // when the mutation fails.
+      throw err
     }
   }
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <PageShell>
       <PageHeader
         overline="Account"
         title="Settings"
@@ -109,53 +125,37 @@ export function SettingsClient() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Profile */}
+        {/* Profile — 2-column on lg+ : form on the left, summary widgets on the right */}
         <TabsContent value="profile" className="pt-4">
-          <div className="tac-fui-panel space-y-4 bg-card p-5">
-            <p className="border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Profile
-            </p>
-            <Field label="Email">
-              <ReadOnly value={session?.user?.email ?? "—"} />
-            </Field>
-            <Field label="Display name">
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="h-9 font-mono text-sm uppercase"
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
+              <ProfileForm
+                email={session?.user?.email ?? "—"}
+                defaultValues={profileDefaults}
+                isSaving={updateProfile.isPending}
+                saved={saved}
+                onSubmit={handleProfileSubmit}
+                onValuesChange={setLiveValues}
               />
-            </Field>
-            <Field label="Hub code">
-              <Input
-                value={hubCode}
-                onChange={(e) => setHubCode(e.target.value.toUpperCase())}
-                placeholder="e.g. IMPHAL"
-                className="h-9 font-mono text-sm uppercase"
-              />
-            </Field>
-            <div className="flex items-center justify-between pt-1">
-              {saved && (
-                <p className="font-mono text-xs text-primary">Saved.</p>
-              )}
-              <div className="ml-auto">
-                <Button
-                  onClick={handleSave}
-                  disabled={updateProfile.isPending}
-                  className="h-8 px-5 font-mono text-xs uppercase tracking-wider"
-                >
-                  {updateProfile.isPending ? "Saving…" : "Save changes"}
-                </Button>
-              </div>
             </div>
-          </div>
 
-          <SystemInfoCard className="mt-6" />
+            <aside className="space-y-6">
+              <ProfileCompletionCard
+                fields={[
+                  { label: "Display name", filled: Boolean(liveValues.name.trim()) },
+                  { label: "Hub code", filled: Boolean(liveValues.hubCode.trim()) },
+                ]}
+              />
+              <ShortcutsCard />
+              <SystemInfoCard />
+            </aside>
+          </div>
         </TabsContent>
 
         {/* Security */}
         <TabsContent value="security" className="pt-4 space-y-6">
           <div className="tac-fui-panel space-y-4 bg-card p-5">
-            <p className="border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="border-b border-border pb-2 font-mono text-2xs uppercase tracking-widest text-muted-foreground">
               Session security
             </p>
             <SecurityItem
@@ -186,7 +186,7 @@ export function SettingsClient() {
         {/* Theme */}
         <TabsContent value="theme" className="pt-4">
           <div className="tac-fui-panel space-y-4 bg-card p-5">
-            <p className="border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="border-b border-border pb-2 font-mono text-2xs uppercase tracking-widest text-muted-foreground">
               Appearance
             </p>
             <Field label="Theme">
@@ -216,7 +216,7 @@ export function SettingsClient() {
                 </ToggleGroupItem>
               </ToggleGroup>
             </Field>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
               The TAC Orbital v3.0 Indigo Mission-Control palette is the only
               brand theme. We respect the OS-level{" "}
               <code className="font-mono">prefers-reduced-motion</code> setting
@@ -228,7 +228,7 @@ export function SettingsClient() {
         {/* Integrations */}
         <TabsContent value="integrations" className="pt-4 space-y-6">
           <div className="tac-fui-panel space-y-4 bg-card p-5">
-            <p className="border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="border-b border-border pb-2 font-mono text-2xs uppercase tracking-widest text-muted-foreground">
               Active integrations
             </p>
             <SecurityItem
@@ -267,7 +267,7 @@ export function SettingsClient() {
         {/* Audit */}
         <TabsContent value="audit" className="pt-4">
           <div className="tac-fui-panel space-y-3 bg-card p-5">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
               Audit stream
             </p>
             <p className="text-sm">
@@ -279,7 +279,7 @@ export function SettingsClient() {
             <div>
               <Link
                 href="/audit"
-                className="inline-flex h-8 items-center gap-2 border border-border px-3 font-mono text-[10px] uppercase tracking-widest text-foreground transition-colors hover:border-primary hover:text-primary"
+                className="inline-flex h-8 items-center gap-2 border border-border px-3 font-mono text-2xs uppercase tracking-widest text-foreground transition-colors hover:border-primary hover:text-primary"
               >
                 <RiHistoryLine className="size-3.5" />
                 Open audit log
@@ -288,7 +288,7 @@ export function SettingsClient() {
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   )
 }
 
@@ -307,15 +307,6 @@ function Field({
   )
 }
 
-function ReadOnly({ value }: { value: string }) {
-  return (
-    <div className="flex h-9 items-center border border-border bg-muted/30 px-3">
-      <span className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
-        {value}
-      </span>
-    </div>
-  )
-}
 
 function SecurityItem({
   icon,
@@ -375,25 +366,4 @@ function SecurityItem({
   )
 }
 
-function SystemInfoCard({ className }: { className?: string }) {
-  return (
-    <div className={`tac-fui-panel space-y-3 bg-card p-5 ${className ?? ""}`}>
-      <p className="border-b border-border pb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        System information
-      </p>
-      <div className="space-y-2">
-        {[
-          { label: "Version", value: "TAC Express v1.0" },
-          { label: "Environment", value: process.env.NODE_ENV ?? "production" },
-        ].map(({ label, value }) => (
-          <div key={label} className="flex items-center justify-between py-1">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              {label}
-            </span>
-            <span className="font-mono text-xs text-foreground">{value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+
