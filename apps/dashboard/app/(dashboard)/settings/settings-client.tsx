@@ -86,6 +86,10 @@ export function SettingsClient() {
         title: "Save failed",
         message: String(err),
       })
+      // Re-throw so ProfileForm's submit handler rejects and the form
+      // does NOT call reset() — preserves the user's unsaved input
+      // when the mutation fails.
+      throw err
     }
   }
 

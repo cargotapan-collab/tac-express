@@ -134,9 +134,16 @@ export function InviteStaffDialog({
                 {...register("email")}
                 className="h-9 font-mono text-sm"
                 aria-invalid={Boolean(errors.email) || undefined}
+                aria-describedby={
+                  errors.email ? "invite-email-error" : undefined
+                }
               />
               {errors.email ? (
-                <p className="font-mono text-2xs text-destructive">
+                <p
+                  id="invite-email-error"
+                  role="alert"
+                  className="font-mono text-2xs text-destructive"
+                >
                   {errors.email.message}
                 </p>
               ) : null}

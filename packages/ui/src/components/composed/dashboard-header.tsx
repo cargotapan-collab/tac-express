@@ -110,6 +110,7 @@ function DashboardHeader() {
             the only operator-facing search entry point, so it must
             remain reachable below the sm breakpoint). */}
         <button
+          data-slot="dashboard-search-trigger"
           type="button"
           onClick={() => setPaletteOpen(true)}
           className={cn(

@@ -110,6 +110,7 @@ export function ProfileForm({
 
   return (
     <form
+      data-slot="profile-form"
       onSubmit={handleSubmit(handle)}
       className={cn("tac-fui-panel space-y-4 bg-card p-5", className)}
     >

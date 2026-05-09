@@ -63,9 +63,18 @@ export function ProfileCompletionCard({
           aria-valuemax={100}
           aria-label="Profile completion"
         >
+          {/* Inline transitionDuration sidesteps the recurring debate
+              about the right Tailwind class form for this token (built-in
+              `duration-150` vs themed `duration-base` vs arbitrary
+              `duration-[var(--duration-base)]`). The CSS variable
+              reference is unambiguous and survives any future Tailwind
+              utility renames. */}
           <div
-            className="h-full bg-primary transition-all duration-[var(--duration-base)]"
-            style={{ width: `${percent}%` }}
+            className="h-full bg-primary transition-all"
+            style={{
+              width: `${percent}%`,
+              transitionDuration: "var(--duration-base)",
+            }}
           />
         </div>
       </div>

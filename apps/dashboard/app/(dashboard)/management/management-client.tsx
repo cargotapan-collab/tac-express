@@ -209,7 +209,10 @@ export function ManagementClient() {
         </TabsList>
 
         <TabsContent value="staff" className="space-y-4 pt-4">
-          <StaffStats staff={staff ?? []} />
+          {/* Gate the KPI strip on staffLoading — passing `staff ?? []`
+              would render zero counts before the query resolves, which
+              reads as a misleading "0 staff, 0 active" admin state. */}
+          {staffLoading ? null : <StaffStats staff={staff ?? []} />}
           <StaffTable
             staff={staff ?? []}
             isLoading={staffLoading}
