@@ -320,9 +320,10 @@ export async function POST(req: NextRequest) {
       rawPhone = parsed.phone
     } else {
       // The supplied phone is unrelated to any phone tied to this invoice.
-      // Block unless the caller is explicitly invoking the override AND
-      // holds a higher role than the baseline send permission.
-      if (!parsed.overridePhone) {
+      // Admins (ADMIN+ role) get implicit override — UI can submit without
+      // explicitly setting `overridePhone: true`. Lower roles must opt in.
+      const isAdmin = isAdminOrAbove(role)
+      if (!parsed.overridePhone && !isAdmin) {
         return NextResponse.json(
           {
             error:
@@ -333,7 +334,7 @@ export async function POST(req: NextRequest) {
           { status: 403 },
         )
       }
-      if (!isAdminOrAbove(role)) {
+      if (!isAdmin) {
         return NextResponse.json(
           {
             error:

@@ -74,16 +74,16 @@ export function PodCapture({
     <section
       data-slot="pod-capture"
       className={cn(
-        "tac-fui-panel grid gap-5 border-l-4 border-l-status-success bg-card p-5",
+        // bg-surface-floating signals "modal-like elevated capture step"
+        // distinct from the static console it sits inside (LAW 9, surface tier).
+        "grid gap-5 border border-border border-l-4 border-l-status-success bg-surface-floating shadow-md p-5",
         className
       )}
     >
       <header className="flex items-center justify-between gap-3">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Proof of Delivery
-          </p>
-          <p className="mt-1 font-mono text-sm font-semibold tracking-widest">
+          <p className="tac-mono-label text-muted-foreground">Proof of Delivery</p>
+          <p className="mt-1 font-mono text-sm font-semibold tracking-widest tabular-nums">
             {awbNumber}
           </p>
         </div>
@@ -118,7 +118,7 @@ export function PodCapture({
             id="pod-relation"
             value={recipientRelation}
             onChange={(e) => setRecipientRelation(e.target.value)}
-            className="flex h-9 w-full border border-input bg-transparent px-2 font-mono text-xs uppercase tracking-wide focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="flex h-9 w-full border border-input bg-transparent px-2 font-mono text-xs uppercase tracking-wide focus-visible:outline-none focus-visible:tac-focus-premium"
           >
             {RELATIONS.map((r) => (
               <option key={r} value={r}>

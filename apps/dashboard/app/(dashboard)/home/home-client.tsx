@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { cn } from "@workspace/ui/lib/utils"
 import { useRealtimeDashboard } from "@workspace/ui/hooks/use-realtime"
 import {
   useDashboardKPIs,
@@ -99,12 +98,14 @@ export function HomeClient({ initialKpis }: HomeClientProps) {
           className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-1 tac-hazard-stripes opacity-60"
         />
 
-        {/* Banner copy on the left — solid stack, no glassmorphism */}
+        {/* Banner copy on the left — telemetry-first, no marketing voice */}
         <div className="relative z-20 flex h-full max-w-xl flex-col justify-center gap-2 px-6 lg:px-8">
-          <span className="t-overline text-primary">TAC EXPRESS · NETWORK</span>
-          <h2 className="t-h2 text-foreground">Welcome back, Operator</h2>
-          <p className="t-body-sm text-muted-foreground">
-            Live shipment, manifest, and SLA telemetry across every hub.
+          <span className="t-overline text-primary">TAC EXPRESS · NETWORK · LIVE</span>
+          <h2 className="t-h2 text-foreground">
+            <span className="font-mono tabular-nums">{kpis.activeManifests ?? 0}</span> ACTIVE MANIFESTS
+          </h2>
+          <p className="t-body-sm text-muted-foreground font-mono tabular-nums">
+            {kpis.activeShipments ?? 0} shipments · {kpis.inTransit ?? 0} in transit · {kpis.openExceptions ?? 0} exceptions
           </p>
         </div>
 
@@ -118,69 +119,81 @@ export function HomeClient({ initialKpis }: HomeClientProps) {
         </div>
       </section>
 
-      {/* ── KPI ROW ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1 — Active Shipments */}
-        <div className="bg-surface tac-fui-hover relative flex h-32 flex-col justify-between border border-border p-5 shadow-brutal-sm group">
+      {/* ── KPI ROW — asymmetric 5-col: lead KPI 2/5 wide ── */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {/* Card 1 — Active Shipments (lead, 2x width) */}
+        <Link
+          href="/shipments?status=active"
+          aria-label={`${kpis?.activeShipments ?? 0} active shipments — view list`}
+          className="bg-surface-elevated tac-hover-lift focus-visible:outline-none focus-visible:tac-focus-premium relative flex h-32 flex-col justify-between border border-border p-5 shadow-sm lg:col-span-2 group animate-in fade-in-0 slide-in-from-bottom-3 duration-slow"
+        >
           <div className="flex items-center gap-2">
             <RiBarChart2Fill className="h-4 w-4 text-primary" />
-            <span className="t-body-sm font-medium text-muted-foreground">Active Shipments</span>
+            <span className="tac-mono-label">Active Shipments</span>
           </div>
           <div className="flex items-end justify-between">
-            <span className="font-mono text-4xl font-bold transition-colors group-hover:text-primary">
+            <span className="t-data transition-colors group-hover:text-primary">
               {kpis?.activeShipments?.toLocaleString() ?? "0"}
             </span>
-            <div className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center border border-border bg-background shadow-2xs transition-colors group-hover:bg-primary group-hover:text-background">
+            <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center border border-border bg-background shadow-2xs transition-colors group-hover:bg-primary group-hover:text-background">
               <RiArrowUpLine className="h-4 w-4 rotate-45" />
-            </div>
+            </span>
           </div>
-        </div>
+        </Link>
 
         {/* Card 2 — In Transit */}
-        <div className="bg-surface tac-fui-hover relative flex h-32 flex-col justify-between border border-border p-5 shadow-brutal-sm group">
+        <Link
+          href="/shipments?status=in_transit"
+          aria-label={`${kpis?.inTransit ?? 0} shipments in transit — view list`}
+          className="bg-surface-elevated tac-hover-lift focus-visible:outline-none focus-visible:tac-focus-premium relative flex h-32 flex-col justify-between border border-border p-5 shadow-sm group animate-in fade-in-0 slide-in-from-bottom-3 duration-slow delay-100"
+        >
           <div className="flex items-center gap-2">
             <RiTruckLine className="h-4 w-4 text-primary" />
-            <span className="t-body-sm font-medium text-muted-foreground">In Transit</span>
+            <span className="tac-mono-label">In Transit</span>
           </div>
           <div className="flex items-end justify-between">
-            <span className="font-mono text-4xl font-bold transition-colors group-hover:text-primary">
+            <span className="t-data-sm transition-colors group-hover:text-primary">
               {kpis?.inTransit?.toLocaleString() ?? "0"}
             </span>
-            <div className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center border border-border bg-background shadow-2xs transition-colors group-hover:bg-primary group-hover:text-background">
+            <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center border border-border bg-background shadow-2xs transition-colors group-hover:bg-primary group-hover:text-background">
               <RiArrowUpLine className="h-4 w-4 rotate-45" />
-            </div>
+            </span>
           </div>
-        </div>
+        </Link>
 
         {/* Card 3 — Open Exceptions */}
-        <div className="bg-surface tac-fui-hover relative flex h-32 flex-col justify-between border border-border p-5 shadow-brutal-sm group">
+        <Link
+          href="/exceptions"
+          aria-label={`${kpis?.openExceptions ?? 0} open exceptions — view list`}
+          className="bg-surface-elevated tac-hover-lift focus-visible:outline-none focus-visible:tac-focus-premium relative flex h-32 flex-col justify-between border border-border p-5 shadow-sm group animate-in fade-in-0 slide-in-from-bottom-3 duration-slow delay-200"
+        >
           <div className="flex items-center gap-2">
             <RiAlertFill className="h-4 w-4 text-accent-warning" />
-            <span className="t-body-sm font-medium text-muted-foreground">Open Exceptions</span>
+            <span className="tac-mono-label">Open Exceptions</span>
           </div>
           <div className="flex items-end justify-between">
-            <span className="font-mono text-4xl font-bold transition-colors group-hover:text-primary">
+            <span className="t-data-sm transition-colors group-hover:text-primary">
               {kpis?.openExceptions?.toLocaleString() ?? "0"}
             </span>
-            <div className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center border border-border bg-background shadow-2xs transition-colors group-hover:bg-primary group-hover:text-background">
+            <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center border border-border bg-background shadow-2xs transition-colors group-hover:bg-primary group-hover:text-background">
               <RiArrowUpLine className="h-4 w-4 rotate-45" />
-            </div>
+            </span>
           </div>
-        </div>
+        </Link>
 
         {/* Card 4 — Command Center */}
-        <div className="tac-fui-hover flex h-32 flex-col justify-between border border-primary/30 bg-card p-5 shadow-brutal-sm">
-          <span className="t-body-sm font-semibold text-foreground">Command Center</span>
+        <div className="bg-surface-elevated tac-hover-lift flex h-32 flex-col justify-between border border-primary/30 p-5 shadow-sm animate-in fade-in-0 slide-in-from-bottom-3 duration-slow delay-300">
+          <span className="tac-mono-label text-foreground">Command Center</span>
           <div className="flex items-center gap-2">
             <Link
               href="/shipments/create"
-              className="t-body-sm flex flex-1 items-center justify-center gap-1 border border-primary bg-primary px-3 py-2 text-center font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              className="t-body-sm flex flex-1 items-center justify-center gap-1 border border-primary bg-primary px-3 py-2 text-center font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:tac-focus-premium"
             >
               + Shipment
             </Link>
             <Link
               href="/manifests/create"
-              className="t-body-sm flex flex-1 items-center justify-center gap-1 border border-border bg-background px-3 py-2 text-center font-medium text-foreground transition-colors hover:bg-muted"
+              className="t-body-sm flex flex-1 items-center justify-center gap-1 border border-border bg-background px-3 py-2 text-center font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:tac-focus-premium"
             >
               + Manifest
             </Link>
@@ -188,10 +201,10 @@ export function HomeClient({ initialKpis }: HomeClientProps) {
         </div>
       </div>
 
-      {/* ── MIDDLE SECTION (3 Cols) ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {/* ── MIDDLE SECTION — asymmetric 4/5/3 (Growth leads, Volume widest, Upcoming compact) ── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Growth — delivery success rate vs. 6-month target */}
-        <div className="bg-surface min-h-panel-xl relative flex flex-col border border-border p-6 shadow-brutal-sm">
+        <div className="bg-surface min-h-panel-xl relative flex flex-col border border-border p-6 shadow-brutal-sm lg:col-span-4">
           <div className="mb-6 flex items-center justify-between">
             <h3 className="t-h3 font-semibold">Growth</h3>
             <span className="border border-border bg-background px-2 py-1 text-xs text-muted-foreground">
@@ -210,7 +223,7 @@ export function HomeClient({ initialKpis }: HomeClientProps) {
         </div>
 
         {/* Shipment Volume — current 30-day vs prior period */}
-        <div className="bg-surface flex flex-col border border-border p-6 shadow-brutal-sm">
+        <div className="bg-surface flex flex-col border border-border p-6 shadow-brutal-sm lg:col-span-5">
           <div className="mb-6 flex items-center justify-between">
             <h3 className="t-h3 font-semibold">Shipment Volume</h3>
             <span className="border border-border bg-background px-2 py-1 text-xs text-muted-foreground">
@@ -229,7 +242,7 @@ export function HomeClient({ initialKpis }: HomeClientProps) {
         </div>
 
         {/* Upcoming Operations — manifests with future departure dates */}
-        <div className="bg-surface flex flex-col border border-border p-6 shadow-brutal-sm">
+        <div className="bg-surface flex flex-col border border-border p-6 shadow-brutal-sm lg:col-span-3">
           <div className="mb-6 flex items-center justify-between">
             <h3 className="t-h3 font-semibold">Upcoming Operations</h3>
             <Link
@@ -244,13 +257,25 @@ export function HomeClient({ initialKpis }: HomeClientProps) {
           </p>
           <div className="max-h-panel-md scrollbar-hide flex-1 overflow-y-auto pr-2">
             {upcoming.length === 0 ? (
-              <p className="tac-tag">No scheduled departures</p>
+              <div className="border border-dashed border-border bg-muted/20 py-10 px-4 flex flex-col items-center text-center gap-2">
+                <RiTruckLine aria-hidden className="size-8 text-muted-foreground" />
+                <span className="tac-mono-label">NO DEPARTURES</span>
+                <p className="t-body-sm text-muted-foreground">
+                  No scheduled manifests. Create one to schedule a departure.
+                </p>
+                <Link
+                  href="/manifests/create"
+                  className="mt-2 t-body-sm border border-border bg-background px-3 py-1.5 hover:bg-muted transition-colors focus-visible:outline-none focus-visible:tac-focus-premium"
+                >
+                  + Manifest
+                </Link>
+              </div>
             ) : (
               upcoming.map((op) => (
                 <Link
                   key={op.id}
                   href={`/manifests/${op.id}`}
-                  className="-mx-2 flex items-center justify-between border-b border-border px-2 py-3 transition-colors last:border-0 hover:bg-muted/50"
+                  className="-mx-2 flex items-center justify-between border-b border-border px-2 py-3 transition-colors last:border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:tac-focus-premium"
                 >
                   <div>
                     <p className="tac-tag mb-1">{op.eta}</p>
@@ -265,26 +290,8 @@ export function HomeClient({ initialKpis }: HomeClientProps) {
         </div>
       </div>
 
-      {/* ── BOTTOM SECTION (3 Cols) ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.5fr_1fr]">
-        {/* 12 Days left */}
-        <div className="bg-surface flex flex-col justify-between border border-border p-6 shadow-brutal-sm">
-          <div>
-            <h3 className="t-h2 mb-2 font-bold tracking-tight">12 Days left</h3>
-            <p className="t-body-sm leading-relaxed text-muted-foreground">
-              We are pleased to announce that we will be celebrating our 16th anniversary.
-            </p>
-          </div>
-          <div className="mt-6 grid grid-cols-10 gap-2">
-            {Array.from({ length: 30 }).map((_, i) => (
-              <div
-                key={i}
-                className={cn("h-2 w-2", i < 18 ? "bg-accent-warning" : "bg-muted")}
-              />
-            ))}
-          </div>
-        </div>
-
+      {/* ── BOTTOM SECTION (2 Cols — anniversary card removed) ── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
         {/* Top Hubs — ranked by deliveries */}
         <div className="bg-surface relative flex flex-col border border-border p-6 text-foreground shadow-brutal-sm">
           <div className="mb-6 flex items-center justify-between">
@@ -295,13 +302,25 @@ export function HomeClient({ initialKpis }: HomeClientProps) {
           </div>
           <div className="flex-1 space-y-3">
             {topHubs.length === 0 ? (
-              <p className="tac-tag">No hub data</p>
+              <div className="border border-dashed border-border bg-muted/20 py-10 px-4 flex flex-col items-center text-center gap-2">
+                <RiBuilding4Line aria-hidden className="size-8 text-muted-foreground" />
+                <span className="tac-mono-label">NO HUB DATA</span>
+                <p className="t-body-sm text-muted-foreground">
+                  Hub performance accumulates as deliveries are recorded.
+                </p>
+                <Link
+                  href="/inventory"
+                  className="mt-2 t-body-sm border border-border bg-background px-3 py-1.5 hover:bg-muted transition-colors focus-visible:outline-none focus-visible:tac-focus-premium"
+                >
+                  View hubs
+                </Link>
+              </div>
             ) : (
               topHubs.slice(0, 3).map((h, i) => (
                 <Link
                   key={h.key}
                   href={`/inventory?hub=${encodeURIComponent(h.key)}`}
-                  className="-mx-2 flex items-center justify-between border-b border-border px-2 py-1 pb-3 transition-colors last:border-0 last:pb-0 hover:bg-muted/50"
+                  className="-mx-2 flex items-center justify-between border-b border-border px-2 py-1 pb-3 transition-colors last:border-0 last:pb-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:tac-focus-premium"
                 >
                   <div className="flex items-center gap-3">
                     <div className="t-h4 flex h-10 w-10 items-center justify-center overflow-hidden border border-border bg-muted font-bold">

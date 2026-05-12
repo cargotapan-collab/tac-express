@@ -15,25 +15,32 @@
    ══════════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── LIGHT MODE (Violet Grid) ── */
-  --background: oklch(0.9940 0 0);
-  --foreground: oklch(0.1200 0.015 264); /* Much darker for crisp readability */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.1200 0.015 264);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.1200 0.015 264);
-  --primary: oklch(0.5393 0.2713 286.7462);
-  --primary-foreground: oklch(0.9812 0 0);
-  --secondary: oklch(0.9556 0.0074 264.5319);
-  --secondary-foreground: oklch(0.1200 0.015 264);
-  --muted: oklch(0.9400 0.0100 264.5319);
-  --muted-foreground: oklch(0.4000 0.015 264); /* Darker for accessibility */
-  --accent: oklch(0.9226 0.0139 280.0145);
+  /* ══════════════════════════════════════════════════════════════════════════
+     LIGHT MODE — "Warm Linen" (May 2026)
+     The premium light aesthetic of 2026: warm off-white linen background,
+     deep violet-ink for contrast, warm taupe hairlines. Harmonizes the v6
+     Violet Grid with the Paper Ops Console so the two halves of the
+     dashboard read as one system.
+     Reference: Linear-refresh / Vercel v0 / Anthropic Paper / Notion ivory.
+     ══════════════════════════════════════════════════════════════════════════ */
+  --background: oklch(0.9750 0.0090 86);   /* #F7F4ED — warm linen page bg */
+  --foreground: oklch(0.1700 0.0180 270);  /* deep violet-ink — sophisticated contrast vs flat black */
+  --card: oklch(0.9930 0.0040 85);         /* off-white card — subtle warmth, not pure white */
+  --card-foreground: oklch(0.1700 0.0180 270);
+  --popover: oklch(0.9930 0.0040 85);
+  --popover-foreground: oklch(0.1700 0.0180 270);
+  --primary: oklch(0.5393 0.2713 286.7462);   /* brand violet — unchanged */
+  --primary-foreground: oklch(0.9850 0.0030 85);
+  --secondary: oklch(0.9420 0.0120 82);       /* warm secondary — linen-toned */
+  --secondary-foreground: oklch(0.1700 0.0180 270);
+  --muted: oklch(0.9250 0.0140 80);
+  --muted-foreground: oklch(0.4400 0.0160 78); /* warm muted — accessibly readable */
+  --accent: oklch(0.9180 0.0260 285);          /* violet-tinted accent on linen */
   --accent-foreground: oklch(0.5393 0.2713 286.7462);
   --destructive: oklch(0.5885 0.2090 24.0041);
-  --destructive-foreground: oklch(0.9812 0 0);
-  --border: oklch(0.8200 0.02 286); /* Harder, darker border for brutalist contrast */
-  --input: oklch(0.8200 0.02 286);
+  --destructive-foreground: oklch(0.9850 0.0030 85);
+  --border: oklch(0.8500 0.0220 80);           /* warm taupe-cream hairline */
+  --input: oklch(0.8500 0.0220 80);
   --ring: oklch(0.5393 0.2713 286.7462);
 
   --chart-1: oklch(0.5393 0.2713 286.7462);
@@ -42,13 +49,13 @@
   --chart-4: oklch(0.7500 0.1200 286.7462);
   --chart-5: oklch(0.3800 0.2200 286.7462);
 
-  --sidebar: oklch(0.9812 0.0050 264.5319);
-  --sidebar-foreground: oklch(0.1200 0.015 264);
+  --sidebar: oklch(0.9580 0.0150 84);          /* warmer linen sidebar — sits beside bg */
+  --sidebar-foreground: oklch(0.1700 0.0180 270);
   --sidebar-primary: oklch(0.5393 0.2713 286.7462);
-  --sidebar-primary-foreground: oklch(0.9812 0 0);
-  --sidebar-accent: oklch(0.9226 0.0139 280.0145);
+  --sidebar-primary-foreground: oklch(0.9850 0.0030 85);
+  --sidebar-accent: oklch(0.9180 0.0260 285);
   --sidebar-accent-foreground: oklch(0.5393 0.2713 286.7462);
-  --sidebar-border: oklch(0.8200 0.02 286);
+  --sidebar-border: oklch(0.8500 0.0220 80);
   --sidebar-ring: oklch(0.5393 0.2713 286.7462);
 
   /* Semantic status colors */
@@ -62,11 +69,11 @@
   --accent-info-foreground: oklch(1 0 0);
 
   /* Semantic surface aliases */
-  --surface: oklch(0.9700 0.0050 264.5319);
-  --surface-foreground: oklch(0.1200 0.015 264);
-  --overlay: oklch(1 0 0);
-  --overlay-foreground: oklch(0.1200 0.015 264);
-  --code-bg: oklch(0.9556 0.0074 264.5319);
+  --surface: oklch(0.9650 0.0110 84);
+  --surface-foreground: oklch(0.1700 0.0180 270);
+  --overlay: oklch(0.9930 0.0040 85);
+  --overlay-foreground: oklch(0.1700 0.0180 270);
+  --code-bg: oklch(0.9420 0.0120 82);
 
   /* Print-safe forced tokens (for shipping labels + invoice views) */
   --print-bg: oklch(1 0 0);
@@ -140,9 +147,9 @@
   --surface-base:        var(--background);
   --surface-elevated:    var(--card);
   --surface-floating:    var(--popover);
-  --surface-interactive: oklch(0.9700 0.0050 264.5319);
-  --surface-hover:       oklch(0.9550 0.0080 268);
-  --surface-active:      oklch(0.9300 0.0120 272);
+  --surface-interactive: oklch(0.9520 0.0150 82);   /* linen-aligned interactive */
+  --surface-hover:       oklch(0.9320 0.0180 80);   /* warm hover */
+  --surface-active:      oklch(0.9100 0.0200 78);   /* warm active */
 
   /* ── v6 — Color-mix overlay tokens ──
      Pre-mixed transparency layers so components stop inlining color-mix() ad-hoc. */
@@ -196,6 +203,55 @@
   --chart-ramp-3: color-mix(in oklch, var(--primary) 48%, var(--background));
   --chart-ramp-4: color-mix(in oklch, var(--primary) 70%, var(--background));
   --chart-ramp-5: var(--primary);
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     PAPER OPS CONSOLE — additive design mode (LAW 1)
+     "A serious operator's terminal, dressed in warm paper."
+     Coexists with Violet Grid v6 — scoped via .ops-console wrapper class.
+     Source: .design-bundle (Anthropic Design export, May 2026).
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  /* Brand — May 2026 refinement, harmonized with v6 Warm Linen */
+  --paper-ink:       oklch(0.1700 0.0180 270);          /* deep violet-ink — replaces near-black for premium feel */
+  --paper-orange:    oklch(0.7400 0.1750  62);          /* "EXPRESS →" accent — slightly warmer */
+  --paper-violet:    oklch(0.5393 0.2713 286.7462);     /* primary action — unchanged brand */
+  --paper-violet-2:  oklch(0.4595 0.2713 286.7462);     /* pressed */
+  --paper-violet-50: oklch(0.9710 0.0220 286.7462);     /* tinted surface — sits on linen.
+                                                            Lighter than the brand mid-tone so
+                                                            paper-violet text on this surface
+                                                            clears WCAG AA 4.5:1 at 10px. */
+
+  /* Warm linen neutrals — May 2026 evolution of #FAF8F2 */
+  --paper-bg:        oklch(0.9750 0.0090 86);           /* #F7F4ED — page bg, matches v6 --background */
+  --paper-2:         oklch(0.9520 0.0150 82);           /* sidebar bg — subtle step from page */
+  --paper-3:         oklch(0.9180 0.0230 78);           /* hover row */
+  --paper-line:      oklch(0.8500 0.0260 78);           /* warm taupe hairline */
+  --paper-line-2:    oklch(0.7500 0.0290 76);           /* stronger divider */
+  --paper-line-3:    oklch(0.5600 0.0240 74);           /* heavy / corner ticks */
+
+  --paper-fg-1:      oklch(0.1700 0.0180 270);          /* primary text — violet-ink */
+  --paper-fg-2:      oklch(0.3200 0.0100 280);          /* secondary text */
+  --paper-fg-3:      oklch(0.4700 0.0150 76);           /* muted / labels */
+  --paper-fg-4:      oklch(0.6400 0.0160 80);           /* placeholders */
+
+  /* Card surface — off-white-on-linen for layered warmth (was pure white) */
+  --paper-card:      oklch(0.9930 0.0040 85);           /* matches v6 --card */
+  --paper-card-2:    oklch(0.9780 0.0080 82);           /* deeper card for hovers */
+
+  /* Semantic — keep status hues distinct on the warmer base */
+  --paper-ok:        oklch(0.5350 0.1180 156);
+  --paper-ok-bg:     oklch(0.9420 0.0320 156);
+  --paper-warn:      oklch(0.5950 0.1350  62);
+  --paper-warn-bg:   oklch(0.9470 0.0420  85);
+  --paper-err:       oklch(0.5200 0.1880  31);
+  --paper-err-bg:    oklch(0.9020 0.0490  30);
+  --paper-info:      oklch(0.5600 0.1750 256);
+  --paper-info-bg:   oklch(0.9270 0.0290 254);
+
+  /* Fonts — declared in apps/dashboard/app/layout.tsx (LAW 4) */
+  --paper-font-display: 'Inter', system-ui, sans-serif;
+  --paper-font-mono:    'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --paper-font-serif:   'Instrument Serif', Georgia, serif;
 }
 
 .dark {
@@ -318,6 +374,47 @@
   --chart-ontime:   oklch(0.78 0.16 152);
   --chart-late:     oklch(0.82 0.16 75);
   --chart-breached: oklch(0.70 0.22 25);
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     PAPER OPS CONSOLE — Midnight palette (dark mode)
+     The 'M' theme on the C/M/S toggle. Inverts the warm-paper light values
+     to a deep ink-and-violet stack while preserving the same token names so
+     `.ops-console` components don't need any dark: variants.
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  /* Brand — same violet hues; ink swaps to off-white */
+  --paper-ink:       oklch(0.9460 0.0048 264);          /* near-white headline */
+  --paper-orange:    oklch(0.7674 0.1700 68);           /* keep EXPRESS → warm orange */
+  --paper-violet:    oklch(0.6132 0.2294 291.7437);     /* matches v6 dark --primary */
+  --paper-violet-2:  oklch(0.7100 0.1900 291.7437);
+  --paper-violet-50: oklch(0.3280 0.0700 286);          /* tinted dark surface */
+
+  /* Midnight neutrals — ink stack instead of cream */
+  --paper-bg:        oklch(0.1900 0.0140 268);          /* page bg — deep ink */
+  --paper-2:        oklch(0.2300 0.0160 269);           /* sidebar */
+  --paper-3:        oklch(0.2800 0.0200 271);           /* hover row */
+  --paper-line:      oklch(0.3500 0.0210 272);          /* primary hairline */
+  --paper-line-2:    oklch(0.4400 0.0220 273);          /* stronger divider */
+  --paper-line-3:    oklch(0.6500 0.0230 274);          /* heavy / corner ticks */
+
+  --paper-fg-1:      oklch(0.9556 0.0074 264.5319);     /* primary text */
+  --paper-fg-2:      oklch(0.8200 0.0070 264);          /* secondary */
+  --paper-fg-3:      oklch(0.6500 0.0080 264);          /* muted / labels */
+  --paper-fg-4:      oklch(0.5000 0.0090 264);          /* placeholders */
+
+  /* Card surface — dark mode flips to a slightly lighter ink for elevation */
+  --paper-card:      oklch(0.2568 0.0076 274.6528);
+  --paper-card-2:    oklch(0.2950 0.0100 273);
+
+  /* Semantic — brighter in dark mode */
+  --paper-ok:        oklch(0.7400 0.1500 152);
+  --paper-ok-bg:     oklch(0.2500 0.0500 152);
+  --paper-warn:      oklch(0.7800 0.1500 75);
+  --paper-warn-bg:   oklch(0.2700 0.0700 75);
+  --paper-err:       oklch(0.7000 0.2000 25);
+  --paper-err-bg:    oklch(0.2600 0.0700 25);
+  --paper-info:      oklch(0.7000 0.1700 256);
+  --paper-info-bg:   oklch(0.2400 0.0600 256);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -413,6 +510,65 @@
   --color-print-border: var(--print-border);
   --color-print-accent: var(--print-accent);
   --color-print-surface-muted: var(--print-surface-muted);
+
+  /* ── Paper Ops Console — Tailwind utility bindings (bg-paper-*, text-paper-*) ── */
+  --color-paper-bg:        var(--paper-bg);
+  --color-paper-2:         var(--paper-2);
+  --color-paper-3:         var(--paper-3);
+  --color-paper-line:      var(--paper-line);
+  --color-paper-line-2:    var(--paper-line-2);
+  --color-paper-line-3:    var(--paper-line-3);
+  --color-paper-ink:       var(--paper-ink);
+  --color-paper-orange:    var(--paper-orange);
+  --color-paper-violet:    var(--paper-violet);
+  --color-paper-violet-2:  var(--paper-violet-2);
+  --color-paper-violet-50: var(--paper-violet-50);
+  --color-paper-fg-1:      var(--paper-fg-1);
+  --color-paper-fg-2:      var(--paper-fg-2);
+  --color-paper-fg-3:      var(--paper-fg-3);
+  --color-paper-fg-4:      var(--paper-fg-4);
+  --color-paper-ok:        var(--paper-ok);
+  --color-paper-ok-bg:     var(--paper-ok-bg);
+  --color-paper-warn:      var(--paper-warn);
+  --color-paper-warn-bg:   var(--paper-warn-bg);
+  --color-paper-err:       var(--paper-err);
+  --color-paper-err-bg:    var(--paper-err-bg);
+  --color-paper-info:      var(--paper-info);
+  --color-paper-info-bg:   var(--paper-info-bg);
+  --color-paper-card:      var(--paper-card);
+  --color-paper-card-2:    var(--paper-card-2);
+
+  --font-paper-display: var(--paper-font-display);
+  --font-paper-mono:    var(--paper-font-mono);
+  --font-paper-serif:   var(--paper-font-serif);
+
+  /* Paper Ops Console — text scale (LAW 11: extends Tailwind's text scale with the bundle's
+     pixel-perfect sizes — 9/10/11/12/13/14/16/18/22/26/28/32 — so components never reach
+     for `text-[Npx]` arbitrary values). */
+  --text-paper-9:  0.5625rem;   /* 9px  — sidebar subtitle */
+  --text-paper-10: 0.625rem;    /* 10px — eyebrow / sidebar section / mono labels */
+  --text-paper-11: 0.6875rem;   /* 11px — paper-eyebrow, paper-label, .kbd, badge */
+  --text-paper-12: 0.75rem;     /* 12px — nav items, breadcrumbs */
+  --text-paper-13: 0.8125rem;   /* 13px — paper-id, paper-code, body */
+  --text-paper-14: 0.875rem;    /* 14px — body alt */
+  --text-paper-16: 1rem;        /* 16px — h3, inbox header */
+  --text-paper-18: 1.125rem;    /* 18px — manifest stat values */
+  --text-paper-22: 1.375rem;    /* 22px — h2 */
+  --text-paper-26: 1.625rem;    /* 26px — hero h1 */
+  --text-paper-28: 1.75rem;     /* 28px — stat card (alt) */
+  --text-paper-32: 2rem;        /* 32px — stat-value / page H1 */
+
+  /* Paper Ops Console — letter-spacing scale */
+  --tracking-paper-tight: -0.02em;   /* H1 / display */
+  --tracking-paper-snug:  -0.01em;   /* H2 / brand wordmark */
+  --tracking-paper-id:     0.02em;   /* paper-id / CN numbers */
+  --tracking-paper-04:     0.04em;   /* breadcrumb / kbd */
+  --tracking-paper-06:     0.06em;   /* tag */
+  --tracking-paper-08:     0.08em;   /* nav items / staff name */
+  --tracking-paper-10:     0.10em;   /* badge / dense uppercase */
+  --tracking-paper-12:     0.12em;   /* button / label */
+  --tracking-paper-14:     0.14em;   /* eyebrow / sidebar section */
+  --tracking-paper-18:     0.18em;   /* sidebar subtitle / IMPHAL · PROD */
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
@@ -1000,6 +1156,133 @@
   }
   .recharts-cartesian-axis-tick-line {
     stroke: var(--chart-grid);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     PAPER OPS CONSOLE UTILITIES
+     Scoped to elements rendered inside `.ops-console` so they never leak into
+     Violet Grid v6 pages. All values reference --paper-* tokens (LAW 1).
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  /* Diagonal hatch stripe — top + bottom edge of every Frame */
+  .paper-hatch-band {
+    background-image: repeating-linear-gradient(
+      135deg,
+      var(--paper-line) 0 6px,
+      transparent 6px 12px
+    );
+    height: 0.5rem;
+  }
+
+  /* Corner brackets — 1.5px L-tick on top-left + bottom-right of cards */
+  .paper-card-ticks {
+    position: relative;
+  }
+  .paper-card-ticks::before,
+  .paper-card-ticks::after {
+    content: "";
+    position: absolute;
+    width: 0.625rem;
+    height: 0.625rem;
+    pointer-events: none;
+  }
+  .paper-card-ticks::before {
+    top: 0.375rem;
+    left: 0.375rem;
+    border-top: 1.5px solid var(--paper-line-2);
+    border-left: 1.5px solid var(--paper-line-2);
+  }
+  .paper-card-ticks::after {
+    bottom: 0.375rem;
+    right: 0.375rem;
+    border-bottom: 1.5px solid var(--paper-line-2);
+    border-right: 1.5px solid var(--paper-line-2);
+  }
+
+  /* Frame ticks — larger 2px L-tick at content frame corners */
+  .paper-frame-ticks {
+    position: relative;
+  }
+  .paper-frame-ticks > .paper-tick-tl,
+  .paper-frame-ticks > .paper-tick-br {
+    position: absolute;
+    width: 0.75rem;
+    height: 0.75rem;
+    pointer-events: none;
+  }
+  .paper-frame-ticks > .paper-tick-tl {
+    top: 0.875rem;
+    left: 0.375rem;
+    border-top: 2px solid var(--paper-line-3);
+    border-left: 2px solid var(--paper-line-3);
+  }
+  .paper-frame-ticks > .paper-tick-br {
+    bottom: 0.875rem;
+    right: 0.375rem;
+    border-bottom: 2px solid var(--paper-line-3);
+    border-right: 2px solid var(--paper-line-3);
+  }
+
+  /* Paper type — mono uppercase labels carry the operator-terminal voice */
+  .paper-eyebrow,
+  .paper-label {
+    font-family: var(--paper-font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--paper-fg-3);
+    line-height: 1;
+  }
+  .paper-id {
+    font-family: var(--paper-font-mono);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--paper-violet);
+  }
+  .paper-code {
+    font-family: var(--paper-font-mono);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--paper-fg-1);
+  }
+  .paper-h1 {
+    font-family: var(--paper-font-display);
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--paper-fg-1);
+  }
+  .paper-h2 {
+    font-family: var(--paper-font-display);
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    color: var(--paper-fg-1);
+  }
+  .paper-h3 {
+    font-family: var(--paper-font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--paper-fg-1);
+  }
+  .paper-stat-value {
+    font-family: var(--paper-font-display);
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--paper-fg-1);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Inset 1px line — the only "elevation" the paper system uses */
+  .paper-inset-line {
+    box-shadow: inset 0 0 0 1px var(--paper-line);
   }
 }
 

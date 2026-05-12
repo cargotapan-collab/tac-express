@@ -193,12 +193,12 @@ export function ScanningConsole({
       {/* Header: mode dot + KPI chips + mode pill bar */}
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
         <div className="flex items-center gap-3">
-          <span className="relative flex size-2">
-            <span className="absolute inline-flex h-full w-full animate-ping bg-primary/60 opacity-75" />
+          <span className="relative flex size-2" aria-hidden>
+            <span className="absolute inline-flex h-full w-full animate-ping bg-primary/60 opacity-75 motion-reduce:animate-none" />
             <span className="relative inline-flex size-2 bg-primary" />
           </span>
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="tac-mono-label text-muted-foreground">
               Hub Operations Console
             </p>
             <h2 className="font-heading text-lg font-semibold tracking-tight">
@@ -279,12 +279,10 @@ export function ScanningConsole({
           )}
         >
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Active manifest
-            </p>
+            <p className="tac-mono-label text-muted-foreground">Active manifest</p>
             <p className="mt-0.5 flex items-center gap-2 font-mono text-sm font-semibold">
               {activeManifest.manifestNumber}
-              <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+              <span className="tac-mono-label text-muted-foreground">
                 {activeManifest.fromHub} → {activeManifest.toHub}
               </span>
             </p>
@@ -341,17 +339,22 @@ export function ScanningConsole({
                   placeholder="TAC…"
                   autoComplete="off"
                   spellCheck={false}
-                  className="h-12 font-mono text-base tracking-widest"
+                  className="h-12 font-mono text-base tracking-widest focus-visible:outline-none focus-visible:tac-focus-premium"
                 />
               </div>
             </TabsContent>
 
             <TabsContent value="camera" className="mt-3">
-              <BarcodeScanner
-                onDecode={submit}
-                paused={tab !== "camera"}
-                ariaLabel="Hub scan camera"
-              />
+              {/* Active-scan atmosphere — the tac-scanline traveling stripe
+                  signals "live capture in progress" without being a load
+                  spinner. motion-reduce honored via globals.css. */}
+              <div className="relative tac-scanline">
+                <BarcodeScanner
+                  onDecode={submit}
+                  paused={tab !== "camera"}
+                  ariaLabel="Hub scan camera"
+                />
+              </div>
             </TabsContent>
           </Tabs>
 
@@ -368,14 +371,14 @@ export function ScanningConsole({
 
           <div className="border border-border bg-background">
             <header className="flex items-center justify-between border-b border-border px-3 py-2">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              <span className="tac-mono-label text-muted-foreground">
                 Scan feed · last 100
               </span>
               {feed.length > 0 && (
                 <button
                   type="button"
                   onClick={() => setFeed([])}
-                  className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+                  className="tac-mono-label text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:tac-focus-premium"
                 >
                   Clear
                 </button>
@@ -384,9 +387,9 @@ export function ScanningConsole({
             <ScrollArea className="h-72">
               {feed.length === 0 ? (
                 <div className="flex h-72 flex-col items-center justify-center gap-2 px-4 text-center">
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <span className="tac-mono-label text-muted-foreground">
                     Awaiting scans…
-                  </p>
+                  </span>
                   <p className="text-xs text-muted-foreground">
                     Use the scanner or type an AWB to begin.
                   </p>

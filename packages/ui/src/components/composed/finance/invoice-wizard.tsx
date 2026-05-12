@@ -574,6 +574,29 @@ function CargoStep({
 
   return (
     <div className="space-y-4" data-slot="cargo-step">
+      {/* AWB selection prompt — surfaces the AWB chosen in Basics + lets the
+          operator override here. Some operators jump straight to the Cargo
+          step (e.g. when invoicing an existing shipment), and previously the
+          AWB control was only on the Basics step which created confusion +
+          blocked TestSprite TC009/TC013. */}
+      <Field
+        label="AWB / Shipment Number"
+        required
+        error={errors.awbNumber}
+        hint="The shipment this invoice is for. Auto-filled from the Basics step — edit here to invoice a different AWB."
+      >
+        <input
+          value={state.awbNumber}
+          onChange={(e) =>
+            onChange({ awbNumber: e.target.value.toUpperCase() })
+          }
+          placeholder="TAC0123456789"
+          className={monoInputClass}
+          aria-label="AWB number"
+          data-slot="cargo-awb-input"
+        />
+      </Field>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Field label="Origin Hub" required>
           <select

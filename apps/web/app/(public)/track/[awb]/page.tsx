@@ -36,19 +36,17 @@ export default async function TrackPage({ params }: TrackPageProps) {
   return (
     <div className="tac-fui-grid min-h-screen py-16 px-4">
       <div className="container mx-auto max-w-3xl">
-        <div className="mb-8">
+        <div className="mb-8 animate-in fade-in-0 slide-in-from-bottom-2 duration-base">
           <Link
             href="/#tracking"
-            className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors uppercase tracking-widest"
+            className="tac-mono-label text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:tac-focus-premium"
           >
             ← Back to tracking
           </Link>
-          <h1 className="font-sans text-2xl font-semibold text-foreground mt-4">
-            Shipment Status
-          </h1>
-          <p className="text-sm text-muted-foreground font-mono mt-1 uppercase tracking-wider">
+          <p className="tac-mono-label text-muted-foreground mt-6">SHIPMENT</p>
+          <h1 className="t-display font-mono tabular-nums tracking-widest text-foreground mt-1 dark:text-glow-primary">
             {awb}
-          </p>
+          </h1>
         </div>
 
         <TrackingResultView awb={awb} shipment={shipment} events={events} />
