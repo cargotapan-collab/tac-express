@@ -242,7 +242,23 @@ Both must land in one deploy. Once verified live for ≥ 7 days, a follow-up ≤
    - Action: notify ops via Slack / email / PagerDuty
    - Save
 
-3. **Verify** by visiting `<deployed-host>/sentry-example-page` (created by the wizard, currently NOT in our codebase — see #22 close-out for whether we add it).
+3. **Verify wiring** via the in-app diagnostic endpoint (added 2026-05-12 per issue #22):
+
+   ```bash
+   # Sign in as MANAGER+ in a browser, copy the session cookie, then:
+
+   # (a) Report-only: does Sentry think it's initialized?
+   curl -H "Cookie: <session-cookie>" https://<deployed-host>/api/diagnostics/sentry
+   # → { enabled: true, dsnHost: "o4510226292932608.ingest.de.sentry.io", ... }
+
+   # (b) Fire a tagged smoke-test event:
+   curl -X POST -H "Cookie: <session-cookie>" https://<deployed-host>/api/diagnostics/sentry
+   # → { ok: true, eventId: "...", searchQuery: "tags.kind:sentry_smoke_test correlation_id:smoke-..." }
+   ```
+
+   Then in Sentry: paste the returned `searchQuery` into the issue stream. The event should appear within 60 seconds. If `enabled: false`, the DSN env vars from step 1 didn't reach the runtime — re-check Vercel project settings + redeploy.
+
+4. **Configure alert rule** (same Sentry UI, separate step from wiring verification): an issue alert with filter `tags[kind]:payment_response_lost` → notify ops via Slack / PagerDuty. The smoke-test event from step 3 uses `tags.kind:sentry_smoke_test` so it WON'T trigger this alert — by design.
 
 **Until step 1 lands**, `Sentry.captureException()` in production is still a no-op. Lost-payment events still surface to the user via toast (correct UX), but ops has no telemetry. Pair with #9 — close this BEFORE deploying the payment migration so you can measure whether the fix is working.
 
