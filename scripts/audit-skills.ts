@@ -293,6 +293,92 @@ for (const f of allSkills) {
 }
 pass("Package manager command scan complete")
 
+// ─── CHECK 10: MANIFEST reachability — every manifest skill in RESOLVER.md ───
+// Closes #49. Catches the failure mode where a skill is added to MANIFEST.json
+// but the resolver never gets a trigger row pointing to it, leaving the skill
+// orphaned (technically loadable, never dispatched to).
+console.log("\n► CHECK 10: MANIFEST reachability (issue #49)")
+const manifestPath = join(ROOT, ".claude/skills/MANIFEST.json")
+const resolverPath = join(ROOT, ".claude/skills/RESOLVER.md")
+let manifestSkillNames: string[] = []
+try {
+  const manifestJson = JSON.parse(readFile(manifestPath)) as {
+    skills?: Array<{ name?: string }>
+  }
+  manifestSkillNames = (manifestJson.skills ?? [])
+    .map((s) => s.name)
+    .filter((n): n is string => typeof n === "string")
+} catch {
+  warn(".claude/skills/MANIFEST.json", "Failed to parse — skipping reachability check")
+}
+const resolverContent = readFile(resolverPath)
+if (manifestSkillNames.length > 0 && resolverContent) {
+  for (const name of manifestSkillNames) {
+    if (!resolverContent.includes(name)) {
+      fail("RESOLVER.md", `Skill "${name}" listed in MANIFEST.json but not referenced from RESOLVER.md`)
+    }
+  }
+  pass(`  Reachability scan complete (${manifestSkillNames.length} manifest skills)`)
+}
+
+// ─── CHECK 11: MECE — pairwise skill description overlap ─────────────────────
+// Closes #49. Tokenize each skill's frontmatter `description:` and warn when
+// two skills share > 80% of their description-token Jaccard. High overlap
+// means the dispatcher will struggle to pick between them and the resolver
+// table likely has duplicate triggers.
+console.log("\n► CHECK 11: MECE description overlap (issue #49)")
+function extractDescription(content: string): string {
+  const m = content.match(/^---[\s\S]*?description:\s*([\s\S]*?)\n(?:[a-z_]+:|---)/im)
+  if (!m || !m[1]) return ""
+  // Strip leading > / quoting and collapse whitespace.
+  return m[1]
+    .replace(/[>"]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+}
+function tokens(s: string): Set<string> {
+  return new Set(
+    s
+      .split(/[^a-z0-9]+/)
+      .filter((t) => t.length >= 3 && !STOPWORDS.has(t))
+  )
+}
+const STOPWORDS = new Set([
+  "the","and","for","with","that","this","not","you","are","but","use","any","all","new","load",
+  "via","tac","also","etc","its","has","one","two","into","from","when","what","how","why","skill",
+  "should","each","every","other","over","more","most","than","such","like","which","while","very",
+  "only","just","make","made","need","needs","work","works","gets","get","got","let","lets",
+  "include","includes","including","using","uses","used","based","upon","also","they","them","their",
+])
+const skillDescriptions = new Map<string, Set<string>>()
+for (const f of allSkills) {
+  const dirName = f.replace(/\\/g, "/").split("/").slice(-2, -1)[0]
+  if (!dirName) continue
+  const desc = extractDescription(readFile(f))
+  if (desc.length === 0) continue
+  skillDescriptions.set(dirName, tokens(desc))
+}
+const skillEntries = Array.from(skillDescriptions.entries())
+for (let i = 0; i < skillEntries.length; i++) {
+  for (let j = i + 1; j < skillEntries.length; j++) {
+    const [aName, aTok] = skillEntries[i]!
+    const [bName, bTok] = skillEntries[j]!
+    if (aTok.size === 0 || bTok.size === 0) continue
+    let intersect = 0
+    for (const t of aTok) if (bTok.has(t)) intersect++
+    const union = aTok.size + bTok.size - intersect
+    const jaccard = union === 0 ? 0 : intersect / union
+    if (jaccard > 0.8) {
+      warn(
+        `.claude/skills/${aName} ↔ ${bName}`,
+        `Description overlap is ${(jaccard * 100).toFixed(0)}% (Jaccard) — consider tightening one description so dispatch is MECE`,
+      )
+    }
+  }
+}
+pass(`  MECE scan complete (${skillEntries.length} skills compared pairwise)`)
+
 // ─── SUMMARY ─────────────────────────────────────────────────────────────────
 console.log("\n╔════════════════════════════════════════════╗")
 if (errors === 0 && warnings === 0) {

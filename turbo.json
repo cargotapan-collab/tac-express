@@ -54,6 +54,9 @@
                                            "BANK_UPI",
                                            "E2E_USER_EMAIL",
                                            "E2E_USER_PASSWORD",
+                                           "E2E_INVOICE_ID",
+                                           "E2E_AWB",
+                                           "E2E_MANIFEST_ID",
                                            "AXE_FAIL_ON_VIOLATIONS"
                                        ]
                            },
