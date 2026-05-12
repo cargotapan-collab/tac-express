@@ -239,13 +239,13 @@
   --paper-card-2:    oklch(0.9780 0.0080 82);           /* deeper card for hovers */
 
   /* Semantic — keep status hues distinct on the warmer base */
-  --paper-ok:        oklch(0.5350 0.1180 156);
+  --paper-ok:        oklch(0.4700 0.1180 156);          /* darkened from oklch(0.535) for WCAG AA on paper-ok-bg (4.16:1 → 5.47:1) — affects ok-tone badges (Paid, Delivered) */
   --paper-ok-bg:     oklch(0.9420 0.0320 156);
-  --paper-warn:      oklch(0.5950 0.1350  62);
+  --paper-warn:      oklch(0.5000 0.1350  62);          /* darkened from oklch(0.595) so the warn-badge text (10px, normal weight on warn-bg #fbecce) clears WCAG AA 4.5:1 — was 3.58:1, now 5.32:1 */
   --paper-warn-bg:   oklch(0.9470 0.0420  85);
-  --paper-err:       oklch(0.5200 0.1880  31);
+  --paper-err:       oklch(0.4900 0.1880  31);          /* darkened from oklch(0.52) for WCAG AA on paper-err-bg (4.45:1 → 5.06:1) — affects err-tone badges (Overdue, Failed, Exception) */
   --paper-err-bg:    oklch(0.9020 0.0490  30);
-  --paper-info:      oklch(0.5600 0.1750 256);
+  --paper-info:      oklch(0.5200 0.1750 256);          /* darkened from oklch(0.56) for WCAG AA on paper-info-bg (3.82:1 → 4.53:1) — affects info-tone badges (Issued, In Transit) */
   --paper-info-bg:   oklch(0.9270 0.0290 254);
 
   /* Fonts — declared in apps/dashboard/app/layout.tsx (LAW 4) */
