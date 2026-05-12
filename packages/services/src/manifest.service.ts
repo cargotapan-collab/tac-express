@@ -22,11 +22,18 @@ export function createManifestService(db: SupabaseClient) {
     },
 
     async getManifestById(id: string): Promise<Manifest | null> {
+      // Accept both UUID and human-readable manifest_number (e.g. "MAN2604300002").
+      // Operators paste manifest numbers from print labels or chat; routes like
+      // /manifests/MAN... should resolve. UUIDs match the 8-4-4-4-12 pattern;
+      // anything else falls back to manifest_number lookup.
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+      const column = isUuid ? "id" : "manifest_number"
       const { data, error } = await db
         .from("manifests")
         .select("*")
-        .eq("id", id)
-        .single()
+        .eq(column, id)
+        .maybeSingle()
       if (error) throw error
       return data ? mapManifest(data) : null
     },
@@ -74,6 +81,30 @@ export function createManifestService(db: SupabaseClient) {
     },
 
     async addShipmentToManifest(manifestId: string, awbNumber: string): Promise<void> {
+      // Use the canonical add_shipment_to_manifest RPC instead of a raw INSERT
+      // so triggers fire (total_shipments / total_weight cache updates), the
+      // AWB → shipment FK is validated, and SECURITY DEFINER bypasses any
+      // operator-vs-admin RLS discrepancies. Falls back to a direct INSERT
+      // if the RPC isn't deployed yet — preserves the legacy code path so
+      // dev environments without the latest migrations keep working.
+      const rpc = await db.rpc("add_shipment_to_manifest", {
+        p_manifest_id: manifestId,
+        p_awb_number: awbNumber,
+        p_staff_id: null,
+      })
+      if (!rpc.error) return
+      // Detect "RPC not deployed" via a Postgres function-missing error code
+      // (PGRST202 for postgrest, 42883 for raw pg). Fall through to the
+      // legacy INSERT path only in that case; any other error (RLS, FK,
+      // duplicate) propagates.
+      const code = (rpc.error as { code?: string }).code
+      const message = (rpc.error as { message?: string }).message ?? ""
+      const rpcMissing =
+        code === "PGRST202" ||
+        code === "42883" ||
+        /function .* does not exist|Could not find/i.test(message)
+      if (!rpcMissing) throw rpc.error
+
       const { error } = await db.from("manifest_shipments").insert({
         manifest_id: manifestId,
         awb_number: awbNumber,
