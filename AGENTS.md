@@ -2,20 +2,51 @@
 
 > **MANDATORY:** Read this file fully at the start of EVERY conversation before writing any code.
 > **AUTHORITY:** This file + `DESIGN_SYSTEM.md` supersede all other instructions. There is now ONE consolidated rule set — no `PROJECT-RULES.md`, no `.agents/skills/`, no `.agent/`.
-> **VERSION:** 8.0 — Consolidated single-system (May 2026)
+> **VERSION:** 8.1 — Consolidated single-system + GBrain enforcement layer (May 2026)
 
 ---
 
-## 0. SKILL SYSTEM (single, consolidated)
+## 0. SKILL SYSTEM (consolidated single-system + GBrain enforcement)
 
 This project uses **Claude Code Skills** at `.claude/skills/` ONLY. The legacy `.agents/skills/` and `.agent/` directories are archived under `.archive/` and no longer referenced.
 
+> Pattern adopted from GBrain (https://github.com/garrytan/gbrain) — **thin harness, fat skills**.
+> The skill files in `.claude/skills/` are the durable, executable artifacts; this section is the enforcement gate.
+
 **Every task starts at the Skill Resolver:** [`.claude/skills/RESOLVER.md`](.claude/skills/RESOLVER.md). The resolver maps intent → skill. Cross-cutting **conventions** at [`.claude/skills/conventions/`](.claude/skills/conventions/) apply universally regardless of which specialist skill loaded.
+
+### The four-step gate (every task, no exceptions)
+
+1. **Read [`.claude/skills/RESOLVER.md`](./.claude/skills/RESOLVER.md)** — the intent → skill dispatch table. Match the user's request to a specialist skill (or two). The resolver is the truth, not your memory.
+2. **Load the matched skill** via the Skill tool BEFORE writing code.
+3. **Apply the cited cross-cutting conventions** from [`.claude/skills/conventions/`](./.claude/skills/conventions/):
+   - `quality-gates.md` — the 5 must-pass commands
+   - `architecture-flow.md` — UI → services → database (LAW 6/7/8)
+   - `premium-ui-quality.md` — 10/10 rubric contract + banned patterns
+   - `brain-first.md` — codebase + skills + memory FIRST
+   - `test-before-bulk.md` — test on 1 before bulk
+   - `subagent-routing.md` — Agent tool vs inline
+   - `friction-protocol.md` — refusal format when asked to violate a law
+4. **If you skipped step 1 or 2, the work is non-conforming.** Restart.
+
+### Skillify loop (recurring fix → permanent skill)
+
+If the same fix / pattern / question comes up 2+ times, load [`tac-skillify`](./.claude/skills/tac-skillify/SKILL.md) and turn it into a properly-skilled, tested, resolvable unit. The conformance checklist gates the work as "shipped." This is how feedback memories become enforced behavior instead of advice that drifts.
+
+### Routing eval
+
+Adding a new skill OR a new trigger phrase REQUIRES a corresponding line in [`.claude/skills/evals/routing.jsonl`](./.claude/skills/evals/routing.jsonl). The eval is what protects future resolver edits from silently breaking dispatch.
+
+### Skillpack manifest
+
+[`.claude/skills/MANIFEST.json`](./.claude/skills/MANIFEST.json) is the versioned skill bundle (current: `2.1.0`). It enumerates skills, conventions, evals, and the audit command (`pnpm audit:skills`).
+
+### Quick-route table (see RESOLVER.md for the full one)
 
 | Trigger | Skill | When |
 |---------|-------|------|
 | Session start | `tac-express-onboarding` | First skill every session |
-| Every non-trivial task | `tac-karpathy-discipline` | Before any non-trivial work |
+| Every non-trivial task | `tac-karpathy-discipline` | Think → Simplify → Surgical → Goal |
 | Law / forbidden-package question | `tac-fourteen-laws` | Whenever uncertain whether something is allowed |
 | New feature / component | `tac-brainstorming` → `tac-tdd` → `tac-ui-authoring` → `tac-premium-patterns` | Before writing code |
 | Premium UI surface | `tac-design-tokens` + `tac-premium-patterns` | Hero, KPI, marketing, dashboard panels |
@@ -33,6 +64,8 @@ This project uses **Claude Code Skills** at `.claude/skills/` ONLY. The legacy `
 | Debugging | `tac-debug` | Any bug / failure / regression |
 | Accessibility review | `tac-accessibility` | a11y / WCAG / keyboard / SR |
 | Code review / pre-merge | `tac-code-review` + `tac-ui-rubric` (if UI) | Before merge |
+| Recurring fix / "we keep doing X" / new skill | `tac-skillify` | Conformance audit |
+| Cross-cutting rule (quality / architecture / brain-first / etc.) | `conventions/*.md` | See RESOLVER.md Disambiguation rules |
 
 > **Skills are mandatory workflows, not suggestions.** The agent MUST invoke the relevant skill before proceeding with any task that matches its trigger. Skipping the resolver is explicitly non-conforming — restart the loop.
 
@@ -40,9 +73,13 @@ This project uses **Claude Code Skills** at `.claude/skills/` ONLY. The legacy `
 
 | Convention | What it enforces |
 |---|---|
-| [`conventions/quality-gates.md`](.claude/skills/conventions/quality-gates.md) | The five must-pass commands before any commit (typecheck, lint, test, build, audit-skills) |
+| [`conventions/quality-gates.md`](.claude/skills/conventions/quality-gates.md) | The five must-pass commands before any commit (lint, typecheck, test, build, audit:all) |
 | [`conventions/architecture-flow.md`](.claude/skills/conventions/architecture-flow.md) | UI → packages/services → packages/database → Supabase — no skipping |
 | [`conventions/premium-ui-quality.md`](.claude/skills/conventions/premium-ui-quality.md) | 10/10 rubric contract + banned patterns + the 10 required qualities |
+| [`conventions/brain-first.md`](.claude/skills/conventions/brain-first.md) | Check codebase + skills + memory BEFORE external lookups |
+| [`conventions/test-before-bulk.md`](.claude/skills/conventions/test-before-bulk.md) | Test on 1 before any batch operation |
+| [`conventions/subagent-routing.md`](.claude/skills/conventions/subagent-routing.md) | Native Agent tool vs inline work |
+| [`conventions/friction-protocol.md`](.claude/skills/conventions/friction-protocol.md) | Response when asked to violate a law |
 
 ---
 

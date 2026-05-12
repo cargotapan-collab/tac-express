@@ -2,8 +2,12 @@
 
 > **MANDATORY ENTRY POINT.** Every task begins here. Map the user's intent to the right specialist skill before writing a line of code. Skipping the resolver = non-conforming; restart the loop.
 >
-> **Version:** 2.0 — consolidated single-system (May 2026)
+> **Version:** 2.1 — consolidated single-system + GBrain enforcement (May 2026)
 > **Authority chain:** `CLAUDE.md` → `AGENTS.md` → `DESIGN_SYSTEM.md` → this resolver → `conventions/` (cross-cutting rules)
+>
+> **Rule of two:** if two skills could match, read both before acting.
+> **Chain rule:** the skill's own *Phases* section dictates downstream chaining
+> (e.g., `tac-brainstorming → tac-tdd → tac-ui-authoring`).
 
 ---
 
@@ -28,6 +32,7 @@ If no row matches, fall through to **§ 99 Defaults** — but flag the gap and c
 | Session start, any new task | [`tac-express-onboarding`](tac-express-onboarding/SKILL.md) **FIRST** |
 | "Wait, what's the design system again?" | [`tac-design-tokens`](tac-design-tokens/SKILL.md) |
 | Anything non-trivial | [`tac-karpathy-discipline`](tac-karpathy-discipline/SKILL.md) (always — Think → Simplify → Surgical → Goal) |
+| Any code change, install, lint deviation | [`tac-fourteen-laws`](tac-fourteen-laws/SKILL.md) |
 
 ### UI / UX
 
@@ -46,11 +51,11 @@ If no row matches, fall through to **§ 99 Defaults** — but flag the gap and c
 | Trigger | Load |
 |---|---|
 | "Add a service", "fetch from DB", "hook for X" | [`tac-data-layer`](tac-data-layer/SKILL.md) |
-| Schema / RLS / migration / RPC | [`tac-supabase-schema`](tac-supabase-schema/SKILL.md) |
-| Shipments / manifests / AWBs / hubs / rate cards | [`tac-domain-logistics`](tac-domain-logistics/SKILL.md) |
+| Schema / RLS / migration / RPC / trigger / regenerate types | [`tac-supabase-schema`](tac-supabase-schema/SKILL.md) |
+| Shipments / manifests / AWBs / hubs / rate cards / customers / COD | [`tac-domain-logistics`](tac-domain-logistics/SKILL.md) |
 | Route handler / public API / webhook / edge function / rate-limit | [`tac-api-surface`](tac-api-surface/SKILL.md) |
-| Auth / session / middleware / RBAC | [`tac-auth`](tac-auth/SKILL.md) |
-| Forms / validation / server actions | [`tac-forms`](tac-forms/SKILL.md) |
+| Auth / session / middleware / RBAC / sign-in / sign-out | [`tac-auth`](tac-auth/SKILL.md) |
+| Forms / validation / react-hook-form / zod / server actions | [`tac-forms`](tac-forms/SKILL.md) |
 
 ### Process / Quality
 
@@ -66,7 +71,9 @@ If no row matches, fall through to **§ 99 Defaults** — but flag the gap and c
 
 | Trigger | Load |
 |---|---|
-| "We keep doing X" / the same fix lands twice | Promote to a permanent skill (see § 3 below) |
+| "Skillify this", "make this proper", "is this a skill?", recurring fix | [`tac-skillify`](tac-skillify/SKILL.md) (conformance audit) |
+| "Create a skill", "new skill" | [`tac-skillify`](tac-skillify/SKILL.md) (Phase 2: scaffold) |
+| "Routing test", "is this skill reachable?", "MECE check" | [`tac-skillify`](tac-skillify/SKILL.md) (Phase 5: check-resolvable) |
 
 ---
 
@@ -79,12 +86,28 @@ Every task — regardless of which specialist skill was loaded — must honor:
 | **Quality gates** — five must-pass commands before any commit | [`conventions/quality-gates.md`](conventions/quality-gates.md) |
 | **Architecture flow** — UI → services → database → Supabase, no skipping | [`conventions/architecture-flow.md`](conventions/architecture-flow.md) |
 | **Premium UI quality** — anti-template, anti-AI-slop checklist | [`conventions/premium-ui-quality.md`](conventions/premium-ui-quality.md) |
+| **Brain-first** — check skills/code/memory BEFORE external lookups | [`conventions/brain-first.md`](conventions/brain-first.md) |
+| **Test-before-bulk** — test on 1 before any batch operation | [`conventions/test-before-bulk.md`](conventions/test-before-bulk.md) |
+| **Subagent routing** — native Agent tool vs inline work | [`conventions/subagent-routing.md`](conventions/subagent-routing.md) |
+| **Friction protocol** — response when asked to violate a law | [`conventions/friction-protocol.md`](conventions/friction-protocol.md) |
 
 These conventions are short, prescriptive, and never optional. They are the load-bearing constraints that make the specialist skills predictable.
 
 ---
 
-## 3. When a new skill is needed (the skillify trigger)
+## 3. Disambiguation rules
+
+When multiple skills could match:
+
+1. **Most specific wins.** `tac-domain-logistics` over `tac-data-layer` if the task names a shipment/AWB/manifest. `tac-premium-patterns` over `tac-ui-authoring` if the task is a premium hero/KPI surface.
+2. **Boundary-crossing wins higher in the stack.** A "form that POSTs to a route handler" loads BOTH `tac-forms` AND `tac-api-surface`. Don't skip the boundary.
+3. **Bug + UI → debug first.** If "the dropdown doesn't close" — load `tac-debug` BEFORE `tac-ui-authoring`. Find the cause, then choose the fix surface.
+4. **Schema change cascades.** Any `supabase/migrations/` edit triggers: `tac-supabase-schema` → `tac-tdd` → regenerate types → `tac-code-review`.
+5. **When in doubt, ask the user** — don't guess across boundaries.
+
+---
+
+## 4. When a new skill is needed (the skillify trigger)
 
 If during a task you realize:
 - The same correction has been needed twice or more across sessions, OR
@@ -97,9 +120,34 @@ If during a task you realize:
 2. Create `.claude/skills/tac-<topic>/SKILL.md` with frontmatter (`name`, `description`).
 3. Add a row to § 1 of this resolver.
 4. Add an entry to `MANIFEST.json` (`skills` array).
-5. Update `CLAUDE.md` § 1 Task Classification table.
+5. Add a routing entry to `evals/routing.jsonl`.
+6. Update `CLAUDE.md` § 1 Task Classification table.
 
-Single atomic commit: `chore(skills): add tac-<topic> + resolver + manifest`.
+Single atomic commit: `chore(skills): add tac-<topic> + resolver + manifest + eval`.
+
+---
+
+## 5. Routing eval
+
+This dispatcher is verified by `evals/routing.jsonl`. Each entry maps a real
+user trigger phrase to the expected skill(s). Adding a new skill REQUIRES a
+new entry in that file. See `evals/README.md`.
+
+---
+
+## 6. Brain-filing rules (where files go)
+
+| Content | Goes in | NOT in |
+|---|---|---|
+| UI component | `packages/ui/src/components/{primitives,composed}/` | `apps/*/components/` (LAW 5) |
+| Business logic | `packages/services/src/<domain>.service.ts` | components (LAW 7) |
+| `@supabase/*` import | `packages/database/src/` only | anywhere else (LAW 8) |
+| Auth helpers | `packages/auth/` | components |
+| Branded types, zod schemas | `packages/types/` | inline in apps |
+| Migrations / RLS / RPC | `supabase/migrations/` (versioned) | edge functions |
+| Edge functions | `supabase/functions/<slug>/` | api routes |
+| Skill (this layer) | `.claude/skills/<slug>/SKILL.md` | docs/ |
+| Routing test | `.claude/skills/evals/routing.jsonl` | scattered test files |
 
 ---
 
