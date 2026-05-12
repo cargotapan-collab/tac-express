@@ -6,8 +6,19 @@ import { Marker, Source, Layer } from "react-map-gl/maplibre"
 import { cn } from "@workspace/ui/lib/utils"
 import { Badge } from "@workspace/ui/components/primitives/badge"
 import { RiPlaneLine, RiTruckLine } from "@workspace/ui/icons"
+import { useCssVars } from "@workspace/ui/hooks/use-css-vars"
 
 import { MapLibreMap } from "./maplibre-map"
+
+// MapLibre paint expressions need resolved color values (WebGL can't read
+// CSS variables). These names are pulled from the design tokens at runtime
+// so the map status palette always matches the active theme + brand violet.
+const MAP_TOKEN_NAMES = [
+  "--paper-err",
+  "--paper-ok",
+  "--paper-line-3",
+  "--paper-violet",
+] as const
 
 export interface CorridorHub {
   code: string
@@ -64,6 +75,10 @@ export function LiveCorridorMap({
     () => new Map(effectiveHubs.map((h) => [h.code, h])),
     [effectiveHubs]
   )
+
+  // Resolve design tokens for the MapLibre paint expressions. Re-resolves
+  // on theme switches via the MutationObserver inside useCssVars.
+  const tokens = useCssVars(MAP_TOKEN_NAMES)
 
   // Build a single GeoJSON FeatureCollection for all routes — drawing in one
   // Source is dramatically cheaper than one Source per route.
@@ -125,12 +140,12 @@ export function LiveCorridorMap({
                 "match",
                 ["get", "status"],
                 "EXCEPTION",
-                "#d45e5e",
+                tokens["--paper-err"],
                 "ARRIVED",
-                "#45ba7a",
+                tokens["--paper-ok"],
                 "OPEN",
-                "#7a7a7a",
-                /* default IN_TRANSIT */ "#22b8c8",
+                tokens["--paper-line-3"],
+                /* default IN_TRANSIT */ tokens["--paper-violet"],
               ],
               "line-width": [
                 "interpolate",

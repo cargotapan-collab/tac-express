@@ -11,15 +11,16 @@ const excludedDirs = new Set([
   "playwright-report", ".git",
 ])
 const allowed = new Set([
-  // governance/documentation files where the patterns are described, not used
-  "PROJECT-RULES.md",
+  // governance/documentation files where the patterns are described, not used.
+  // As of May 2026 consolidation: PROJECT-RULES.md merged into AGENTS.md;
+  // .agents/ and .agent/ archived under .archive/.
   "AGENTS.md",
   "CLAUDE.md",
   "DESIGN_SYSTEM.md",
   "README.md",
   ".planning",
   "docs",
-  ".agents",
+  ".archive",
   ".windsurf",
   ".claude/skills",
   // Sibling git worktrees under `.claude/worktrees/` host other-branch

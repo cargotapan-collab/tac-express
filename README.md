@@ -5,19 +5,23 @@
 > Mission-control logistics for the North-East corridor. Public marketing site at **`apps/web`**, operations dashboard at **`apps/dashboard`**, shared platform in **`packages/`**, schema in **`supabase/`**.
 
 **Authority documents (must read before contributing):**
-- [`AGENTS.md`](AGENTS.md) — agent rules & protocols (governs AI contributors)
-- [`PROJECT-RULES.md`](PROJECT-RULES.md) — the Fourteen Laws + monorepo enforcement
+- [`AGENTS.md`](AGENTS.md) — master rules: agent protocols, the Fourteen Laws, monorepo, git, version corrections
 - [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — TAC Express v5.0 — Violet Grid (the visual spec)
-- [`CLAUDE.md`](CLAUDE.md) — Claude Code-specific workflow
+- [`CLAUDE.md`](CLAUDE.md) — Claude Code entry point + skill routing
+- [`docs/VIOLET-GRID-QUALITY.md`](docs/VIOLET-GRID-QUALITY.md) — anti-template / anti-AI-slop quality bar
+- [`docs/UI-AUDIT-BASELINE.md`](docs/UI-AUDIT-BASELINE.md) — measurable UI score baseline
 
 **Operational + reference docs:**
 - [`docs/PRODUCTION-RUNBOOK.md`](docs/PRODUCTION-RUNBOOK.md) — deployment topology, rollback, on-call
 - [`docs/ARCHITECTURAL-DECISIONS.md`](docs/ARCHITECTURAL-DECISIONS.md) — map provider, PDF runtime, multi-tenant model, etc.
 - [`docs/CODEBASE-AUDIT-2026-05.md`](docs/CODEBASE-AUDIT-2026-05.md) — most recent full-project audit + outstanding follow-ups
 
-**Skill files (load these before non-trivial AI-agent tasks):**
-- `.claude/skills/*/SKILL.md` — canonical Claude Code skills (16 skills, all Violet-Grid-aligned)
-- `.agents/skills/*/SKILL.md` — preserved redirects for the GSD framework (point to `.claude/skills/`)
+**Skill system (consolidated single-system since May 2026):**
+- [`.claude/skills/RESOLVER.md`](.claude/skills/RESOLVER.md) — intent → skill dispatcher (load this first)
+- [`.claude/skills/MANIFEST.json`](.claude/skills/MANIFEST.json) — versioned skillpack manifest
+- [`.claude/skills/conventions/`](.claude/skills/conventions/) — cross-cutting rules (quality gates, architecture flow, premium UI quality)
+- `.claude/skills/tac-*/SKILL.md` — 20 specialist skills (all Violet-Grid-aligned)
+- The former `.agents/skills/` and `.agent/` (GSD framework) are archived under `.archive/`.
 
 ---
 
@@ -93,7 +97,7 @@ pnpm audit:all       # governance + auth-boundary + skills + design-spec
 | 13 | Straight lines only — no curves, no `rounded-full` | PR rejection |
 | 14 | Wrap shadcn primitives — never rebuild | PR rejection |
 
-Full list with rationale: [`PROJECT-RULES.md`](PROJECT-RULES.md).
+Full list with rationale: [`AGENTS.md`](AGENTS.md) § 4.
 
 ## License
 

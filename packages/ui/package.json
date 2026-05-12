@@ -94,6 +94,12 @@
     "./components/composed/management/*": "./src/components/composed/management/*.tsx",
     "./components/composed/notifications/*": "./src/components/composed/notifications/*.tsx",
     "./components/composed/settings/*": "./src/components/composed/settings/*.tsx",
+    "./components/composed/ops-console": "./src/components/composed/ops-console/index.ts",
+    "./components/composed/ops-console/*": "./src/components/composed/ops-console/*.tsx",
+    "./components/composed/ops-console/pages": "./src/components/composed/ops-console/pages/index.ts",
+    "./components/composed/ops-console/pages/*": "./src/components/composed/ops-console/pages/*.tsx",
+    "./components/composed/ops-console/forms": "./src/components/composed/ops-console/forms/index.ts",
+    "./components/composed/ops-console/forms/*": "./src/components/composed/ops-console/forms/*.tsx",
     "./components/primitives/*": "./src/components/primitives/*.tsx",
     "./hooks/*": "./src/hooks/*.ts",
     "./icons": "./src/icons/index.tsx"

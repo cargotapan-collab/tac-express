@@ -51,7 +51,10 @@
                                            "BANK_ACCOUNT",
                                            "BANK_IFSC",
                                            "BANK_SWIFT",
-                                           "BANK_UPI"
+                                           "BANK_UPI",
+                                           "E2E_USER_EMAIL",
+                                           "E2E_USER_PASSWORD",
+                                           "AXE_FAIL_ON_VIOLATIONS"
                                        ]
                            },
                   "format":  {

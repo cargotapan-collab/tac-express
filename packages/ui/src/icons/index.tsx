@@ -140,6 +140,10 @@ import {
   RiTaskLine,
   RiArchiveLine,
   RiSignalWifiErrorLine,
+  RiInboxLine,
+  RiArrowRightUpLine,
+  RiClipboardLine,
+  RiGridLine,
 } from "@remixicon/react"
 export type { RemixiconComponentType } from "@remixicon/react"
 
@@ -385,4 +389,8 @@ export {
   RiHome2Line,
   RiShipLine,
   RiLeafLine,
+  RiInboxLine,
+  RiArrowRightUpLine,
+  RiClipboardLine,
+  RiGridLine,
 }

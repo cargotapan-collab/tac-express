@@ -17,6 +17,42 @@ const PUBLIC_PATHS = [
 const RATE_LIMITED_PUBLIC = ["/api/public", "/track"]
 const RATE_LIMITED_AUTH = ["/sign-in", "/auth/sign-in", "/auth/callback"]
 
+/**
+ * Legacy → Paper Ops Console redirect map (May 2026 PROMOTION).
+ *
+ * Each entry maps an EXACT pathname on the prior Violet Grid v6 dashboard to
+ * its Paper Ops Console equivalent. Detail / create / sub-routes (e.g.
+ * `/shipments/[id]`, `/shipments/create`, `/settings/api-keys`) intentionally
+ * fall through — the Paper Console doesn't have detail flows yet, so those
+ * routes continue to render the v6 detail / wizard surfaces until the paper
+ * equivalents are built. See docs/OPS-CONSOLE-POLICY.md.
+ *
+ * To roll back the promotion: delete this map + the redirect block in `proxy()`.
+ */
+const LEGACY_TO_OPS_CONSOLE: Record<string, string> = {
+  // Roots
+  "/": "/ops-console",
+  "/home": "/ops-console",
+  // List routes — ONLY list pages are redirected. Detail (`/shipments/[id]`)
+  // and create (`/shipments/create`) routes continue to serve the v6 Violet
+  // Grid surfaces because those flows carry features the paper console hasn't
+  // yet reproduced (multi-step wizards, WhatsApp send, payment recording,
+  // PDF preview, attachments, status updates, scan loops, autosave, etc.).
+  // See docs/OPS-CONSOLE-PARITY-AUDIT.md.
+  "/analytics": "/ops-console/analytics",
+  "/shipments": "/ops-console/shipments",
+  "/manifests": "/ops-console/manifests",
+  "/scanning": "/ops-console/scanning",
+  "/inventory": "/ops-console/inventory",
+  "/exceptions": "/ops-console/exceptions",
+  "/finance": "/ops-console/finance",
+  "/rate-cards": "/ops-console/rates",
+  "/customers": "/ops-console/customers",
+  "/management": "/ops-console/management",
+  "/notifications": "/ops-console/notifications",
+  "/settings": "/ops-console/settings",
+}
+
 function getIdentifier(req: NextRequest): string {
   return (
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
@@ -47,6 +83,15 @@ function tooManyRequests(reset: number): NextResponse {
 export default async function proxy(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl
   const identifier = getIdentifier(req)
+
+  // 0. Legacy → Paper Ops Console redirect (May 2026 promotion).
+  // Exact-match only; deep paths fall through to the v6 detail/create flows.
+  const opsTarget = LEGACY_TO_OPS_CONSOLE[pathname]
+  if (opsTarget) {
+    const url = req.nextUrl.clone()
+    url.pathname = opsTarget
+    return NextResponse.redirect(url)
+  }
 
   // 1. Rate limit public + auth surfaces (no-op when Upstash env missing)
   if (RATE_LIMITED_PUBLIC.some((p) => pathname.startsWith(p))) {

@@ -1,26 +1,28 @@
 # CLAUDE.md — TAC Express Claude Agent Instructions
 
-> This file is the Claude Code / Claude API specific companion to `AGENTS.md`.
+> This file is the Claude Code entry point. It defers to `AGENTS.md` for hard rules and `DESIGN_SYSTEM.md` for visual identity.
 > **MANDATORY:** Read both `AGENTS.md` AND this file before any task.
-> **VERSION:** 5.1 — TAC Express v5.0 Violet Grid + GBrain enforcement layer (May 2026)
+> **VERSION:** 6.1 — Consolidated single-system + GBrain enforcement layer (May 2026)
 
 ---
 
-## 0. AUTHORITY CHAIN
+## 0. AUTHORITY CHAIN (consolidated — one system)
 
 ```
-CLAUDE.md (this file)
+CLAUDE.md (this file — Claude Code entry)
   ↓ defers to
-AGENTS.md (master rules)
-  ↓ defers to
-PROJECT-RULES.md (enforcement)
+AGENTS.md (master rules — absorbs former PROJECT-RULES.md)
   ↓ defers to
 DESIGN_SYSTEM.md (visual spec)
   ↓ dispatches via
-.claude/skills/RESOLVER.md  (intent → skill dispatcher, GBrain pattern)
-  ↓ enforces
-.claude/skills/conventions/* (cross-cutting rules)
+.claude/skills/RESOLVER.md (intent → skill dispatcher, GBrain pattern)
+  ↓ enforces via
+.claude/skills/conventions/ (cross-cutting rules)
+  ↓ details in
+docs/VIOLET-GRID-QUALITY.md (premium UI quality bar)
 ```
+
+`PROJECT-RULES.md`, `.agents/skills/`, and `.agent/` are **archived** under `.archive/` and no longer referenced. All skills live in `.claude/skills/` ONLY.
 
 All files are co-equal on hard violations. When in conflict, be MORE restrictive, not less.
 
@@ -61,13 +63,22 @@ versioned skillpack manifest (current version: `1.0.0`).
 ## 1. CLAUDE-SPECIFIC WORKFLOW
 
 ### Before ANY Task
+
 1. Claude Code natively reads `.claude/skills/` via progressive disclosure.
-2. **Open [`.claude/skills/RESOLVER.md`](.claude/skills/RESOLVER.md)** — that is the
-   single dispatch table. Match the user's intent to a skill (or two).
-3. If the skill description in the available-skills list isn't enough, load it via
-   the Skill tool FIRST. Onboarding (`tac-express-onboarding`) loads first every session.
-4. If a required skill isn't in `.claude/skills/`, fallback to `.agents/skills/`.
-5. **NEVER write a single line of code without first invoking the relevant skill.**
+2. **Open [`.claude/skills/RESOLVER.md`](.claude/skills/RESOLVER.md)** — it maps the user's intent to the right specialist skill.
+3. If session start: load `tac-express-onboarding` first.
+4. Load the specialist skill that matches via the Skill tool.
+5. Apply the cross-cutting **conventions** from [`.claude/skills/conventions/`](.claude/skills/conventions/):
+   - `quality-gates.md` (five must-pass commands)
+   - `architecture-flow.md` (UI → services → database → Supabase)
+   - `premium-ui-quality.md` (10/10 rubric contract + banned patterns)
+   - `brain-first.md` (check codebase + skills + memory before external lookup)
+   - `test-before-bulk.md` (test on 1 before bulk)
+   - `subagent-routing.md` (Agent tool vs inline)
+   - `friction-protocol.md` (refusal format when asked to violate a law)
+6. **NEVER write a single line of code without first invoking the relevant skill.**
+
+Skipping the resolver is explicitly non-conforming — restart the loop.
 
 ### Task Classification
 
@@ -76,20 +87,25 @@ versioned skillpack manifest (current version: `1.0.0`).
 | **Every session** | `tac-express-onboarding` | Load FIRST |
 | Any non-trivial task | `tac-karpathy-discipline` | Think → Simplify → Surgical → Goal |
 | Law / forbidden-package question | `tac-fourteen-laws` | Authoritative violation patterns + fixes |
-| New feature / component | `tac-brainstorming` → `tac-tdd` → `tac-ui-authoring` | Design approval required |
-| Premium UI surface (hero, KPI, marketing) | `tac-design-tokens` | Token-compliant motion + type + gradient |
+| New feature / component | `tac-brainstorming` → `tac-tdd` → `tac-ui-authoring` → `tac-premium-patterns` | Design approval + premium pattern lookup |
+| Premium UI surface (hero, KPI, marketing) | `tac-design-tokens` + `tac-premium-patterns` | Token-compliant + paste-ready pattern |
+| **"Build a [hero/KPI/dashboard/landing]"** | `tac-premium-patterns` | Catalog of 9-10/10 compositions |
+| **"Score this UI" / "Is this 10/10?"** | `tac-ui-rubric` | 10-criterion measurable score |
+| **"Add hover/animation/motion"** | `tac-micro-interactions` | v6 motion vocabulary |
+| **uipro / "67 styles" / "Pro Max"** | `tac-uipro-bridge` FIRST, then `ui-ux-pro-max` | Filter forbidden styles |
 | Auth / session / middleware / RBAC | `tac-auth` | Supabase pattern compliance |
 | Forms / validation / server actions | `tac-forms` | react-hook-form + zod resolver pattern |
 | Route handlers / public API / webhooks / edge funcs | `tac-api-surface` | Boundary validation + rate-limit + signing |
 | Bug fix | `tac-debug` → `tac-tdd` | Root cause identified before fix |
 | Refactor | `tac-code-review` → `tac-tdd` | Tests green before and after |
-| UI component | `tac-ui-authoring` | Token compliance |
+| UI component | `tac-ui-authoring` + `tac-premium-patterns` | Token compliance + premium composition |
 | Data / service layer | `tac-data-layer` | Architecture flow respected |
 | Schema / RLS / migrations / RPC | `tac-supabase-schema` | RLS by role + SECURITY DEFINER patterns |
 | Domain (shipments / manifests / AWBs) | `tac-domain-logistics` | Status lifecycles + branded types |
 | Accessibility review | `tac-accessibility` | WCAG 2.1 AA |
-| Pre-merge | `tac-code-review` | All quality gates pass |
-| Recurring fix / "we keep doing X" / new skill | `tac-skillify` | 10-item conformance audit (RESOLVER + eval + tests) |
+| Pre-merge (UI) | `tac-code-review` + `tac-ui-rubric` | All quality gates + score ≥ 90 |
+| Pre-merge (non-UI) | `tac-code-review` | All quality gates pass |
+| Recurring fix / "we keep doing X" / new skill | `tac-skillify` | Conformance audit (RESOLVER + eval + tests) |
 | Cross-cutting rule (quality / architecture / brain-first / etc.) | `conventions/*.md` | See `RESOLVER.md` Disambiguation rules |
 
 ---
@@ -129,7 +145,35 @@ Claude MUST refuse or pause and ask when:
 
 ---
 
-## 4. QUICK REFERENCE
+## 4. UI/UX PREMIUM SKILL STACK (v6)
+
+These four skills + one rule doc form the premium UI/UX quality system. Load them in order for any UI task:
+
+1. **`tac-design-tokens`** — token reference (colors, type, motion, FUI)
+2. **`tac-premium-patterns`** — paste-ready compositions (hero, KPI, table, drawer, empty/error states)
+3. **`tac-micro-interactions`** — motion vocabulary (instant / smooth / expressive)
+4. **`tac-ui-rubric`** — 10-criterion measurable score (0-100)
+5. **`docs/VIOLET-GRID-QUALITY.md`** — anti-template / anti-AI-slop rule sheet (authoritative quality bar)
+
+Plus one safety adapter:
+6. **`tac-uipro-bridge`** — filters `ui-ux-pro-max` recommendations through Violet Grid before surfacing
+
+> **The 10/10 contract:** every premium UI surface ships with `tac-ui-rubric` score ≥ 90, all 4 states designed (loaded/loading/empty/error), no banned patterns from `docs/VIOLET-GRID-QUALITY.md`, and at least one Distinctive Detail (criterion 10).
+
+### When to use the bundled `ui-ux-pro-max` (uipro) skill
+
+uipro ships 67 styles, 96 palettes, 57 font pairings — but **most are FORBIDDEN by the Violet Grid**. **Always load `tac-uipro-bridge` first.** Legitimate uses:
+
+- Accessibility checklist lookup (WCAG references)
+- Anti-pattern lookup (then re-state in Violet Grid terms)
+- Animation timing / easing reference (then map to our `--duration-*` / `--ease-*` tokens)
+- Font-pairing **kerning math** reference (we are locked to Plus Jakarta Sans + IBM Plex Mono + Lora)
+
+uipro is **off-limits** for: picking a color, picking a font, picking a chart type, picking a style. Those decisions are owned by `tac-design-tokens` and the Fourteen Laws.
+
+---
+
+## 5. QUICK REFERENCE
 
 ```
 MONOREPO ROOT:  c:\tac\tac-express

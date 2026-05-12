@@ -33,10 +33,10 @@ export const shipmentColumns: ColumnDef<ShipmentSummary>[] = [
       return (
         <a
           href={`/shipments/${row.original.id}`}
-          className="group flex items-center gap-2"
+          className="group flex items-center gap-2 focus-visible:outline-none focus-visible:tac-focus-premium"
         >
-          <RiBox3Line className="size-3.5 text-muted-foreground" />
-          <span className="font-mono text-xs font-semibold tracking-wider text-primary group-hover:underline">
+          <RiBox3Line className="size-3.5 text-muted-foreground" aria-hidden />
+          <span className="t-mono font-semibold tracking-wider text-primary group-hover:underline">
             {awb}
           </span>
         </a>
@@ -64,7 +64,7 @@ export const shipmentColumns: ColumnDef<ShipmentSummary>[] = [
         <span className="text-xs font-medium text-foreground">
           {row.original.senderName}
         </span>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <span className="t-mono-sm text-muted-foreground">
           → {row.original.receiverName}
         </span>
       </div>
@@ -77,9 +77,9 @@ export const shipmentColumns: ColumnDef<ShipmentSummary>[] = [
       const origin = row.original.originHub.replace(/_/g, " ")
       const dest = row.original.destHub.replace(/_/g, " ")
       return (
-        <div className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest">
+        <div className="flex items-center gap-1.5 tac-mono-label text-foreground">
           <span>{abbreviate(origin)}</span>
-          <RiArrowRightLine className="size-3 text-muted-foreground" />
+          <RiArrowRightLine className="size-3 text-muted-foreground" aria-hidden />
           <span>{abbreviate(dest)}</span>
         </div>
       )
@@ -112,7 +112,7 @@ export const shipmentColumns: ColumnDef<ShipmentSummary>[] = [
     id: "load",
     header: () => <SortHeader className="text-right">Pkgs · Weight</SortHeader>,
     cell: ({ row }) => (
-      <div className="text-right font-mono text-[11px]">
+      <div className="text-right t-mono-sm tabular-nums">
         <span>{row.original.pieces ?? 0}</span>
         <span className="mx-1 text-muted-foreground">·</span>
         <span>{row.original.chargeableWeight.toFixed(1)}kg</span>
@@ -132,7 +132,7 @@ export const shipmentColumns: ColumnDef<ShipmentSummary>[] = [
     cell: ({ row }) => {
       const d = new Date(row.getValue<string>("createdAt"))
       return (
-        <span className="whitespace-nowrap font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <span className="whitespace-nowrap tac-mono-label text-muted-foreground">
           {formatDistanceToNow(d, { addSuffix: true })}
         </span>
       )
@@ -145,7 +145,7 @@ export const shipmentColumns: ColumnDef<ShipmentSummary>[] = [
       <a
         href={`/shipments/${row.original.id}`}
         className={cn(
-          "border border-border px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+          "border border-border px-2 py-1 tac-mono-label text-muted-foreground transition-colors hover:border-foreground hover:text-foreground focus-visible:outline-none focus-visible:tac-focus-premium"
         )}
       >
         View
@@ -163,10 +163,7 @@ function SortHeader({
 }) {
   return (
     <span
-      className={cn(
-        "font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground",
-        className
-      )}
+      className={cn("tac-mono-label text-muted-foreground", className)}
     >
       {children}
     </span>

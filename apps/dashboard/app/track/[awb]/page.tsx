@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { format, parseISO } from "date-fns"
+import { format, parseISO, addDays } from "date-fns"
 
 import { createPublicTrackingService } from "@workspace/services/public-tracking.service"
 import { ShipmentStatusBadge } from "@workspace/ui/components/composed/shipments/shipment-status-badge"
@@ -85,7 +85,7 @@ export default async function PublicTrackingPage({ params }: PageProps) {
         <ShipmentStepper currentStatus={shipment.status} />
       </section>
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Stat label="Pieces" value={String(shipment.pieces ?? 1)} />
         <Stat
           label="Weight"
@@ -102,6 +102,10 @@ export default async function PublicTrackingPage({ params }: PageProps) {
           }
         />
         <Stat label="Created" value={fmtDate(shipment.createdAt)} />
+        <Stat
+          label="ETA"
+          value={computeEta(shipment)}
+        />
       </section>
 
       <section className="space-y-3 border border-border bg-card p-4">
@@ -203,6 +207,34 @@ function fmtDate(iso: string) {
     return format(parseISO(iso), "dd MMM yyyy")
   } catch {
     return iso
+  }
+}
+
+/**
+ * Compute Estimated Delivery date from a public ShipmentSummary.
+ *
+ *   PRIORITY / EXPRESS  → +1 business day from createdAt
+ *   STANDARD / default  → +3 business days from createdAt
+ *
+ * Terminal states (DELIVERED, CANCELLED, RTO) get a static label instead of a
+ * forward-looking ETA. This is a best-effort estimate — once the back-end
+ * exposes a real `estimated_delivery` column this helper can read from it.
+ */
+function computeEta(shipment: {
+  status?: string
+  createdAt?: string
+  serviceLevel?: string
+}): string {
+  const terminal = ["DELIVERED", "CANCELLED", "RTO"]
+  if (shipment.status && terminal.includes(shipment.status)) {
+    return shipment.status === "DELIVERED" ? "Delivered" : "—"
+  }
+  if (!shipment.createdAt) return "—"
+  const sla = /priority|express/i.test(shipment.serviceLevel ?? "") ? 1 : 3
+  try {
+    return format(addDays(parseISO(shipment.createdAt), sla), "dd MMM")
+  } catch {
+    return "—"
   }
 }
 

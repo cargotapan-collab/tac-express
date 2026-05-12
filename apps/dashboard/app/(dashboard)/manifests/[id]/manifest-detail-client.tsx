@@ -39,7 +39,11 @@ export function ManifestDetailClient({ manifestId }: ManifestDetailClientProps) 
   const [awbInput, setAwbInput] = React.useState("")
 
   const { data: manifest, isLoading } = useManifest(manifestId)
-  const { data: shipments, isLoading: loadingShipments } = useManifestShipments(manifestId)
+  // Downstream queries (shipments, mutations) must use the UUID — `manifestId`
+  // from the URL may be a human-readable manifest_number which getManifestById
+  // resolves to a manifest, but manifest_shipments + mutations key off the UUID.
+  const resolvedId = manifest?.id ?? manifestId
+  const { data: shipments, isLoading: loadingShipments } = useManifestShipments(resolvedId)
   const closeManifest = useCloseManifest()
   const departManifest = useDepartManifest()
   const arriveManifest = useArriveManifest()
@@ -48,10 +52,10 @@ export function ManifestDetailClient({ manifestId }: ManifestDetailClientProps) 
 
   async function handleAction(action: "close" | "depart" | "arrive" | "reconcile") {
     try {
-      if (action === "close") await closeManifest.mutateAsync(manifestId)
-      else if (action === "depart") await departManifest.mutateAsync(manifestId)
-      else if (action === "arrive") await arriveManifest.mutateAsync(manifestId)
-      else await reconcileManifest.mutateAsync(manifestId)
+      if (action === "close") await closeManifest.mutateAsync(resolvedId)
+      else if (action === "depart") await departManifest.mutateAsync(resolvedId)
+      else if (action === "arrive") await arriveManifest.mutateAsync(resolvedId)
+      else await reconcileManifest.mutateAsync(resolvedId)
       addNotification({ type: "success", title: "Status updated", message: action.toUpperCase() })
     } catch (err) {
       addNotification({ type: "error", title: "Action failed", message: String(err) })
@@ -62,7 +66,7 @@ export function ManifestDetailClient({ manifestId }: ManifestDetailClientProps) 
     const awb = awbInput.trim().toUpperCase()
     if (!awb) return
     try {
-      await addShipment.mutateAsync({ manifestId, awb })
+      await addShipment.mutateAsync({ manifestId: resolvedId, awb })
       addNotification({ type: "success", title: "AWB added", message: awb })
       setAwbInput("")
     } catch (err) {

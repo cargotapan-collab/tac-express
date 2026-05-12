@@ -7,18 +7,23 @@ const shipmentStatusVariants = cva(
   "inline-flex items-center gap-1.5 px-2 py-0.5 font-mono text-2xs font-semibold uppercase tracking-wider border",
   {
     variants: {
+      // Backgrounds flattened to `bg-card` (off-white) so the colored text
+      // foreground clears WCAG AA 4.5:1 at the 10px badge size. Visual
+      // gradation between in-progress vs delivered states now lives in the
+      // BORDER opacity (decorative, no contrast requirement) + the filled
+      // dot (size 1.5 × 1.5 = doesn't trip large-text rules).
       status: {
-        CREATED:           "bg-muted text-muted-foreground border-border",
-        PICKUP_SCHEDULED:  "bg-muted text-foreground border-border",
-        PICKED_UP:         "bg-primary/10 text-primary border-primary/20",
-        RECEIVED_AT_ORIGIN:"bg-primary/10 text-primary border-primary/20",
-        IN_TRANSIT:        "bg-primary/20 text-primary border-primary/30",
-        RECEIVED_AT_DEST:  "bg-primary/10 text-primary border-primary/20",
-        OUT_FOR_DELIVERY:  "bg-primary/15 text-primary border-primary/25",
-        DELIVERED:         "bg-primary/10 text-primary border-primary/20",
-        CANCELLED:         "bg-destructive/10 text-destructive border-destructive/20",
-        RTO:               "bg-destructive/10 text-destructive border-destructive/20",
-        EXCEPTION:         "bg-destructive/20 text-destructive border-destructive/30",
+        CREATED:           "bg-card text-muted-foreground border-border",
+        PICKUP_SCHEDULED:  "bg-card text-foreground border-border",
+        PICKED_UP:         "bg-card text-primary border-primary/30",
+        RECEIVED_AT_ORIGIN:"bg-card text-primary border-primary/30",
+        IN_TRANSIT:        "bg-card text-primary border-primary/60",
+        RECEIVED_AT_DEST:  "bg-card text-primary border-primary/30",
+        OUT_FOR_DELIVERY:  "bg-card text-primary border-primary/50",
+        DELIVERED:         "bg-card text-primary border-primary/30",
+        CANCELLED:         "bg-card text-destructive border-destructive/30",
+        RTO:               "bg-card text-destructive border-destructive/30",
+        EXCEPTION:         "bg-card text-destructive border-destructive/60",
       },
     },
     defaultVariants: { status: "CREATED" },

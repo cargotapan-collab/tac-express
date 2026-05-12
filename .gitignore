@@ -15,6 +15,12 @@ node_modules
 # Testing
 coverage
 
+# Playwright (visual + a11y)
+**/playwright-report/
+**/test-results/
+**/e2e/.auth/
+**/playwright/.cache/
+
 # Turbo
 .turbo
 
@@ -41,3 +47,9 @@ npm-debug.log*
 .cursor/
 .windsurf/settings.local.json
 .vscode/settings.local.json
+
+# TestSprite regenerated artifacts (test results, raw reports, intermediate PRD)
+# The .py test files + the final synthesized testsprite-mcp-test-report.md
+# stay in git; the per-run tmp/ output does not.
+testsprite_tests/tmp/
+testsprite_tests/.testsprite/

@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
-import Link from "next/link"
+import { cn } from "@workspace/ui/lib/utils"
+import { TransitionLink } from "@workspace/ui/components/primitives/transition-link"
 import { RiArrowRightLine, RiCheckLine } from "@workspace/ui/icons"
 
 export const metadata: Metadata = {
@@ -63,11 +64,11 @@ export default function PricingPage() {
     <div className="bg-background">
       <section className="border-b border-border bg-card px-6 py-24">
         <div className="mx-auto max-w-5xl">
-          <p className="tac-mono-label">04 / Pricing</p>
-          <h1 className="mt-3 text-balance text-4xl font-bold md:text-6xl">
+          <p className="tac-mono-label animate-in fade-in-0 duration-slow">04 / Pricing</p>
+          <h1 className="t-display mt-3 dark:text-glow-primary animate-in fade-in-0 slide-in-from-bottom-4 duration-slow delay-100">
             One rate card. No setup tax.
           </h1>
-          <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
+          <p className="t-body mt-6 max-w-2xl text-muted-foreground animate-in fade-in-0 slide-in-from-bottom-3 duration-slow delay-200">
             Pricing scales with throughput, not seats. Every plan ships on the same network with the same
             on-time SLA.
           </p>
@@ -75,46 +76,59 @@ export default function PricingPage() {
       </section>
 
       <section className="px-6 py-16">
+        {/* Asymmetric 12-col layout: featured plan claims more visual weight (4/12) than its neighbors (4/12 each — wait equal). */}
+        {/* Actual: 4/4/4 cols, but featured gets t-data-sm price gradient + tac-hover-lift + shadow-md; visual asymmetry through styling, not span. */}
         <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-3">
-          {PLANS.map((plan) => (
+          {PLANS.map((plan, i) => (
             <div
               key={plan.slug}
-              className={
-                "tac-fui-panel relative flex flex-col p-6 " +
-                (plan.featured ? "border-2 border-primary" : "")
-              }
+              style={{ animationDelay: `${i * 100}ms` }}
+              className={cn(
+                "relative flex flex-col p-6 border bg-surface-elevated tac-hover-lift",
+                "animate-in fade-in-0 slide-in-from-bottom-3 duration-slow",
+                plan.featured
+                  ? "border-2 border-primary shadow-md"
+                  : "border-border shadow-sm",
+              )}
             >
               {plan.featured && (
-                <span className="absolute -top-3 left-4 inline-flex items-center bg-primary px-2 py-0.5 font-mono text-2xs uppercase tracking-wider text-primary-foreground">
+                <span className="absolute -top-3 left-4 inline-flex items-center bg-primary px-2 py-0.5 tac-mono-label text-primary-foreground">
                   Most popular
                 </span>
               )}
               <p className="tac-mono-label">{plan.name}</p>
-              <p className="mt-3 font-mono text-4xl text-foreground">{plan.price}</p>
-              <p className="text-sm text-muted-foreground">{plan.cadence}</p>
-              <p className="mt-3 text-sm text-foreground">{plan.blurb}</p>
+              <p className={cn(
+                "mt-3 t-data text-foreground",
+                plan.featured && "t-gradient-primary"
+              )}>
+                {plan.price}
+              </p>
+              <p className="t-mono-sm text-muted-foreground">{plan.cadence}</p>
+              <p className="t-body-sm mt-3 text-foreground">{plan.blurb}</p>
 
               <ul className="mt-6 flex-1 space-y-2">
                 {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm">
+                  <li key={f} className="flex items-start gap-2 t-body-sm">
                     <RiCheckLine className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
                     <span>{f}</span>
                   </li>
                 ))}
               </ul>
 
-              <Link
+              <TransitionLink
                 href={plan.cta.href}
-                className={
-                  "mt-6 inline-flex items-center justify-center gap-2 px-4 py-2.5 font-medium tac-fui-hover " +
-                  (plan.featured
+                className={cn(
+                  "mt-6 justify-center px-4 py-2.5 font-medium",
+                  "tac-fui-hover focus-visible:outline-none focus-visible:tac-focus-premium",
+                  plan.featured
                     ? "bg-primary text-primary-foreground"
-                    : "border border-border bg-background text-foreground")
-                }
+                    : "border border-border bg-background text-foreground",
+                )}
+                pendingClassName="opacity-70"
               >
-                {plan.cta.label}
+                <span>{plan.cta.label}</span>
                 <RiArrowRightLine className="size-4" aria-hidden="true" />
-              </Link>
+              </TransitionLink>
             </div>
           ))}
         </div>
@@ -123,17 +137,18 @@ export default function PricingPage() {
       <section className="border-t border-border px-6 py-16">
         <div className="mx-auto max-w-3xl text-center">
           <p className="tac-mono-label">Want a per-route quote?</p>
-          <h2 className="mt-2 text-3xl font-bold">Try the rate calculator.</h2>
-          <p className="mt-3 text-muted-foreground">
+          <h2 className="t-h1 mt-2">Try the rate calculator.</h2>
+          <p className="t-body mt-3 text-muted-foreground">
             Live rate-card lookup against the actual production network. No login required.
           </p>
-          <Link
+          <TransitionLink
             href="/quote"
-            className="mt-6 inline-flex items-center gap-2 border-2 border-primary bg-primary px-5 py-3 font-medium text-primary-foreground tac-fui-hover"
+            className="mt-6 border-2 border-primary bg-primary px-5 py-3 font-medium text-primary-foreground tac-fui-hover focus-visible:outline-none focus-visible:tac-focus-premium"
+            pendingClassName="opacity-70"
           >
             Open the rate calculator
             <RiArrowRightLine className="size-4" aria-hidden="true" />
-          </Link>
+          </TransitionLink>
         </div>
       </section>
     </div>

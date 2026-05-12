@@ -1,7 +1,9 @@
-# TAC Express Skill Resolver
+# TAC Express — Skill Resolver
 
-> **Read this BEFORE any task.** This is the dispatcher; skills are the implementation.
-> Adopted from the GBrain RESOLVER pattern (https://github.com/garrytan/gbrain).
+> **MANDATORY ENTRY POINT.** Every task begins here. Map the user's intent to the right specialist skill before writing a line of code. Skipping the resolver = non-conforming; restart the loop.
+>
+> **Version:** 2.1 — consolidated single-system + GBrain enforcement (May 2026)
+> **Authority chain:** `CLAUDE.md` → `AGENTS.md` → `DESIGN_SYSTEM.md` → this resolver → `conventions/` (cross-cutting rules)
 >
 > **Rule of two:** if two skills could match, read both before acting.
 > **Chain rule:** the skill's own *Phases* section dictates downstream chaining
@@ -9,85 +11,95 @@
 
 ---
 
-## Always-on (every message)
+## 0. How to use this file
 
-| Trigger | Skill | Why |
-|---|---|---|
-| Session start, any first message | `tac-express-onboarding` | 60-second project orientation — load FIRST |
-| Any non-trivial implementation | `tac-karpathy-discipline` | Think → Simplify → Surgical → Goal |
-| Any code change, install, lint deviation | `tac-fourteen-laws` | Authoritative violation patterns + fixes |
-| Any conventions question | `conventions/` (this folder) | Cross-cutting rules every skill defers to |
+1. Read the user's request.
+2. Match it against the **Intent → Skill** table below.
+3. Load the matched skill via the Skill tool.
+4. Apply the cross-cutting **conventions** (always, regardless of which skill).
+5. Execute. Cite the loaded skill if challenged.
 
----
-
-## Cross-cutting conventions (apply to ALL task skills)
-
-| Rule | File |
-|---|---|
-| The 5 must-pass commands before commit | `conventions/quality-gates.md` |
-| UI → services → database flow (LAW 6/7/8) | `conventions/architecture-flow.md` |
-| Check skills/code/memory BEFORE external lookups | `conventions/brain-first.md` |
-| Test on 1 before bulk operations | `conventions/test-before-bulk.md` |
-| Native Agent tool vs inline work | `conventions/subagent-routing.md` |
-| Response when asked to violate a law | `conventions/friction-protocol.md` |
+If no row matches, fall through to **§ 99 Defaults** — but flag the gap and consider whether a new skill should be created via `tac-skillify`.
 
 ---
 
-## Feature & UI work
+## 1. Intent → Skill (the dispatch table)
 
-| Trigger | Skill |
+### Session-level
+
+| Trigger | Load |
 |---|---|
-| "New feature", "let's add", "build a …", spec-level ask | `tac-brainstorming` (produce written spec FIRST) |
-| "Component", "page", "view", "modal", "card", "form layout" | `tac-ui-authoring` |
-| "Hero", "landing", "marketing surface", "KPI card", "premium feel" | `tac-design-tokens` |
-| "Form", "validation", "react-hook-form", "zod", "server action" | `tac-forms` |
-| "Accessible", "a11y", "keyboard nav", "screen reader", "WCAG" | `tac-accessibility` |
+| Session start, any new task | [`tac-express-onboarding`](tac-express-onboarding/SKILL.md) **FIRST** |
+| "Wait, what's the design system again?" | [`tac-design-tokens`](tac-design-tokens/SKILL.md) |
+| Anything non-trivial | [`tac-karpathy-discipline`](tac-karpathy-discipline/SKILL.md) (always — Think → Simplify → Surgical → Goal) |
+| Any code change, install, lint deviation | [`tac-fourteen-laws`](tac-fourteen-laws/SKILL.md) |
 
-## Data, services, API
+### UI / UX
 
-| Trigger | Skill |
+| Trigger phrase | Load |
 |---|---|
-| "Service", "hook", "fetch data", "useQuery", business logic | `tac-data-layer` |
-| "Route handler", "server action", "API endpoint", "edge function", "webhook" | `tac-api-surface` |
-| "Migration", "RLS", "policy", "RPC", "trigger", "regenerate types" | `tac-supabase-schema` |
-| "Auth", "session", "middleware", "RBAC", "sign-in", "sign-out" | `tac-auth` |
+| "Build a component", "add a [button/card/form/table]" | [`tac-ui-authoring`](tac-ui-authoring/SKILL.md) |
+| "Build a hero", "KPI dashboard", "polish this section" | [`tac-premium-patterns`](tac-premium-patterns/SKILL.md) |
+| "Add hover", "animate this", "feels static", "polish the interaction" | [`tac-micro-interactions`](tac-micro-interactions/SKILL.md) |
+| "Token reference", "design tokens", "premium feel" | [`tac-design-tokens`](tac-design-tokens/SKILL.md) |
+| "Is this 10/10?", "score this", "audit this page" | [`tac-ui-rubric`](tac-ui-rubric/SKILL.md) |
+| Anything mentioning **uipro**, "Pro Max", "67 styles", "96 palettes" | [`tac-uipro-bridge`](tac-uipro-bridge/SKILL.md) **FIRST**, then `ui-ux-pro-max` |
+| "Audit a11y", "keyboard navigation", "screen reader" | [`tac-accessibility`](tac-accessibility/SKILL.md) |
 
-## Domain (logistics)
+### Architecture / Domain
 
-| Trigger | Skill |
+| Trigger | Load |
 |---|---|
-| "Shipment", "AWB", "manifest", "exception", "hub scan", "rate card" | `tac-domain-logistics` |
-| "Customer", "invoice", "COD", "WhatsApp send", "payment" | `tac-domain-logistics` (financial section) |
+| "Add a service", "fetch from DB", "hook for X" | [`tac-data-layer`](tac-data-layer/SKILL.md) |
+| Schema / RLS / migration / RPC / trigger / regenerate types | [`tac-supabase-schema`](tac-supabase-schema/SKILL.md) |
+| Shipments / manifests / AWBs / hubs / rate cards / customers / COD | [`tac-domain-logistics`](tac-domain-logistics/SKILL.md) |
+| Route handler / public API / webhook / edge function / rate-limit | [`tac-api-surface`](tac-api-surface/SKILL.md) |
+| Auth / session / middleware / RBAC / sign-in / sign-out | [`tac-auth`](tac-auth/SKILL.md) |
+| Forms / validation / react-hook-form / zod / server actions | [`tac-forms`](tac-forms/SKILL.md) |
 
-## Testing & debug
+### Process / Quality
 
-| Trigger | Skill |
+| Trigger | Load |
 |---|---|
-| "Write a test", "TDD", "RED → GREEN", "playwright", "vitest" | `tac-tdd` |
-| "Bug", "broken", "fails", "unexpected", "investigate", "regression" | `tac-debug` (root-cause first, NO guessing) |
+| New feature / new component design | [`tac-brainstorming`](tac-brainstorming/SKILL.md) → produce a spec FIRST |
+| Test writing (unit, integration, E2E) | [`tac-tdd`](tac-tdd/SKILL.md) (RED → GREEN → REFACTOR) |
+| Bug / failure / unexpected behaviour | [`tac-debug`](tac-debug/SKILL.md) — root cause first, never guess |
+| Pre-merge, post-feature | [`tac-code-review`](tac-code-review/SKILL.md) + [`tac-ui-rubric`](tac-ui-rubric/SKILL.md) (if UI changed) |
+| "Is this allowed?" / forbidden-package question / LAW lookup | [`tac-fourteen-laws`](tac-fourteen-laws/SKILL.md) |
 
-## Review & quality
+### Meta
 
-| Trigger | Skill |
+| Trigger | Load |
 |---|---|
-| Pre-merge, post-feature, "review this" | `tac-code-review` |
-| "Audit accessibility", design check | `tac-accessibility` (chain into `tac-code-review`) |
-
-## Meta (skill of skills)
-
-| Trigger | Skill |
-|---|---|
-| "Skillify this", "make this proper", "is this a skill?", recurring fix | `tac-skillify` (11-item conformance audit) |
-| "Create a skill", "new skill" | `tac-skillify` (Phase 2: scaffold) |
-| "Routing test", "is this skill reachable?", "MECE check" | `tac-skillify` (Phase 5: check-resolvable) |
+| "Skillify this", "make this proper", "is this a skill?", recurring fix | [`tac-skillify`](tac-skillify/SKILL.md) (conformance audit) |
+| "Create a skill", "new skill" | [`tac-skillify`](tac-skillify/SKILL.md) (Phase 2: scaffold) |
+| "Routing test", "is this skill reachable?", "MECE check" | [`tac-skillify`](tac-skillify/SKILL.md) (Phase 5: check-resolvable) |
 
 ---
 
-## Disambiguation rules
+## 2. Cross-cutting conventions (ALWAYS apply, regardless of which skill loaded)
+
+Every task — regardless of which specialist skill was loaded — must honor:
+
+| Convention | File |
+|---|---|
+| **Quality gates** — five must-pass commands before any commit | [`conventions/quality-gates.md`](conventions/quality-gates.md) |
+| **Architecture flow** — UI → services → database → Supabase, no skipping | [`conventions/architecture-flow.md`](conventions/architecture-flow.md) |
+| **Premium UI quality** — anti-template, anti-AI-slop checklist | [`conventions/premium-ui-quality.md`](conventions/premium-ui-quality.md) |
+| **Brain-first** — check skills/code/memory BEFORE external lookups | [`conventions/brain-first.md`](conventions/brain-first.md) |
+| **Test-before-bulk** — test on 1 before any batch operation | [`conventions/test-before-bulk.md`](conventions/test-before-bulk.md) |
+| **Subagent routing** — native Agent tool vs inline work | [`conventions/subagent-routing.md`](conventions/subagent-routing.md) |
+| **Friction protocol** — response when asked to violate a law | [`conventions/friction-protocol.md`](conventions/friction-protocol.md) |
+
+These conventions are short, prescriptive, and never optional. They are the load-bearing constraints that make the specialist skills predictable.
+
+---
+
+## 3. Disambiguation rules
 
 When multiple skills could match:
 
-1. **Most specific wins.** `tac-domain-logistics` over `tac-data-layer` if the task names a shipment/AWB/manifest. `tac-design-tokens` over `tac-ui-authoring` if the task is a premium hero/KPI surface.
+1. **Most specific wins.** `tac-domain-logistics` over `tac-data-layer` if the task names a shipment/AWB/manifest. `tac-premium-patterns` over `tac-ui-authoring` if the task is a premium hero/KPI surface.
 2. **Boundary-crossing wins higher in the stack.** A "form that POSTs to a route handler" loads BOTH `tac-forms` AND `tac-api-surface`. Don't skip the boundary.
 3. **Bug + UI → debug first.** If "the dropdown doesn't close" — load `tac-debug` BEFORE `tac-ui-authoring`. Find the cause, then choose the fix surface.
 4. **Schema change cascades.** Any `supabase/migrations/` edit triggers: `tac-supabase-schema` → `tac-tdd` → regenerate types → `tac-code-review`.
@@ -95,7 +107,27 @@ When multiple skills could match:
 
 ---
 
-## Routing eval
+## 4. When a new skill is needed (the skillify trigger)
+
+If during a task you realize:
+- The same correction has been needed twice or more across sessions, OR
+- The current skills don't cover this intent cleanly, OR
+- The user said "we keep doing X" or "we've discussed this before",
+
+**stop** and create a new skill:
+
+1. Choose a `tac-<topic>` name, kebab-case, ≤ 20 chars.
+2. Create `.claude/skills/tac-<topic>/SKILL.md` with frontmatter (`name`, `description`).
+3. Add a row to § 1 of this resolver.
+4. Add an entry to `MANIFEST.json` (`skills` array).
+5. Add a routing entry to `evals/routing.jsonl`.
+6. Update `CLAUDE.md` § 1 Task Classification table.
+
+Single atomic commit: `chore(skills): add tac-<topic> + resolver + manifest + eval`.
+
+---
+
+## 5. Routing eval
 
 This dispatcher is verified by `evals/routing.jsonl`. Each entry maps a real
 user trigger phrase to the expected skill(s). Adding a new skill REQUIRES a
@@ -103,9 +135,7 @@ new entry in that file. See `evals/README.md`.
 
 ---
 
-## Brain-filing rules (where files go)
-
-TAC Express version of GBrain's `_brain-filing-rules.md`:
+## 6. Brain-filing rules (where files go)
 
 | Content | Goes in | NOT in |
 |---|---|---|
@@ -121,10 +151,11 @@ TAC Express version of GBrain's `_brain-filing-rules.md`:
 
 ---
 
-## How to use this file
+## 99. Defaults (when nothing matches)
 
-1. The user sends a message.
-2. Match the phrase against the tables above.
-3. Read the matched SKILL.md (and the conventions/ files it cites).
-4. Only after the skill is loaded, write code.
-5. If you skipped this, the work is non-conforming. Restart the loop.
+In order of precedence:
+
+1. Load [`tac-fourteen-laws`](tac-fourteen-laws/SKILL.md) — to know what's allowed.
+2. Load [`tac-karpathy-discipline`](tac-karpathy-discipline/SKILL.md) — to keep the change surgical.
+3. If the task touches UI, also load [`tac-ui-authoring`](tac-ui-authoring/SKILL.md) + [`tac-design-tokens`](tac-design-tokens/SKILL.md).
+4. Proceed — and flag in the response that the resolver had no exact match, so we can add a routing row next.

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 
 import { cn } from "@workspace/ui/lib/utils"
 import { Input } from "@workspace/ui/components/primitives/input"
@@ -13,7 +14,13 @@ import {
 } from "@workspace/ui/components/primitives/toggle-group"
 import { DatePicker } from "@workspace/ui/components/primitives/date-picker"
 import { Combobox } from "@workspace/ui/components/primitives/combobox"
-import { RiPlaneLine, RiTruckLine } from "@workspace/ui/icons"
+import { TimePicker } from "@workspace/ui/components/primitives/time-picker"
+import {
+  RiPlaneLine,
+  RiTruckLine,
+  RiErrorWarningLine,
+  RiArrowRightLine,
+} from "@workspace/ui/icons"
 
 export type ManifestType = "AIR" | "TRUCK"
 
@@ -86,8 +93,43 @@ export function StepSetup({
     onChange({ ...value, [key]: next })
   }
 
+  const hubsEmpty = hubs.length === 0
+
   return (
     <div data-slot="manifest-step-setup" className={cn("grid gap-6", className)}>
+      {/* Empty-state guard — if no hubs are configured the entire wizard is
+          unusable (origin + destination are required). Surface a clear,
+          actionable recovery path instead of letting the operator hit a
+          dead "No results." dropdown. */}
+      {hubsEmpty && (
+        <div
+          role="alert"
+          className="border border-accent-warning/40 border-l-[3px] border-l-accent-warning bg-accent-warning/5 p-4 flex items-start gap-3"
+        >
+          <RiErrorWarningLine
+            aria-hidden
+            className="size-5 text-accent-warning shrink-0 mt-0.5"
+          />
+          <div className="flex-1 space-y-2">
+            <p className="tac-mono-label text-accent-warning">
+              No hubs configured
+            </p>
+            <p className="t-body-sm text-foreground">
+              You need at least two hubs (origin + destination) before you can
+              build a manifest. Add hubs in Management → Hubs, then come back
+              to create your first manifest.
+            </p>
+            <Link
+              href="/management"
+              className="inline-flex items-center gap-1.5 mt-1 tac-mono-label text-primary hover:text-foreground transition-colors duration-fast focus-visible:outline-none focus-visible:tac-focus-premium"
+            >
+              Go to Hub Management
+              <RiArrowRightLine aria-hidden className="size-3.5" />
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Route */}
       <section className="grid gap-3 sm:grid-cols-2">
         <div className="grid gap-1.5">
@@ -172,20 +214,20 @@ export function StepSetup({
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label htmlFor="etd">ETD</Label>
-              <Input
+              <TimePicker
                 id="etd"
-                type="time"
+                aria-label="Estimated departure time"
                 value={value.etd ?? ""}
-                onChange={(e) => update("etd", e.target.value)}
+                onChange={(v) => update("etd", v)}
               />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="eta">ETA</Label>
-              <Input
+              <TimePicker
                 id="eta"
-                type="time"
+                aria-label="Estimated arrival time"
                 value={value.eta ?? ""}
-                onChange={(e) => update("eta", e.target.value)}
+                onChange={(v) => update("eta", v)}
               />
             </div>
           </div>
@@ -232,11 +274,11 @@ export function StepSetup({
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="dispatch-time">Dispatch Time</Label>
-            <Input
+            <TimePicker
               id="dispatch-time"
-              type="time"
+              aria-label="Dispatch time"
               value={value.dispatchTime ?? ""}
-              onChange={(e) => update("dispatchTime", e.target.value)}
+              onChange={(v) => update("dispatchTime", v)}
             />
           </div>
         </section>

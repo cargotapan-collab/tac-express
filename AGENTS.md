@@ -1,27 +1,28 @@
 # AGENTS.md — TAC Express Agent Rules & Protocols
 
 > **MANDATORY:** Read this file fully at the start of EVERY conversation before writing any code.
-> **AUTHORITY:** This file + `PROJECT-RULES.md` + `DESIGN_SYSTEM.md` supersede all other instructions.
-> **VERSION:** 7.1 — TAC Express v5.0 Violet Grid + GBrain enforcement layer (May 2026)
+> **AUTHORITY:** This file + `DESIGN_SYSTEM.md` supersede all other instructions. There is now ONE consolidated rule set — no `PROJECT-RULES.md`, no `.agents/skills/`, no `.agent/`.
+> **VERSION:** 8.1 — Consolidated single-system + GBrain enforcement layer (May 2026)
 
 ---
 
-## 0. SKILL SYSTEM (GBrain-pattern enforcement)
+## 0. SKILL SYSTEM (consolidated single-system + GBrain enforcement)
 
-> Adopted from GBrain (https://github.com/garrytan/gbrain) — **thin harness, fat skills**.
-> The skill files in `.claude/skills/` are the durable, executable artifacts.
-> This section is the enforcement gate.
+This project uses **Claude Code Skills** at `.claude/skills/` ONLY. The legacy `.agents/skills/` and `.agent/` directories are archived under `.archive/` and no longer referenced.
+
+> Pattern adopted from GBrain (https://github.com/garrytan/gbrain) — **thin harness, fat skills**.
+> The skill files in `.claude/skills/` are the durable, executable artifacts; this section is the enforcement gate.
+
+**Every task starts at the Skill Resolver:** [`.claude/skills/RESOLVER.md`](.claude/skills/RESOLVER.md). The resolver maps intent → skill. Cross-cutting **conventions** at [`.claude/skills/conventions/`](.claude/skills/conventions/) apply universally regardless of which specialist skill loaded.
 
 ### The four-step gate (every task, no exceptions)
 
-1. **Read [`.claude/skills/RESOLVER.md`](./.claude/skills/RESOLVER.md)** — the
-   intent → skill dispatch table. Match the user's request to a specialist skill
-   (or two). The resolver is the truth, not your memory.
+1. **Read [`.claude/skills/RESOLVER.md`](./.claude/skills/RESOLVER.md)** — the intent → skill dispatch table. Match the user's request to a specialist skill (or two). The resolver is the truth, not your memory.
 2. **Load the matched skill** via the Skill tool BEFORE writing code.
-3. **Apply the cited cross-cutting conventions** from
-   [`.claude/skills/conventions/`](./.claude/skills/conventions/):
+3. **Apply the cited cross-cutting conventions** from [`.claude/skills/conventions/`](./.claude/skills/conventions/):
    - `quality-gates.md` — the 5 must-pass commands
    - `architecture-flow.md` — UI → services → database (LAW 6/7/8)
+   - `premium-ui-quality.md` — 10/10 rubric contract + banned patterns
    - `brain-first.md` — codebase + skills + memory FIRST
    - `test-before-bulk.md` — test on 1 before bulk
    - `subagent-routing.md` — Agent tool vs inline
@@ -30,49 +31,55 @@
 
 ### Skillify loop (recurring fix → permanent skill)
 
-If the same fix / pattern / question comes up 2+ times, load
-[`tac-skillify`](./.claude/skills/tac-skillify/SKILL.md) and turn it into a
-properly-skilled, tested, resolvable unit. The 10-item conformance checklist
-gates the work as "shipped." This is how feedback memories become enforced
-behavior instead of advice that drifts.
+If the same fix / pattern / question comes up 2+ times, load [`tac-skillify`](./.claude/skills/tac-skillify/SKILL.md) and turn it into a properly-skilled, tested, resolvable unit. The conformance checklist gates the work as "shipped." This is how feedback memories become enforced behavior instead of advice that drifts.
 
 ### Routing eval
 
-Adding a new skill OR a new trigger phrase REQUIRES a corresponding line in
-[`.claude/skills/evals/routing.jsonl`](./.claude/skills/evals/routing.jsonl).
-The eval is what protects future resolver edits from silently breaking dispatch.
+Adding a new skill OR a new trigger phrase REQUIRES a corresponding line in [`.claude/skills/evals/routing.jsonl`](./.claude/skills/evals/routing.jsonl). The eval is what protects future resolver edits from silently breaking dispatch.
 
 ### Skillpack manifest
 
-[`.claude/skills/MANIFEST.json`](./.claude/skills/MANIFEST.json) is the versioned
-skill bundle (current: `1.0.0`, conformance: `1.0.0`). It enumerates skills,
-conventions, evals, and the audit command (`pnpm audit:skills`).
+[`.claude/skills/MANIFEST.json`](./.claude/skills/MANIFEST.json) is the versioned skill bundle (current: `2.1.0`). It enumerates skills, conventions, evals, and the audit command (`pnpm audit:skills`).
 
 ### Quick-route table (see RESOLVER.md for the full one)
 
 | Trigger | Skill | When |
 |---------|-------|------|
 | Session start | `tac-express-onboarding` | First skill every session |
-| Any non-trivial task | `tac-karpathy-discipline` | Before any code |
-| Law / forbidden-package question | `tac-fourteen-laws` | Before any install or violation |
-| New feature / component | `tac-brainstorming` → `tac-tdd` → `tac-ui-authoring` | Before any code |
-| Auth / session / middleware / RBAC | `tac-auth` | Any auth work |
-| UI component | `tac-ui-authoring` | Every UI task |
-| Premium UI surface (hero, KPI) | `tac-design-tokens` → `tac-ui-authoring` | Every premium surface |
-| Form | `tac-forms` | Every form |
-| Service / hook / data fetch | `tac-data-layer` | Every data path |
-| Route / server action / edge function | `tac-api-surface` | Every API surface |
-| Schema / RLS / migration / RPC | `tac-supabase-schema` | Every schema change |
-| Domain (shipments, AWBs, manifests) | `tac-domain-logistics` | Every domain task |
-| Test | `tac-tdd` | Every non-trivial implementation |
-| Bug / failure | `tac-debug` | Root-cause first, no guessing |
-| A11y review | `tac-accessibility` | WCAG 2.1 AA gate |
-| Pre-merge | `tac-code-review` | All quality gates pass |
-| Recurring fix / "we keep doing X" / new skill | `tac-skillify` | 10-item conformance audit |
-| Cross-cutting rule | `conventions/*.md` | See RESOLVER Disambiguation rules |
+| Every non-trivial task | `tac-karpathy-discipline` | Think → Simplify → Surgical → Goal |
+| Law / forbidden-package question | `tac-fourteen-laws` | Whenever uncertain whether something is allowed |
+| New feature / component | `tac-brainstorming` → `tac-tdd` → `tac-ui-authoring` → `tac-premium-patterns` | Before writing code |
+| Premium UI surface | `tac-design-tokens` + `tac-premium-patterns` | Hero, KPI, marketing, dashboard panels |
+| Score / audit / "is this 10/10?" | `tac-ui-rubric` | Pre-merge gate; ad-hoc scoring |
+| Hover / animation / "feels static" | `tac-micro-interactions` | Any motion-related work |
+| uipro / "Pro Max" / "67 styles" | `tac-uipro-bridge` FIRST, then `ui-ux-pro-max` | Filter forbidden styles |
+| Auth / session / middleware | `tac-auth` | Any auth-related work |
+| Writing components | `tac-ui-authoring` | Every UI task |
+| Writing services / DB | `tac-data-layer` | Any data layer work |
+| Schema / RLS / migration / RPC | `tac-supabase-schema` | Schema work |
+| Domain (shipments/manifests/AWBs) | `tac-domain-logistics` | Logistics-domain tasks |
+| Route handlers / API / webhooks | `tac-api-surface` | Boundary surfaces |
+| Forms / validation / server actions | `tac-forms` | Any form |
+| Test writing | `tac-tdd` | RED-GREEN-REFACTOR |
+| Debugging | `tac-debug` | Any bug / failure / regression |
+| Accessibility review | `tac-accessibility` | a11y / WCAG / keyboard / SR |
+| Code review / pre-merge | `tac-code-review` + `tac-ui-rubric` (if UI) | Before merge |
+| Recurring fix / "we keep doing X" / new skill | `tac-skillify` | Conformance audit |
+| Cross-cutting rule (quality / architecture / brain-first / etc.) | `conventions/*.md` | See RESOLVER.md Disambiguation rules |
 
-> **Skills are mandatory workflows, not suggestions.** The agent MUST invoke the
-> relevant skill before proceeding with any task that matches its trigger.
+> **Skills are mandatory workflows, not suggestions.** The agent MUST invoke the relevant skill before proceeding with any task that matches its trigger. Skipping the resolver is explicitly non-conforming — restart the loop.
+
+### Cross-cutting conventions (always apply)
+
+| Convention | What it enforces |
+|---|---|
+| [`conventions/quality-gates.md`](.claude/skills/conventions/quality-gates.md) | The five must-pass commands before any commit (lint, typecheck, test, build, audit:all) |
+| [`conventions/architecture-flow.md`](.claude/skills/conventions/architecture-flow.md) | UI → packages/services → packages/database → Supabase — no skipping |
+| [`conventions/premium-ui-quality.md`](.claude/skills/conventions/premium-ui-quality.md) | 10/10 rubric contract + banned patterns + the 10 required qualities |
+| [`conventions/brain-first.md`](.claude/skills/conventions/brain-first.md) | Check codebase + skills + memory BEFORE external lookups |
+| [`conventions/test-before-bulk.md`](.claude/skills/conventions/test-before-bulk.md) | Test on 1 before any batch operation |
+| [`conventions/subagent-routing.md`](.claude/skills/conventions/subagent-routing.md) | Native Agent tool vs inline work |
+| [`conventions/friction-protocol.md`](.claude/skills/conventions/friction-protocol.md) | Response when asked to violate a law |
 
 ---
 
@@ -328,3 +335,77 @@ Every phase requires ALL of the following before proceeding:
 - [ ] TypeScript: zero errors (`pnpm typecheck`)
 - [ ] Build: `pnpm build` succeeds
 - [ ] Tests: all passing (`pnpm test`)
+- [ ] Governance: `pnpm tsx scripts/audit-skills.ts` passes when `.md` governance files or skills changed
+
+---
+
+## 9. VERSION CORRECTIONS (history — useful when reading old files / PRs)
+
+| Topic | Old ❌ | Correct ✅ |
+|-------|---------|-----------|
+| Icons | lucide-react, tabler, react-icons | `@remixicon/react` via `@workspace/ui/icons` only |
+| Animation | `framer-motion` (legacy), `gsap`, `@motionone/react` | `motion` (motion/react), `tw-animate-css`, `@keyframes` in globals.css |
+| Next.js version | 15.x | **16.x (Turbopack)** |
+| Design system | TAC Precision / Velox / Wasteland / Orbital | **TAC Express v5.0 Violet Grid** |
+| shadcn style | default / radix-maia | **radix-lyra** |
+| Font sans | Outfit / Geist / Space Grotesk | **Plus Jakarta Sans** |
+| Font mono | Geist Mono / Fira Mono / JetBrains Mono | **IBM Plex Mono** |
+| Font serif | Noto Serif / Inter | **Lora** |
+| Radius | 12px / 0.125rem | **0rem — zero radius** |
+| Shadow | soft drop shadows | **2px / 4px brutalist offset shadows only** |
+| Primary color | cyan/orange (Wasteland), indigo (Orbital) | **violet** `oklch(0.5393 0.2713 286.7462)` |
+| Font source | `packages/ui/fonts.ts` | `apps/web/app/layout.tsx` AND `apps/dashboard/app/layout.tsx` |
+| Component location | `apps/web/components/` | `packages/ui/src/components/` ONLY |
+| Glassmorphism | Velox Glass 2.0 | **None — solid surfaces, 1px borders** |
+| Skill location | `.agents/skills/`, `.agent/skills/` | **`.claude/skills/` ONLY** (May 2026 consolidation) |
+| Rule files | `AGENTS.md` + `PROJECT-RULES.md` (split) | **`AGENTS.md` only** (May 2026 consolidation) |
+
+---
+
+## 10. FILE NAMING CONVENTIONS
+
+```
+Component files: kebab-case.tsx          (dashboard-header.tsx)
+Component exports: PascalCase            (export function DashboardHeader)
+Hook files:      use-kebab-case.ts       (use-session.ts, use-shipments.ts)
+Service files:   kebab-case.service.ts   (shipment.service.ts)
+Type files:      kebab-case.types.ts     (shipment.types.ts)
+Test files:      same-name.test.tsx      (dashboard-header.test.tsx)
+Styles:          globals.css             (packages/ui/src/styles/ ONLY)
+```
+
+---
+
+## 11. APPROVED FUTURE PACKAGES (Phase-Gated)
+
+| Package | Phase | Location |
+|---------|-------|----------|
+| `@supabase/supabase-js` | ✅ Active | `packages/database` ONLY |
+| `@supabase/ssr` | ✅ Active | `packages/database` ONLY |
+| `@tanstack/react-query` | Ph2 | `packages/services` |
+| `zustand` | Ph2 | `packages/services` |
+| `react-hook-form` | Ph3 | `packages/ui` or `apps/` |
+| `@hookform/resolvers` | Ph3 | same as above |
+| `bwip-js` | Ph4 | `packages/services` |
+| `@zxing/library` | Ph4 | `packages/services` |
+| `@react-pdf/renderer` | Ph4 | `packages/services` |
+| `idb-keyval` | Ph4 | `packages/services` |
+| `recharts` | Ph7 | `packages/ui` |
+| `ai` | Ph8 | `packages/services` |
+| `@anthropic-ai/sdk` | Ph8 | `packages/services` |
+| `sentry` | Ph10 | root config |
+
+> Any package not on this list, or on the forbidden list in § 4, requires a `tac-brainstorming` design approval before install.
+
+---
+
+## 12. MONOREPO RULES (consolidated from former PROJECT-RULES.md)
+
+- **Root commands only:** `pnpm build`, `pnpm lint`, `pnpm typecheck`, `pnpm test` — run from `c:\tac\tac-express`
+- **Package install location:**
+  - UI primitives → `packages/ui`
+  - Data fetching → `packages/database` or `packages/services`
+  - App-specific → `apps/web` or `apps/dashboard` (only if truly app-specific)
+  - Types → `packages/types`
+- **Never install** in `packages/ui` what belongs in `packages/services`
+- **Never cross-import** between `apps/web` ↔ `apps/dashboard`

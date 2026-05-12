@@ -8,7 +8,7 @@ description: >-
 
 These are **absolute laws**. No exceptions. No "just this once." Violating any of them blocks CI and is grounds for PR rejection. If a user asks you to violate a law, **STOP** and propose a compliant alternative.
 
-> Authoritative source: `PROJECT-RULES.md` and `AGENTS.md`. This skill is the working reference for agents — same rules, with violation patterns + fixes.
+> Authoritative source: `AGENTS.md` § 4 (which absorbed the former `PROJECT-RULES.md` in the May 2026 consolidation). This skill is the working reference for agents — same rules, with violation patterns + fixes.
 
 ---
 
@@ -218,7 +218,7 @@ axios                     classnames
 clsx                      ← use cn from @workspace/ui/lib/utils
 ```
 
-`motion` (the new package — same publisher as framer-motion) IS allowed. `@anthropic-ai/sdk`, `recharts`, `react-hook-form`, `@hookform/resolvers`, `zod`, `@upstash/ratelimit`, `@upstash/redis`, `@tanstack/react-query` are all allowed in their phase-gated locations (see `PROJECT-RULES.md`).
+`motion` (the new package — same publisher as framer-motion) IS allowed. `@anthropic-ai/sdk`, `recharts`, `react-hook-form`, `@hookform/resolvers`, `zod`, `@upstash/ratelimit`, `@upstash/redis`, `@tanstack/react-query` are all allowed in their phase-gated locations (see `AGENTS.md` § 11).
 
 ---
 

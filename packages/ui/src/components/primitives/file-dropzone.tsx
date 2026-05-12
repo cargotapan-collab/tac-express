@@ -168,6 +168,13 @@ function FileDropzone({
               className="group/dropzone-file relative flex flex-col gap-1 border border-border bg-background p-2"
             >
               {showPreviews && f.preview ? (
+                // Native <img> is intentional here — `f.preview` is a
+                // user-generated blob URL (URL.createObjectURL) for a file
+                // the operator just dropped. Next.js Image rejects blob:
+                // sources without an unoptimized loader + a remote-pattern
+                // entry, and the optimizer would refuse to fetch them
+                // anyway. This is a runtime user-content preview, not a
+                // static image asset.
                 <img
                   src={f.preview}
                   alt={f.file.name}

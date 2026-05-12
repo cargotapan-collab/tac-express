@@ -14,7 +14,13 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { cn } from "@workspace/ui/lib/utils"
-import { RiArrowUpLine, RiArrowDownLine, RiArrowLeftSLine, RiArrowRightSLine } from "@workspace/ui/icons"
+import {
+  RiArrowUpLine,
+  RiArrowDownLine,
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
+  RiInboxLine,
+} from "@workspace/ui/icons"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -30,6 +36,12 @@ interface DataTableProps<TData, TValue> {
    * generic table per LAW 5 / LAW 7.
    */
   onRowClick?: (row: TData) => void
+  /**
+   * Optional override for the empty-state row. Use this from callers that
+   * need a domain-specific CTA (e.g., "Create shipment"). Falls back to a
+   * generic Violet Grid empty pattern (icon + eyebrow + headline) when omitted.
+   */
+  emptyState?: React.ReactNode
 }
 
 /**
@@ -58,6 +70,7 @@ function DataTable<TData, TValue>({
   searchPlaceholder = "Search...",
   pageSize = 20,
   onRowClick,
+  emptyState,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -122,7 +135,7 @@ function DataTable<TData, TValue>({
         </div>
       )}
 
-      <div className="tac-fui-border overflow-hidden">
+      <div className="bg-surface-elevated tac-fui-border overflow-hidden shadow-sm">
         <table
           role="table"
           aria-label="Data table"
@@ -224,9 +237,19 @@ function DataTable<TData, TValue>({
                 <td
                   role="cell"
                   // v6: empty-state row spans the full grid via `col-span-full` (replaces colSpan).
-                  className="col-span-full h-24 flex items-center justify-center text-center t-mono text-muted-foreground uppercase tracking-wider"
+                  // Renders the new Violet Grid 4-element pattern (icon + eyebrow + headline + CTA)
+                  // when no `emptyState` override is provided by the caller.
+                  className="col-span-full py-12 px-6 flex items-center justify-center"
                 >
-                  No results found.
+                  {emptyState ?? (
+                    <div className="flex flex-col items-center text-center gap-2 max-w-sm">
+                      <RiInboxLine aria-hidden className="size-8 text-muted-foreground" />
+                      <span className="tac-mono-label">NO RECORDS</span>
+                      <p className="t-body-sm text-muted-foreground">
+                        No results match the current filters.
+                      </p>
+                    </div>
+                  )}
                 </td>
               </tr>
             )}
@@ -235,7 +258,7 @@ function DataTable<TData, TValue>({
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="font-mono text-xs tabular-nums text-muted-foreground">
           Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
         </span>
         <div className="flex items-center gap-1">
@@ -243,7 +266,7 @@ function DataTable<TData, TValue>({
             aria-label="Previous page"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="flex h-7 w-7 items-center justify-center border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex h-7 w-7 items-center justify-center border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:tac-focus-premium"
           >
             <RiArrowLeftSLine className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -251,7 +274,7 @@ function DataTable<TData, TValue>({
             aria-label="Next page"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="flex h-7 w-7 items-center justify-center border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex h-7 w-7 items-center justify-center border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:tac-focus-premium"
           >
             <RiArrowRightSLine className="h-4 w-4" aria-hidden="true" />
           </button>
