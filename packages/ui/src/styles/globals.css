@@ -213,7 +213,7 @@
 
   /* Brand — May 2026 refinement, harmonized with v6 Warm Linen */
   --paper-ink:       oklch(0.1700 0.0180 270);          /* deep violet-ink — replaces near-black for premium feel */
-  --paper-orange:    oklch(0.7400 0.1750  62);          /* "EXPRESS →" accent — slightly warmer */
+  --paper-orange:    oklch(0.5200 0.1600  55);          /* "EXPRESS →" accent — darkened from oklch(0.74) so the wordmark clears WCAG AA on the paper-2 sidebar background (was 2.07:1, now 5.04:1). Chroma slightly reduced to keep it from reading too saturated against the cream linen. */
   --paper-violet:    oklch(0.5393 0.2713 286.7462);     /* primary action — unchanged brand */
   --paper-violet-2:  oklch(0.4595 0.2713 286.7462);     /* pressed */
   --paper-violet-50: oklch(0.9710 0.0220 286.7462);     /* tinted surface — sits on linen.
