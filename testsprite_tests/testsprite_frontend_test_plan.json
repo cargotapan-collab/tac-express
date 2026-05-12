@@ -1,0 +1,2080 @@
+[
+  {
+    "id": "TC001",
+    "title": "Sign in and reach the ops console",
+    "description": "An operator can sign in with valid credentials and land on the ops console dashboard.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the ops console dashboard is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Use the public tracking entry point to open a shipment",
+    "description": "A customer can enter an AWB on the public tracking page and reach the shipment tracking detail page.",
+    "category": "Public Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /track"
+      },
+      {
+        "type": "action",
+        "description": "Fill in a valid AWB into the tracking field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the tracking form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the public shipment tracking page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the shipment status information is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Create a shipment and open its detail page",
+    "description": "An operator can complete the shipment wizard and reach the new shipment detail page for the created record.",
+    "category": "Shipment Management and Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a shipment"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the sender details with valid values"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the receiver details with valid values"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the package details with valid values"
+      },
+      {
+        "type": "action",
+        "description": "Review the shipment data"
+      },
+      {
+        "type": "action",
+        "description": "Submit the shipment"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the shipment detail page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a generated AWB is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Issue, send, record payment, and mark an invoice paid",
+    "description": "An operator can progress an invoice through issuing, WhatsApp sending, payment recording, and paid status completion.",
+    "category": "Invoice Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing draft invoice"
+      },
+      {
+        "type": "action",
+        "description": "Issue the invoice"
+      },
+      {
+        "type": "action",
+        "description": "Send the invoice via WhatsApp"
+      },
+      {
+        "type": "action",
+        "description": "Record a payment for the invoice"
+      },
+      {
+        "type": "action",
+        "description": "Mark the invoice as fully paid"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the invoice status is paid"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the payment timeline is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Track a shipment by AWB on the public tracking page",
+    "description": "This test verifies that a customer can enter an AWB on the public tracking page and reach the shipment tracking details.",
+    "category": "Public AWB Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /track"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid AWB into the tracking field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the tracking request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the shipment tracking page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the shipment status and timeline are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Build a manifest, add AWBs, and save it open",
+    "description": "An operator can create a manifest, add shipments by AWB, and save the manifest without closing it.",
+    "category": "Manifest Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the manifest create wizard"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid origin hub"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid destination hub"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid transport type"
+      },
+      {
+        "type": "action",
+        "description": "Fill in one or more valid AWBs"
+      },
+      {
+        "type": "action",
+        "description": "Review the manifest totals"
+      },
+      {
+        "type": "action",
+        "description": "Save the manifest as open"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the manifest detail page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the manifest is in open state"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "View shipment status, ETA, and event timeline on public tracking",
+    "description": "A customer can review the shipment tracking details and timeline after opening a tracked AWB.",
+    "category": "Public Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /track"
+      },
+      {
+        "type": "action",
+        "description": "Fill in a valid AWB into the tracking field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the tracking form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the shipment ETA is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the shipment event timeline is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Track a shipment from the public entry page",
+    "description": "A customer can enter an AWB on the public tracking page and reach the shipment tracking results page.",
+    "category": "Public Shipment Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /track"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid AWB into the tracking field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the tracking request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the shipment tracking results page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify shipment status information is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Create an invoice and open its detail page",
+    "description": "An operator can complete the invoice wizard and reach the new invoice detail page for the created record.",
+    "category": "Invoice Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the invoice create wizard"
+      },
+      {
+        "type": "action",
+        "description": "Select a customer"
+      },
+      {
+        "type": "action",
+        "description": "Add at least one valid AWB"
+      },
+      {
+        "type": "action",
+        "description": "Review the invoice preview"
+      },
+      {
+        "type": "action",
+        "description": "Submit the invoice"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the invoice detail page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the invoice has been created"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Advance a manifest through close, depart, arrive, and reconcile",
+    "description": "This test verifies that an operator can open a manifest detail page and advance it through the operational state machine in order.",
+    "category": "Manifest Builder and Manifest State Flow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open a manifest detail page"
+      },
+      {
+        "type": "action",
+        "description": "Close the manifest"
+      },
+      {
+        "type": "action",
+        "description": "Mark the manifest departed"
+      },
+      {
+        "type": "action",
+        "description": "Mark the manifest arrived"
+      },
+      {
+        "type": "action",
+        "description": "Reconcile the manifest"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the manifest status advances through the expected state machine"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the current next action updates for the manifest"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Close, depart, arrive, and reconcile a manifest",
+    "description": "An operator can advance a manifest through the full state machine after it has been created.",
+    "category": "Manifest Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing open manifest"
+      },
+      {
+        "type": "action",
+        "description": "Close the manifest"
+      },
+      {
+        "type": "action",
+        "description": "Mark the manifest as departed"
+      },
+      {
+        "type": "action",
+        "description": "Mark the manifest as arrived"
+      },
+      {
+        "type": "action",
+        "description": "Reconcile the manifest"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the manifest is reconciled"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the state machine reflects completed processing"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "Protect a private route from unauthenticated access",
+    "description": "A protected route sends an unauthenticated user to sign in with a next parameter so they can return after login.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /ops-console"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the sign-in screen is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a return destination is preserved"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "Create an invoice from customer shipment selection",
+    "description": "This test verifies that an operator can choose a customer, select shipments, review charges, and save a new invoice.",
+    "category": "Invoice and Finance Workflows",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to start creating an invoice"
+      },
+      {
+        "type": "action",
+        "description": "Choose a customer"
+      },
+      {
+        "type": "action",
+        "description": "Select shipments for invoicing"
+      },
+      {
+        "type": "action",
+        "description": "Review the charges"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the invoice details"
+      },
+      {
+        "type": "action",
+        "description": "Save the invoice"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new invoice is created"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the invoice review or summary is displayed after saving"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC014",
+    "title": "Review tracking ETA and event timeline for a shipment",
+    "description": "This test verifies that a customer can open a tracked shipment page and review the ETA and event history.",
+    "category": "Public AWB Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /track"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid AWB into the tracking field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the tracking request"
+      },
+      {
+        "type": "action",
+        "description": "Review the shipment tracking details"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the estimated delivery information is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the event timeline is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC015",
+    "title": "Print a shipment label from shipment details",
+    "description": "An operator can open a shipment and access the thermal label print view.",
+    "category": "Shipment Management and Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing shipment from the shipments list"
+      },
+      {
+        "type": "action",
+        "description": "Open the print label action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the thermal label print view is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC016",
+    "title": "Create a manifest with route details and notes",
+    "description": "This test verifies that an operator can build a manifest by choosing hubs and transport details, adding notes, and continuing to review.",
+    "category": "Manifest Builder and Manifest State Flow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to start creating a manifest"
+      },
+      {
+        "type": "action",
+        "description": "Select an origin hub"
+      },
+      {
+        "type": "action",
+        "description": "Select a destination hub"
+      },
+      {
+        "type": "action",
+        "description": "Select a transport type"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the flight or vehicle details field with valid information"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the notes field with optional notes"
+      },
+      {
+        "type": "action",
+        "description": "Continue to the review step"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the manifest review summary is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the selected route details are included in the review"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC017",
+    "title": "Issue an invoice and review the detail page",
+    "description": "This test verifies that an operator can open an invoice detail page and issue the invoice while reviewing charges, taxes, and balance.",
+    "category": "Invoice and Finance Workflows",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open an invoice detail page"
+      },
+      {
+        "type": "action",
+        "description": "Review the charges, taxes, and balance"
+      },
+      {
+        "type": "action",
+        "description": "Issue the invoice"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the invoice detail page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the invoice status updates after issuing"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC018",
+    "title": "Add a new hub",
+    "description": "A super admin can create a new hub and see it appear in the hubs list after saving.",
+    "category": "Hub Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /ops-console/management"
+      },
+      {
+        "type": "action",
+        "description": "Start adding a new hub"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the hub name field with Test Hub North"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the hub code field with THN"
+      },
+      {
+        "type": "action",
+        "description": "Save the hub"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new hub appears in the hubs table"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new hub is shown as active"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC019",
+    "title": "Navigate from the ops console dashboard to shipment creation",
+    "description": "This test verifies that an operator can open the ops console dashboard and use a quick action to start shipment creation.",
+    "category": "Dashboard and Quick Actions",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the quick action to create a shipment"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the shipment create wizard is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the dashboard quick action successfully opens the shipment flow"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC020",
+    "title": "Mark an invoice fully paid and print it",
+    "description": "This test verifies that an operator can mark an invoice fully paid and open the print or download view for the invoice PDF.",
+    "category": "Invoice and Finance Workflows",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open an invoice detail page"
+      },
+      {
+        "type": "action",
+        "description": "Mark the invoice fully paid"
+      },
+      {
+        "type": "action",
+        "description": "Open the print or download view for the invoice"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the invoice status reflects payment completion"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the print view or PDF preview is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC021",
+    "title": "Resolve an exception and see it remain closed",
+    "description": "This test verifies that an operator can open an exception, enter a resolution, mark it resolved, and see the exception stay in a resolved state.",
+    "category": "Exception Review and Resolution",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to view exceptions"
+      },
+      {
+        "type": "action",
+        "description": "Open an exception record"
+      },
+      {
+        "type": "action",
+        "description": "Enter resolution text for the exception"
+      },
+      {
+        "type": "action",
+        "description": "Mark the exception as resolved"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the exception is shown as resolved"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the resolution form is no longer available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC022",
+    "title": "Save an open manifest or close and depart it from review",
+    "description": "This test verifies that an operator can review load totals and either save the manifest as open or close and depart it from the create flow.",
+    "category": "Manifest Builder and Manifest State Flow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to start creating a manifest"
+      },
+      {
+        "type": "action",
+        "description": "Proceed to the review step with shipments attached"
+      },
+      {
+        "type": "action",
+        "description": "Review the load count and total weight"
+      },
+      {
+        "type": "action",
+        "description": "Save the manifest as open"
+      },
+      {
+        "type": "action",
+        "description": "Create another manifest and proceed back to the review step"
+      },
+      {
+        "type": "action",
+        "description": "Close and depart the manifest"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the manifest is saved or submitted successfully"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the manifest status reflects the chosen action"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC023",
+    "title": "Use dashboard quick action to start shipment creation",
+    "description": "An operator can open shipment creation from the ops console quick actions.",
+    "category": "Paper Ops Console Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the ops console dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a shipment from the quick actions"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the shipment create wizard is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC024",
+    "title": "Record a payment and see it added to the invoice timeline",
+    "description": "This test verifies that an operator can record a payment with amount, method, and reference and then see it added to the payment timeline.",
+    "category": "Invoice and Finance Workflows",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open an invoice detail page"
+      },
+      {
+        "type": "action",
+        "description": "Start recording a payment"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the payment amount field with a valid amount"
+      },
+      {
+        "type": "action",
+        "description": "Select a payment method"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the payment reference field with a valid reference"
+      },
+      {
+        "type": "action",
+        "description": "Submit the payment"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the payment appears in the invoice timeline"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the payment balance updates"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC025",
+    "title": "Print or download an invoice PDF from invoice details",
+    "description": "An operator can access the invoice PDF output from the invoice detail page.",
+    "category": "Invoice Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing invoice from the finance list"
+      },
+      {
+        "type": "action",
+        "description": "Open the invoice print or download action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the invoice PDF output is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC026",
+    "title": "Search shipments by AWB, sender, or receiver",
+    "description": "An operator can search the shipments list and see matching shipment results.",
+    "category": "Shipment Management and Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the shipments list"
+      },
+      {
+        "type": "action",
+        "description": "Search for a shipment using an AWB, sender, or receiver value"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify matching shipment results are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC027",
+    "title": "Add shipments to a manifest and handle duplicate AWB feedback",
+    "description": "This test verifies that an operator can attach shipments to a manifest by entering AWBs and see duplicate or invalid entry feedback when applicable.",
+    "category": "Manifest Builder and Manifest State Flow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to start creating a manifest"
+      },
+      {
+        "type": "action",
+        "description": "Continue to the shipment attachment step"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid AWB to attach a shipment"
+      },
+      {
+        "type": "action",
+        "description": "Enter the same AWB again"
+      },
+      {
+        "type": "action",
+        "description": "Enter an invalid or unrecognized AWB"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the manifest shipment list updates with the attached shipment"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify feedback is shown for duplicate or invalid AWB entry"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC028",
+    "title": "Review the tracking event timeline",
+    "description": "A customer visiting a public AWB tracking page can review the shipment's event history in timeline form.",
+    "category": "Public Shipment Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /track"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid AWB into the tracking field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the tracking request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the tracking events timeline is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify shipment progression events are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC029",
+    "title": "Sign out from the user menu",
+    "description": "An authenticated operator can sign out and return to the public sign-in screen.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Open the user menu"
+      },
+      {
+        "type": "action",
+        "description": "Choose sign out"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the public sign-in screen is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC030",
+    "title": "Review exception details and resolve an exception",
+    "description": "This test verifies that an operator can open an exception, enter resolution text, and mark it resolved.",
+    "category": "Customer Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the exceptions list"
+      },
+      {
+        "type": "action",
+        "description": "Open an exception detail page"
+      },
+      {
+        "type": "action",
+        "description": "Enter resolution text"
+      },
+      {
+        "type": "action",
+        "description": "Mark the exception resolved"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the exception is marked resolved"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the resolution text is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC031",
+    "title": "Send an invoice through WhatsApp from the invoice detail page",
+    "description": "This test verifies that an operator can open the WhatsApp send flow, choose a sending mode, and see a send confirmation.",
+    "category": "Invoice and Finance Workflows",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open an invoice detail page"
+      },
+      {
+        "type": "action",
+        "description": "Open the WhatsApp send flow"
+      },
+      {
+        "type": "action",
+        "description": "Choose a send mode"
+      },
+      {
+        "type": "action",
+        "description": "Send the invoice message"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a message send confirmation is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the invoice remains available on the detail page"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC032",
+    "title": "See the live scanner viewfinder after allowing camera access",
+    "description": "This test verifies that an operator can open the scanning console, grant camera access, and see the live barcode viewfinder.",
+    "category": "Barcode Scanning Console",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open scanning"
+      },
+      {
+        "type": "action",
+        "description": "Allow camera access"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the live scanner viewfinder is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the scan console is ready for barcode input"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC033",
+    "title": "Edit an existing hub",
+    "description": "A super admin can update a hub's details and see the changes reflected in the hubs list.",
+    "category": "Hub Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /ops-console/management"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing hub for editing"
+      },
+      {
+        "type": "action",
+        "description": "Change the hub name to Test Hub North Updated"
+      },
+      {
+        "type": "action",
+        "description": "Save the hub changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated hub information is shown in the hubs table"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the edited hub remains available for use"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC034",
+    "title": "Review and filter manifests from the ops console",
+    "description": "This test verifies that an operator can open the manifests list and use status filtering to review manifests in the expected operational view.",
+    "category": "Manifest Builder and Manifest State Flow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the manifests list"
+      },
+      {
+        "type": "action",
+        "description": "Select a manifest status filter"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the manifests list is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify filtered manifest results are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC035",
+    "title": "View invoices by aging bucket and status on the finance list",
+    "description": "This test verifies that an operator can open the finance list and review invoice aging buckets and status filters.",
+    "category": "Invoice and Finance Workflows",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the finance list"
+      },
+      {
+        "type": "action",
+        "description": "Select an invoice status or aging filter"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the invoices list is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify aging bucket or status filtered invoices are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC036",
+    "title": "Decode a barcode in real time",
+    "description": "This test verifies that the scanning console can recognize a barcode and display the decoded code immediately.",
+    "category": "Barcode Scanning Console",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open scanning"
+      },
+      {
+        "type": "action",
+        "description": "Allow camera access"
+      },
+      {
+        "type": "action",
+        "description": "Point the camera at a barcode"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a decoded barcode value is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the scan is shown in the live log"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC037",
+    "title": "View the exceptions list with severity filtering",
+    "description": "This test verifies that an operator can browse the exceptions list and switch severity filters to narrow the visible records.",
+    "category": "Exception Review and Resolution",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to view exceptions"
+      },
+      {
+        "type": "action",
+        "description": "Select a severity filter"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify exceptions matching the selected severity are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the list remains visible with filtered results"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC038",
+    "title": "Add an AWB inline on an open manifest",
+    "description": "This test verifies that an operator can add an AWB from the manifest detail page and see the shipment added to the manifest load.",
+    "category": "Manifest Builder and Manifest State Flow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open an open manifest detail page"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid AWB in the inline add field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the AWB addition"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the shipment appears in the manifest load list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the manifest totals update after the shipment is added"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC039",
+    "title": "Open a public tracking page directly for an AWB",
+    "description": "A customer can load a direct public AWB tracking URL and see the same shipment details without using the entry form.",
+    "category": "Public Shipment Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /track"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid AWB into the tracking field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the tracking request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the public shipment detail page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify shipment event history is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC040",
+    "title": "Edit a customer profile and save the changes",
+    "description": "This test verifies that an operator can open a customer record, edit profile fields, save the changes, and see the updated customer details.",
+    "category": "Customer Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open a customer detail page"
+      },
+      {
+        "type": "action",
+        "description": "Enable edit mode"
+      },
+      {
+        "type": "action",
+        "description": "Modify customer fields with valid values"
+      },
+      {
+        "type": "action",
+        "description": "Save the changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated customer details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify edit mode is no longer active"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC041",
+    "title": "View the hubs list",
+    "description": "A super admin can open hub management and see the current hubs table with each hub's name, code, and active state.",
+    "category": "Hub Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /ops-console/management"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the hubs table is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify hub names, codes, and active states are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC042",
+    "title": "Review invoice aging buckets and status tabs",
+    "description": "An operator can switch between invoice aging buckets and status tabs in the finance list.",
+    "category": "Invoice Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the finance invoices list"
+      },
+      {
+        "type": "action",
+        "description": "Switch between the aging buckets and status tabs"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify invoice list results update by bucket and status"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC043",
+    "title": "Filter shipments from the dashboard KPI entry point",
+    "description": "An operator can open active shipments from the dashboard and see the shipments list filtered to that status.",
+    "category": "Paper Ops Console Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the ops console dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Open the active shipments KPI entry"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the shipments list is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the list is filtered to active shipments"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC044",
+    "title": "Add a note to a customer record",
+    "description": "This test verifies that an operator can open the Notes area on a customer record, add a note, and see it appear in the timeline.",
+    "category": "Customer Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open a customer detail page"
+      },
+      {
+        "type": "action",
+        "description": "Open the Notes area"
+      },
+      {
+        "type": "action",
+        "description": "Add a note with valid text"
+      },
+      {
+        "type": "action",
+        "description": "Save the note"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new note appears in the timeline"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the notes area remains available"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC045",
+    "title": "Update profile details and see the saved summary",
+    "description": "This test verifies that an operator can update profile information from settings and see the saved profile summary reflect the changes.",
+    "category": "Settings and Integrations",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open settings"
+      },
+      {
+        "type": "action",
+        "description": "Update the profile details"
+      },
+      {
+        "type": "action",
+        "description": "Save the changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated profile summary is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the saved profile information is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC046",
+    "title": "Deactivate and reactivate a hub",
+    "description": "A super admin can toggle a hub's active state and see the status change in the hubs table.",
+    "category": "Hub Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /ops-console/management"
+      },
+      {
+        "type": "action",
+        "description": "Toggle a hub to inactive"
+      },
+      {
+        "type": "action",
+        "description": "Toggle the same hub back to active"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the hub status changes are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the hub remains listed after toggling"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC047",
+    "title": "Resolve an exception and confirm it cannot be reopened",
+    "description": "An operator can add resolution text to an exception, mark it resolved, and see that the reopened action remains blocked afterward.",
+    "category": "Exceptions",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Open an open exception from the exceptions list"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the resolution text with a meaningful resolution"
+      },
+      {
+        "type": "action",
+        "description": "Mark the exception as resolved"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the exception is resolved"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the re-open action is blocked"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC048",
+    "title": "View manifest totals and current next action on detail",
+    "description": "This test verifies that an operator can open a manifest detail page and see the load list, totals, and current next action for the manifest status.",
+    "category": "Manifest Builder and Manifest State Flow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open a manifest detail page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the manifest load list is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify manifest totals and the current next action are displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC049",
+    "title": "Cancel an invoice when cancellation is available",
+    "description": "This test verifies that an operator can cancel an invoice from the detail page and see the invoice status update.",
+    "category": "Invoice and Finance Workflows",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the credentials for an operator account"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open an invoice detail page"
+      },
+      {
+        "type": "action",
+        "description": "Cancel the invoice"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the invoice status updates to cancelled"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify cancellation controls are no longer presented as available"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC050",
+    "title": "Switch between shipment detail tabs",
+    "description": "An operator can view the shipment overview, tracking, notes, files, and audit content from the detail page.",
+    "category": "Shipment Management and Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /sign-in"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing shipment from the shipments list"
+      },
+      {
+        "type": "action",
+        "description": "Switch between the shipment detail tabs"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify shipment detail content is available across the tabs"
+      }
+    ],
+    "priority": "Medium"
+  }
+]
