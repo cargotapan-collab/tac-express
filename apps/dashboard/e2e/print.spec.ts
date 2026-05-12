@@ -45,7 +45,10 @@ function hasAuthSession(): boolean {
 const INVOICE_ID = process.env.E2E_INVOICE_ID
 const AWB = process.env.E2E_AWB
 const MANIFEST_ID = process.env.E2E_MANIFEST_ID
-const IS_CI = Boolean(process.env.CI)
+// `Boolean(process.env.CI)` would treat the string "false" as truthy.
+// Parse the value explicitly — `CI=1` and `CI=true` (any case) are the
+// conventional truthy markers in GitHub Actions / Vercel / most runners.
+const IS_CI = /^(1|true)$/i.test(process.env.CI ?? "")
 const HAS_AUTH_SESSION = hasAuthSession()
 
 test.describe("Print routes — visual baselines (issue #17)", () => {
