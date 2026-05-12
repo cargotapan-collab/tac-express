@@ -42,9 +42,27 @@ specs reuse that session — no per-test login.
 | `playwright.config.ts` | Chromium @ 1280 + 1920, project-namespaced snapshots, light colorScheme, 1.5% pixel tolerance |
 | `e2e/_auth.setup.ts` | One-time sign-in + `theme=light` localStorage seed |
 | `e2e/visual.spec.ts` | 4 public + 7 protected route snapshots |
+| `e2e/print.spec.ts` | 4 print-route baselines (issue #17) — gated by `E2E_INVOICE_ID` / `E2E_AWB` / `E2E_MANIFEST_ID` |
 | `e2e/a11y.spec.ts` | axe-core scans on the same surfaces |
 | `e2e/__snapshots__/` | Baseline images (commit these) |
 | `playwright-report/`, `test-results/`, `.auth/` | Run artifacts (gitignored) |
+
+### Print-route fixtures (issue #17)
+
+Print baselines use the same auth session as the dashboard specs but
+additionally need real entity IDs because `supabase/seed.sql` doesn't
+pre-create invoices / shipments / manifests. Set these in your test env
+file:
+
+```bash
+E2E_INVOICE_ID=<uuid-of-a-seeded-invoice>
+E2E_AWB=<awb-string, e.g. TAC0123456789>
+E2E_MANIFEST_ID=<uuid-of-a-seeded-manifest>
+```
+
+Each test skips cleanly when its variable is unset, so you can roll
+out coverage incrementally. After the first run, commit the generated
+PNGs under `e2e/__snapshots__/` and the route is gated for life.
 
 ## How violations surface
 

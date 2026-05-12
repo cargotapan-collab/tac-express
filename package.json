@@ -22,8 +22,10 @@
     "e2e:a11y": "playwright test --project=a11y",
     "e2e:visual": "playwright test --project=visual-light --project=visual-dark",
     "e2e:visual:update": "playwright test --project=visual-light --project=visual-dark --update-snapshots",
-    "audit:skills": "npx tsx scripts/audit-skills.ts",
-    "audit:all": "pnpm audit:governance && pnpm audit:auth-boundary && pnpm audit:skills && pnpm audit:design-spec"
+    "audit:skills": "pnpm dlx tsx scripts/audit-skills.ts",
+    "test:routing-eval": "pnpm dlx tsx scripts/test-routing-eval.ts",
+    "measure:bundle": "node scripts/measure-bundle-size.mjs",
+    "audit:all": "pnpm audit:governance && pnpm audit:auth-boundary && pnpm audit:skills && pnpm audit:design-spec && pnpm test:routing-eval"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
