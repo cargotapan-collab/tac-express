@@ -51,7 +51,7 @@ You MUST complete each phase before proceeding to the next.
 
 1. Find working code that does something similar in this codebase
 2. Compare working vs. broken — list every difference, however small
-3. Check `DESIGN_SYSTEM.md` / `PROJECT-RULES.md` — is a rule being violated?
+3. Check `DESIGN_SYSTEM.md` / `AGENTS.md` § 4 — is a rule being violated?
 4. Check if a forbidden package was accidentally used
 
 ### Phase 3: Hypothesis & Test

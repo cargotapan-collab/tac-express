@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "tac-express-skillpack",
+  "version": "2.0.0",
+  "description": "Consolidated single-system Claude Code skillpack for TAC Express. Replaces the prior split across .agents/skills/ and .agent/. Canonical location: .claude/skills/.",
+  "updated": "2026-05-11",
+  "authorityChain": [
+    "CLAUDE.md",
+    "AGENTS.md",
+    "DESIGN_SYSTEM.md",
+    ".claude/skills/RESOLVER.md",
+    ".claude/skills/conventions/"
+  ],
+  "conventions": [
+    "conventions/quality-gates.md",
+    "conventions/architecture-flow.md",
+    "conventions/premium-ui-quality.md"
+  ],
+  "skills": [
+    {
+      "name": "tac-express-onboarding",
+      "role": "session-start",
+      "mandatory": "every session",
+      "summary": "60-second orientation — monorepo, design system, Fourteen Laws, package boundaries, routing table to specialists"
+    },
+    {
+      "name": "tac-karpathy-discipline",
+      "role": "process",
+      "mandatory": "every non-trivial task",
+      "summary": "Think-Before-Coding → Simplicity-First → Surgical-Changes → Goal-Driven-Execution"
+    },
+    {
+      "name": "tac-fourteen-laws",
+      "role": "process",
+      "mandatory": "when uncertain whether something is allowed",
+      "summary": "The Fourteen Laws + forbidden packages + architecture flow + violation patterns + remediation snippets"
+    },
+    {
+      "name": "tac-brainstorming",
+      "role": "process",
+      "mandatory": "before any new feature/component/architectural change",
+      "summary": "Design approval — surfaces trade-offs, confirms architecture fit, produces written spec before code"
+    },
+    {
+      "name": "tac-tdd",
+      "role": "process",
+      "mandatory": "all non-trivial implementation",
+      "summary": "RED → GREEN → REFACTOR cycle with Vitest + Playwright. Failing test first, always."
+    },
+    {
+      "name": "tac-debug",
+      "role": "process",
+      "mandatory": "any bug / test failure / unexpected behaviour",
+      "summary": "Root cause before fix. No guessing. Never bypass safety checks."
+    },
+    {
+      "name": "tac-code-review",
+      "role": "process",
+      "mandatory": "pre-merge, post-feature, after bug fix",
+      "summary": "Law compliance + Violet Grid adherence + architecture correctness + code quality"
+    },
+    {
+      "name": "tac-ui-authoring",
+      "role": "ui",
+      "mandatory": "writing or modifying any UI component",
+      "summary": "Violet Grid component pattern: CVA + Radix/shadcn primitives + semantic tokens + data-slot"
+    },
+    {
+      "name": "tac-design-tokens",
+      "role": "ui",
+      "mandatory": "premium UI surfaces (hero, KPI, dashboard, marketing)",
+      "summary": "Full Violet Grid v6 token reference — colors, type scale, motion vocabulary, FUI utilities, gradients"
+    },
+    {
+      "name": "tac-premium-patterns",
+      "role": "ui",
+      "mandatory": "build a hero / KPI / dashboard / landing / drawer / empty state",
+      "summary": "15 paste-ready compositions scoring 9-10/10 on tac-ui-rubric — fully tokenized, motion + 4-state coverage"
+    },
+    {
+      "name": "tac-micro-interactions",
+      "role": "ui",
+      "mandatory": "hover / focus / press / state-change / sequencing animations",
+      "summary": "Motion vocabulary catalog — 15 recipes mapped to instant/smooth/expressive tokens, reduced-motion safe"
+    },
+    {
+      "name": "tac-ui-rubric",
+      "role": "ui",
+      "mandatory": "score a UI surface / pre-merge UI gate",
+      "summary": "10-criterion measurable score (0-100) with verdict ladder PREMIUM/STRONG/REJECT and per-criterion file:line evidence"
+    },
+    {
+      "name": "tac-uipro-bridge",
+      "role": "ui",
+      "mandatory": "before any ui-ux-pro-max (uipro) invocation",
+      "summary": "Filters uipro's 67 styles / 96 palettes / 57 fonts through Violet Grid before surfacing — never let breadth break identity"
+    },
+    {
+      "name": "tac-accessibility",
+      "role": "ui",
+      "mandatory": "a11y review / keyboard / screen-reader / focus",
+      "summary": "WCAG 2.1 AA compliance with Violet Grid constraints — Radix primitive wiring + custom checks"
+    },
+    {
+      "name": "tac-data-layer",
+      "role": "domain",
+      "mandatory": "writing services, DB queries, hooks, any data-fetching logic",
+      "summary": "UI → packages/services → packages/database → Supabase. Architecture flow enforced."
+    },
+    {
+      "name": "tac-supabase-schema",
+      "role": "domain",
+      "mandatory": "schema / RLS / migrations / RPC / triggers",
+      "summary": "RLS-by-role enforcement + SECURITY DEFINER usage + type regeneration patterns"
+    },
+    {
+      "name": "tac-domain-logistics",
+      "role": "domain",
+      "mandatory": "shipments / manifests / AWBs / hubs / rate cards / scanning / exceptions",
+      "summary": "Real domain model, status lifecycles, branded types, financial model, RPC names, event-derivation rules"
+    },
+    {
+      "name": "tac-api-surface",
+      "role": "domain",
+      "mandatory": "route handlers / server actions / public API / webhooks / edge functions",
+      "summary": "Boundary validation + rate-limit (Upstash) + signing + public-vs-authenticated split"
+    },
+    {
+      "name": "tac-auth",
+      "role": "domain",
+      "mandatory": "auth / session / middleware / RBAC",
+      "summary": "Cookie-based SSR auth with @supabase/ssr"
+    },
+    {
+      "name": "tac-forms",
+      "role": "domain",
+      "mandatory": "any form",
+      "summary": "react-hook-form + zod resolver + server actions + Violet Grid field components"
+    },
+    {
+      "name": "ui-ux-pro-max",
+      "role": "external",
+      "mandatory": "never invoke directly — always via tac-uipro-bridge",
+      "summary": "Third-party breadth tool (67 styles / 96 palettes / 57 fonts). Most output is forbidden by Violet Grid; the bridge filters."
+    }
+  ],
+  "deprecated": [
+    {
+      "path": ".agents/skills/",
+      "reason": "Legacy stubs; canonical lives in .claude/skills/",
+      "archived": ".archive/agents-legacy-stubs/"
+    },
+    {
+      "path": ".agent/",
+      "reason": "GSD framework — never wired into Claude Code hooks (not referenced from .claude/settings.local.json)",
+      "archived": ".archive/agent-gsd-legacy/"
+    },
+    {
+      "path": "PROJECT-RULES.md",
+      "reason": "Merged into AGENTS.md § 4 The Fourteen Laws + § 7 Git Standards",
+      "archived": "removed; content lives in AGENTS.md"
+    }
+  ]
+}

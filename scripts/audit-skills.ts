@@ -3,8 +3,13 @@
  * audit-skills.ts
  *
  * Self-consistency audit for tac-express governance files.
- * Checks for stale references across AGENTS.md, CLAUDE.md, PROJECT-RULES.md,
- * DESIGN_SYSTEM.md, and all SKILL.md files in .agents/skills/ and .claude/skills/.
+ * Checks for stale references across AGENTS.md, CLAUDE.md, DESIGN_SYSTEM.md,
+ * and all SKILL.md files in .claude/skills/.
+ *
+ * As of v2.0 (May 2026), the skill system is consolidated to .claude/skills/ ONLY.
+ * The former PROJECT-RULES.md was merged into AGENTS.md; .agents/skills/ and
+ * .agent/ were archived under .archive/. This audit ensures no stale references
+ * leak back into the governance files.
  *
  * Usage: pnpm tsx scripts/audit-skills.ts
  * Or:    node --experimental-vm-modules scripts/audit-skills.ts
@@ -61,20 +66,18 @@ function collectSkillFiles(dir: string): string[] {
 }
 
 // ─── Governance files ────────────────────────────────────────────────────────
+// PROJECT-RULES.md was merged into AGENTS.md in the May 2026 consolidation.
 const govFiles: Record<string, string> = {
   "AGENTS.md": readFile(join(ROOT, "AGENTS.md")),
   "CLAUDE.md": readFile(join(ROOT, "CLAUDE.md")),
-  "PROJECT-RULES.md": readFile(join(ROOT, "PROJECT-RULES.md")),
   "DESIGN_SYSTEM.md": readFile(join(ROOT, "DESIGN_SYSTEM.md")),
 }
 
 // ─── Skill files ─────────────────────────────────────────────────────────────
-// `.claude/skills/` is the canonical location (Claude Code primary).
-// `.agents/skills/` is preserved for compatibility with the GSD framework.
-// `.windsurf/skills/` was removed in the 2026-05-02 doc cleanup.
-const agentSkills = collectSkillFiles(join(ROOT, ".agents/skills"))
+// `.claude/skills/` is the ONLY canonical location since the May 2026 consolidation.
+// `.agents/skills/` and `.agent/` have been archived under .archive/.
 const claudeSkills = collectSkillFiles(join(ROOT, ".claude/skills"))
-const allSkills = [...agentSkills, ...claudeSkills]
+const allSkills = [...claudeSkills]
 
 const allFiles: Record<string, string> = { ...govFiles }
 for (const f of allSkills) {
@@ -155,27 +158,60 @@ for (const [label, content] of Object.entries(allFiles)) {
 }
 pass("Forbidden package approval scan complete")
 
-// ─── CHECK 5: Required skills exist ──────────────────────────────────────────
+// ─── CHECK 5: Required canonical skills exist in .claude/skills/ ─────────────
 console.log("\n► CHECK 5: Required canonical skills exist")
 const requiredSkills = [
+  // session-level
   "tac-express-onboarding",
-  "tac-express-rules",
-  "tac-express-stack",
-  "tac-express-ui",
-  "tac-express-auth",
-  "tac-express-conventions",
-  "karpathy-coding",
-  "gsd",
+  "tac-karpathy-discipline",
+  "tac-fourteen-laws",
+  // ui
+  "tac-ui-authoring",
+  "tac-design-tokens",
+  "tac-premium-patterns",
+  "tac-micro-interactions",
+  "tac-ui-rubric",
+  "tac-uipro-bridge",
+  "tac-accessibility",
+  // domain
+  "tac-data-layer",
+  "tac-supabase-schema",
+  "tac-domain-logistics",
+  "tac-api-surface",
+  "tac-auth",
+  "tac-forms",
+  // process
+  "tac-brainstorming",
+  "tac-tdd",
+  "tac-debug",
+  "tac-code-review",
 ]
-const existingSkillNames = agentSkills.map((f) => {
+const existingSkillNames = claudeSkills.map((f) => {
   const parts = f.replace(/\\/g, "/").split("/")
   return parts[parts.length - 2] // dir name
 })
 for (const skill of requiredSkills) {
   if (existingSkillNames.includes(skill)) {
-    pass(`  Skill exists: .agents/skills/${skill}/SKILL.md`)
+    pass(`  Skill exists: .claude/skills/${skill}/SKILL.md`)
   } else {
-    fail(".agents/skills/", `Missing required skill: "${skill}/SKILL.md"`)
+    fail(".claude/skills/", `Missing required skill: "${skill}/SKILL.md"`)
+  }
+}
+
+// Required dispatcher + manifest + conventions
+const requiredArtifacts = [
+  ".claude/skills/RESOLVER.md",
+  ".claude/skills/MANIFEST.json",
+  ".claude/skills/conventions/quality-gates.md",
+  ".claude/skills/conventions/architecture-flow.md",
+  ".claude/skills/conventions/premium-ui-quality.md",
+]
+for (const rel of requiredArtifacts) {
+  try {
+    statSync(join(ROOT, rel))
+    pass(`  Artifact exists: ${rel}`)
+  } catch {
+    fail(".claude/skills/", `Missing required artifact: "${rel}"`)
   }
 }
 

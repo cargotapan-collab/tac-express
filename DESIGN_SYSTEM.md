@@ -269,7 +269,7 @@ The dashboard supports printing AWB labels, manifests, and invoices.
 
 ---
 
-## 11. Laws (full list lives in `PROJECT-RULES.md`)
+## 11. Laws (full list lives in `AGENTS.md` § 4)
 
 | # | Law |
 |---|-----|
