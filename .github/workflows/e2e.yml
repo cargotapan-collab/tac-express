@@ -53,9 +53,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` here — pnpm/action-setup@v4 reads the version from
+      # the workspace's `packageManager` field (pnpm@10.33.3) and errors
+      # if both are specified (ERR_PNPM_BAD_PM_VERSION).
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - uses: actions/setup-node@v4
         with:
