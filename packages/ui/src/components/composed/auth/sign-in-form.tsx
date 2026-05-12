@@ -37,11 +37,15 @@ function SignInForm({ onSubmit, error, isLoading, className }: SignInFormProps) 
       onSubmit={handleSubmit(({ email, password }) => onSubmit(email, password))}
     >
       <div className="space-y-1">
-        <label className="font-mono text-2xs uppercase tracking-wider text-muted-foreground">
+        <label
+          htmlFor="sign-in-email"
+          className="font-mono text-2xs uppercase tracking-wider text-muted-foreground"
+        >
           Email
         </label>
         <input
           {...register("email")}
+          id="sign-in-email"
           type="email"
           autoComplete="email"
           className={inputClass}
@@ -53,11 +57,15 @@ function SignInForm({ onSubmit, error, isLoading, className }: SignInFormProps) 
       </div>
 
       <div className="space-y-1">
-        <label className="font-mono text-2xs uppercase tracking-wider text-muted-foreground">
+        <label
+          htmlFor="sign-in-password"
+          className="font-mono text-2xs uppercase tracking-wider text-muted-foreground"
+        >
           Password
         </label>
         <input
           {...register("password")}
+          id="sign-in-password"
           type="password"
           autoComplete="current-password"
           className={inputClass}
