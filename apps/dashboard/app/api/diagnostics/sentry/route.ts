@@ -39,19 +39,43 @@ import { getServerAuth } from "@workspace/auth/server"
 import { isManagerOrAbove } from "@workspace/auth/rbac"
 import { UserRole } from "@workspace/types"
 import { createAdminServerService } from "@workspace/services/server"
+import { checkAuth } from "@/lib/rate-limit"
 
 export const dynamic = "force-dynamic"
 
-async function requireManager(): Promise<{ allowed: false; response: NextResponse } | { allowed: true }> {
+type GateResult =
+  | { allowed: false; response: NextResponse }
+  | { allowed: true; userId: string }
+
+async function requireManager(): Promise<GateResult> {
   const cookieStore = await cookies()
   const auth = getServerAuth(cookieStore)
-  const user = await auth.getUser().catch(() => null)
+
+  // Log unexpected auth-service failures at warn level so a network
+  // hiccup doesn't masquerade as 401 in observability. We still return
+  // null (and 401 below) so the response shape doesn't depend on
+  // upstream availability — but ops gets a paper trail.
+  const user = await auth.getUser().catch((err) => {
+    console.warn("[sentry-diag] auth.getUser failed", err)
+    return null
+  })
   if (!user) {
     return { allowed: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) }
   }
   const adminService = createAdminServerService(cookieStore)
-  const profile = await adminService.getProfileById(user.id).catch(() => null)
-  const role = profile?.role as UserRole | undefined
+  const profile = await adminService.getProfileById(user.id).catch((err) => {
+    console.warn("[sentry-diag] adminService.getProfileById failed", err)
+    return null
+  })
+
+  // Defense-in-depth: don't trust the DB row to contain a valid UserRole.
+  // Migration drift or a manual edit could leave a stale string here, and
+  // passing an off-list value to isManagerOrAbove would short-circuit
+  // unpredictably. Validate membership at the boundary.
+  const rawRole = profile?.role
+  const role = Object.values(UserRole).includes(rawRole as UserRole)
+    ? (rawRole as UserRole)
+    : undefined
   if (!role || !isManagerOrAbove(role)) {
     return {
       allowed: false,
@@ -61,7 +85,35 @@ async function requireManager(): Promise<{ allowed: false; response: NextRespons
       ),
     }
   }
-  return { allowed: true }
+
+  // Per-user rate limit (10 req/min via authRateLimit bucket). MANAGER+
+  // gating already prevents anon abuse, but the route comment notes that
+  // a logged-in caller could otherwise burn the Sentry event quota with
+  // POST loops. Reuses the same bucket as /api/whatsapp/test.
+  const rl = await checkAuth(`sentry-diag:${user.id}`)
+  if (!rl.success) {
+    return {
+      allowed: false,
+      response: NextResponse.json(
+        {
+          error: "Too many requests. Try again in a minute.",
+          limit: rl.limit,
+          remaining: rl.remaining,
+          reset: rl.reset,
+        },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": String(rl.limit),
+            "X-RateLimit-Remaining": String(rl.remaining),
+            "X-RateLimit-Reset": String(rl.reset),
+          },
+        },
+      ),
+    }
+  }
+
+  return { allowed: true, userId: user.id }
 }
 
 /**
