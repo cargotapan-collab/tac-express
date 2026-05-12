@@ -122,11 +122,14 @@ function validate(entry: EvalEntry, ctx: { skillDirs: Set<string>; resolverText:
       errs.push(`expected skill "${exp}" has no matching .claude/skills/${exp}/SKILL.md`)
       continue
     }
-    // Verify the resolver knows about the skill — substring search is
-    // good enough; RESOLVER.md references skills as `tac-foo` bare or
-    // wrapped in backticks/brackets, all of which contain the bare name.
-    if (isSkill && !ctx.resolverText.includes(exp)) {
-      errs.push(`expected skill "${exp}" is not referenced anywhere in RESOLVER.md`)
+    // Verify the resolver knows about this entry — substring search is
+    // good enough; RESOLVER.md references skills as `tac-foo` and
+    // conventions as `conventions/<name>.md`, both of which contain the
+    // bare-name substring. Applied to BOTH skills AND convention paths so
+    // a ghost convention reference in the eval can't slip past validation
+    // (header contract: "every expected entry is referenced from RESOLVER").
+    if (!ctx.resolverText.includes(exp)) {
+      errs.push(`expected entry "${exp}" is not referenced anywhere in RESOLVER.md`)
     }
   }
   return errs

@@ -58,6 +58,13 @@ function human(bytes) {
 }
 
 // ── 1. Tally everything under .next/static ────────────────────────────────
+// `.next/` can exist without `.next/static/` (partial build, build failure
+// where Turbopack bailed before emitting assets). Guard explicitly so we
+// surface a clear message instead of a raw ENOENT stack from `readdirSync`.
+if (!existsSync(STATIC_DIR)) {
+  console.error(`❌ ${STATIC_DIR} not found. The build may have failed or produced an unexpected output structure. Re-run \`pnpm --filter dashboard build\` and check for errors.`)
+  process.exit(1)
+}
 const allStatic = walk(STATIC_DIR)
 const byCategory = { js: 0, css: 0, media: 0, other: 0 }
 for (const f of allStatic) {
