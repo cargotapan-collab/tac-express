@@ -44,6 +44,10 @@ function OpsDashboard({
           Full-bleed inside the OpsFrame: -ml-8 + explicit w-calc cancels both
           sides of the frame's px-8 padding so the banner fills the empty space
           flush to the frame's inner border. Aspect 15/2 matches the source. */}
+      {/* Banner bleed = -ml-8 + w-(100%+4rem) where 4rem = 2 × frame px-8
+          padding. The calc() must track the parent's px-8 — not tokenizable
+          without losing the relationship. ESLint's no-restricted-syntax
+          allows it because the bracket contains calc(), not a magic number. */}
       <div
         className={cn(
           "relative overflow-hidden border-y border-paper-line mb-5",

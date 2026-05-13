@@ -36,10 +36,15 @@ interface OpsRateCardFormProps {
   className?: string
 }
 
-function FieldError({ message }: { message?: string }) {
+interface FieldErrorProps {
+  id?: string
+  message?: string
+}
+
+function FieldError({ id, message }: FieldErrorProps) {
   if (!message) return null
   return (
-    <p role="alert" className="font-paper-mono text-paper-err text-[length:var(--text-paper-11)] mt-1">
+    <p id={id} role="alert" className="font-paper-mono text-paper-err text-[length:var(--text-paper-11)] mt-1">
       {message}
     </p>
   )
@@ -56,6 +61,14 @@ export function OpsRateCardForm({ onSubmit, isLoading, className }: OpsRateCardF
     defaultValues: { serviceLevel: "STANDARD" },
   })
 
+  // a11y helper: every input gets aria-invalid + aria-describedby pointing
+  // at its error message when validation fails. Closes R0 audit C1.
+  // WCAG 4.1.3 Status Messages (AA) + 3.3.1 Error Identification (A).
+  const errorAttrs = (id: string, hasError: boolean) =>
+    hasError
+      ? { "aria-invalid": true as const, "aria-describedby": `${id}-error` }
+      : {}
+
   return (
     <form onSubmit={handleSubmit((d) => onSubmit(d))} className={cn("space-y-4", className)} noValidate>
       <OpsCard ticks className="p-6">
@@ -66,13 +79,23 @@ export function OpsRateCardForm({ onSubmit, isLoading, className }: OpsRateCardF
         <div className="grid grid-cols-3 gap-3">
           <div>
             <OpsFieldLabel htmlFor="rc-origin">Origin Hub</OpsFieldLabel>
-            <OpsFieldInput id="rc-origin" placeholder="E.G. IMPHAL" {...register("originHub")} />
-            <FieldError message={errors.originHub?.message} />
+            <OpsFieldInput
+              id="rc-origin"
+              placeholder="E.G. IMPHAL"
+              {...register("originHub")}
+              {...errorAttrs("rc-origin", !!errors.originHub)}
+            />
+            <FieldError id="rc-origin-error" message={errors.originHub?.message} />
           </div>
           <div>
             <OpsFieldLabel htmlFor="rc-dest">Destination Hub</OpsFieldLabel>
-            <OpsFieldInput id="rc-dest" placeholder="E.G. NEW_DELHI" {...register("destHub")} />
-            <FieldError message={errors.destHub?.message} />
+            <OpsFieldInput
+              id="rc-dest"
+              placeholder="E.G. NEW_DELHI"
+              {...register("destHub")}
+              {...errorAttrs("rc-dest", !!errors.destHub)}
+            />
+            <FieldError id="rc-dest-error" message={errors.destHub?.message} />
           </div>
           <div>
             <OpsFieldLabel htmlFor="rc-service">Service Level</OpsFieldLabel>
@@ -90,33 +113,69 @@ export function OpsRateCardForm({ onSubmit, isLoading, className }: OpsRateCardF
         <div className="grid grid-cols-3 gap-3">
           <div>
             <OpsFieldLabel htmlFor="rc-min">Slab Min (kg)</OpsFieldLabel>
-            <OpsFieldInput id="rc-min" inputMode="decimal" placeholder="0" {...register("weightSlabMin")} />
-            <FieldError message={errors.weightSlabMin?.message} />
+            <OpsFieldInput
+              id="rc-min"
+              inputMode="decimal"
+              placeholder="0"
+              {...register("weightSlabMin")}
+              {...errorAttrs("rc-min", !!errors.weightSlabMin)}
+            />
+            <FieldError id="rc-min-error" message={errors.weightSlabMin?.message} />
           </div>
           <div>
             <OpsFieldLabel htmlFor="rc-max">Slab Max (kg)</OpsFieldLabel>
-            <OpsFieldInput id="rc-max" inputMode="decimal" placeholder="5" {...register("weightSlabMax")} />
-            <FieldError message={errors.weightSlabMax?.message} />
+            <OpsFieldInput
+              id="rc-max"
+              inputMode="decimal"
+              placeholder="5"
+              {...register("weightSlabMax")}
+              {...errorAttrs("rc-max", !!errors.weightSlabMax)}
+            />
+            <FieldError id="rc-max-error" message={errors.weightSlabMax?.message} />
           </div>
           <div>
             <OpsFieldLabel htmlFor="rc-rate">Rate ₹/kg</OpsFieldLabel>
-            <OpsFieldInput id="rc-rate" inputMode="decimal" placeholder="80" {...register("ratePerKg")} />
-            <FieldError message={errors.ratePerKg?.message} />
+            <OpsFieldInput
+              id="rc-rate"
+              inputMode="decimal"
+              placeholder="80"
+              {...register("ratePerKg")}
+              {...errorAttrs("rc-rate", !!errors.ratePerKg)}
+            />
+            <FieldError id="rc-rate-error" message={errors.ratePerKg?.message} />
           </div>
           <div>
             <OpsFieldLabel htmlFor="rc-docket">Docket ₹</OpsFieldLabel>
-            <OpsFieldInput id="rc-docket" inputMode="decimal" placeholder="40" {...register("docketCharge")} />
-            <FieldError message={errors.docketCharge?.message} />
+            <OpsFieldInput
+              id="rc-docket"
+              inputMode="decimal"
+              placeholder="40"
+              {...register("docketCharge")}
+              {...errorAttrs("rc-docket", !!errors.docketCharge)}
+            />
+            <FieldError id="rc-docket-error" message={errors.docketCharge?.message} />
           </div>
           <div>
             <OpsFieldLabel htmlFor="rc-fuel">Fuel %</OpsFieldLabel>
-            <OpsFieldInput id="rc-fuel" inputMode="decimal" placeholder="6" {...register("fuelSurchargePct")} />
-            <FieldError message={errors.fuelSurchargePct?.message} />
+            <OpsFieldInput
+              id="rc-fuel"
+              inputMode="decimal"
+              placeholder="6"
+              {...register("fuelSurchargePct")}
+              {...errorAttrs("rc-fuel", !!errors.fuelSurchargePct)}
+            />
+            <FieldError id="rc-fuel-error" message={errors.fuelSurchargePct?.message} />
           </div>
           <div>
             <OpsFieldLabel htmlFor="rc-handling">Handling ₹</OpsFieldLabel>
-            <OpsFieldInput id="rc-handling" inputMode="decimal" placeholder="0" {...register("handlingFee")} />
-            <FieldError message={errors.handlingFee?.message} />
+            <OpsFieldInput
+              id="rc-handling"
+              inputMode="decimal"
+              placeholder="0"
+              {...register("handlingFee")}
+              {...errorAttrs("rc-handling", !!errors.handlingFee)}
+            />
+            <FieldError id="rc-handling-error" message={errors.handlingFee?.message} />
           </div>
         </div>
       </OpsCard>

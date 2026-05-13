@@ -116,7 +116,7 @@ function OpsFinanceView({
           {buckets.map((b) => (
             <div
               key={b.label}
-              className={`px-3.5 py-2.5 bg-paper-2 border-l-[3px] ${b.toneClass}`}
+              className={`px-3.5 py-2.5 bg-paper-2 border-l-[length:var(--indicator-w)] ${b.toneClass}`}
             >
               <div className="paper-label">{b.label}</div>
               <div className="font-paper-display font-bold text-[length:var(--text-paper-22)] mt-1">

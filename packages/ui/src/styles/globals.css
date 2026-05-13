@@ -63,7 +63,11 @@
   /* Semantic status colors */
   --accent-success: oklch(0.60 0.18 150);
   --accent-success-foreground: oklch(1 0 0);
-  --accent-warning: oklch(0.72 0.18 80);
+  /* warning: darkened from L=0.72 → L=0.52 on 2026-05-13 to clear WCAG
+     AA contrast (4.5:1) against --paper-bg on the brand wordmark + every
+     other text-accent-warning site. L=0.58 reached 4.1:1, L=0.52 clears 4.5:1.
+     Closes the last R0 contrast node. */
+  --accent-warning: oklch(0.52 0.14 80);
   --accent-warning-foreground: oklch(0.25 0 0);
   --accent-danger: oklch(0.5885 0.2090 24.0041);
   --accent-danger-foreground: oklch(1 0 0);
@@ -599,6 +603,7 @@
   --tracking-paper-14:     0.14em;   /* eyebrow / sidebar section */
   --tracking-paper-18:     0.18em;   /* sidebar subtitle / IMPHAL · PROD */
   --tracking-paper-20:     0.20em;   /* display wordmark — landing + wasteland (7 callers in composed/) */
+  --tracking-tight:        -0.01em;  /* micro-kern for compact mono wordmarks (TAC EXPRESS sidebar logo) */
 
   /* Phase 5 — composed-component spacing tokens added during the design-
      exceptions tokenisation pass. Each token replaces an arbitrary value

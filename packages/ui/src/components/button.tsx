@@ -25,7 +25,7 @@ const buttonVariants = cva(
     "border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap",
     "rounded-[var(--radius-md)] outline-none select-none",
     // v6: multi-axis transition handles bg + border + transform
-    "transition-[background-color,border-color,transform,box-shadow] duration-[80ms] ease-linear will-change-transform",
+    "transition-[background-color,border-color,transform,box-shadow] duration-fast ease-linear will-change-transform",
     // v6: premium focus signal
     "focus-visible:outline-1 focus-visible:outline-primary focus-visible:[outline-offset:1px] focus-visible:[box-shadow:0_0_8px_color-mix(in_oklch,var(--primary)_40%,transparent)]",
     // Disabled / aria-invalid carry over from v5 with the new bloom

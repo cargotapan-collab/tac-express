@@ -212,7 +212,7 @@ function DataTable<TData, TValue>({
                   role="row"
                   // v6: subgrid passes column tracks down; surface-hover row tint + 2px primary edge on selection.
                   className={cn(
-                    "col-span-full grid grid-cols-subgrid bg-card transition-[background-color,border-color] duration-[80ms] ease-linear",
+                    "col-span-full grid grid-cols-subgrid bg-card transition-[background-color,border-color] duration-fast ease-linear",
                     "hover:bg-surface-hover",
                     "data-[state=selected]:bg-primary-subtle data-[state=selected]:border-l-2 data-[state=selected]:border-l-primary",
                     onRowClick && "cursor-pointer",

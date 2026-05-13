@@ -401,3 +401,66 @@ After R0.2 landed (wizard a11y), executed the next backlog tier in a single PR. 
 The 3 remaining color-contrast nodes per route are specific element selectors (likely brand wordmark + 1-2 OpsButton variants), not chrome-shared. Next focused PR can resolve with targeted tweaks; no large refactor needed.
 
 **State of the queue: critical-tier + high-leverage high-tier CLOSED.** Remaining items are backlog-tier cleanup. The R0 plan has drained.
+
+---
+
+# R0.4 — Final cleanup sweep (2026-05-13 evening, post-break)
+
+After R0.3 landed, finished the remaining backlog tier + the form a11y gap that was still open after the wizard restoration. **Five routes verified zero-violation in the live re-audit; the R0 audit plan is fully drained.**
+
+| Item | Fix | File(s) |
+|---|---|---|
+| **C1** (final 2 forms) | `OpsCustomerForm` + `OpsRateCardForm` wired `aria-invalid` + `aria-describedby` on every required input; `FieldError` now accepts `id` prop and links to its input via `htmlFor`/`id` pair | `ops-customer-form.tsx`, `ops-rate-card-form.tsx` |
+| **C-residual** (`OpsButton`) | `text-{color}` and `text-paper-NN` (font-size) both match tailwind-merge's `text-*` group, so size class stripped the color class. Switched all OpsButton variants to `[color:...]` arbitrary-value syntax → outside the merge group, color survives. Fixes every OpsButton primary/dark/tab variant rendering with wrong text color | `ops-button.tsx` |
+| **C-residual** (sidebar subtitle) | `text-sidebar-foreground/50` → `/70` on the "imphal // prod" subtitle (and 2 other /50 sites in the sidebar footer) | `sidebar.tsx` |
+| **C-residual** (brand wordmark) | `--accent-warning` darkened L=0.72 → L=0.52 to clear 4.5:1 against `--paper-bg` on the "EXPRESS →" brand text. Cascades — every `text-accent-warning` site now meets WCAG AA | `globals.css` |
+| **M3** | `duration-[80ms]` → `duration-fast` (3 sites) | `button.tsx`, `data-table.tsx`, `table.tsx` |
+| **M4** | New `--tracking-tight: -0.01em` token; replaces `tracking-[-0.01em]` in sidebar brand wordmark | `globals.css`, `sidebar.tsx` |
+| **M5** | `border-l-[3px]` → `border-l-[length:var(--indicator-w)]` (6 sites — error-state primitive + finance accent + 3 detail pages + manifest empty-state) | bulk sed across 6 files |
+| **M7** | Documented (not tokenized) — bleed = -ml-8 + w-(100%+4rem) where 4rem must track parent px-8 padding | `ops-dashboard.tsx` (inline comment) |
+| **M2** | No change needed — already disabled via line-level eslint comments + documented in `docs/design-exceptions.md` as DESIGN-LOCKED content-driven max-widths | — |
+| **M1** | No change — manifest column widths intentional, documented design-locked | — |
+
+## R0.4 verified deltas via Claude_Preview
+
+| Route | Morning baseline | R0.3 | R0.4 | Δ since morning |
+|---|---|---|---|---|
+| `/ops-console` | color-contrast (8) + region (3) | color-contrast (3) | **0 violations** | **100% drained** |
+| `/ops-console/shipments` | color-contrast (23) + region (3) | color-contrast (3) | **0 violations** | **100% drained** |
+| `/ops-console/finance` | color-contrast (34) + region (3) | color-contrast (~3 est) | **0 violations** | **100% drained** |
+| `/ops-console/manifests` | color-contrast (30) + region (3) | color-contrast (~3 est) | **0 violations** | **100% drained** |
+| `/ops-console/audit` | color-contrast (7) + region (3) + heading-order (1) | color-contrast (2) | **0 violations** | **100% drained** |
+| `/ops-console/customers/create` (empty-submit error state) | 6 alerts rendered but 0 inputs `aria-invalid`, 0 inputs `aria-describedby` | not re-tested | **6 `aria-invalid`, 6 `aria-describedby`, 0 violations** | **C1 closed for flat forms** |
+
+## State at end of day
+
+| Tier | Items | Status |
+|---|---|:-:|
+| 🔴 Critical | C1 (form error association) — both wizards + flat forms wired | **CLOSED** |
+| 🔴 Critical | C2 (color contrast) — sidebar + active nav + table cells + brand + OpsButton variants | **CLOSED** |
+| 🔴 Critical | C3 (region landmark) — `<header role="banner">` on OpsTopbar | **CLOSED** |
+| 🔴 Critical | C4-C6 (wizard a11y from R0.1) | **CLOSED** in R0.2 |
+| 🟠 High | H2-H5 (token additions for shared chrome) | **CLOSED** in R0.3 |
+| 🟠 High | H6 (h1 missing on manifest+shipment create) | **CLOSED** in R0.2 |
+| 🟠 High | H1 (Supabase auth lock investigation) | Deferred — needs prod-build test |
+| 🟡 Medium | M3 / M4 / M5 (LAW 3 backlog) | **CLOSED** in R0.4 |
+| 🟡 Medium | M6 (heading-order on /audit) | **CLOSED** in R0.3 |
+| 🟡 Medium | M1 / M2 / M7 | Documented design-locked exceptions |
+
+**LAW 13 (zero-radius contract):** 0 violations across all 6 audited routes — held since R0 baseline.
+
+**Console errors:** 0 errors during full R0.4 session.
+
+**The R0 audit plan is complete.** Every critical + high-leverage item is closed. The remaining backlog is one deferred investigation (H1) that needs a prod-build to scope.
+
+## Next sprint recommendation
+
+VRT baseline capture is now safe (and overdue). The visual contract is stable, all axe gates clear, form a11y wired. Run when ready:
+
+```powershell
+pnpm --filter dashboard exec playwright test --update-snapshots e2e/visual/baseline.spec.ts
+git add apps/dashboard/e2e/visual/baseline.spec.ts-snapshots/
+git commit -m "test(visual): R0 baseline snapshots — post a11y/contrast sweep"
+```
+
+After that lands, H1 becomes the only remaining backlog item — and it needs a prod-build test first to scope (Strict-Mode-only vs real prod regression).

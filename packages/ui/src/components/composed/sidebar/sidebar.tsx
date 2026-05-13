@@ -263,13 +263,13 @@ export function Sidebar({ collapsible = false }: SidebarProps = {}) {
                 className="block focus-visible:outline-none focus-visible:tac-focus-premium"
                 aria-label="TAC Express dashboard home"
               >
-                <div className="font-mono font-extrabold text-base leading-none tracking-[-0.01em] flex items-baseline">
+                <div className="font-mono font-extrabold text-base leading-none tracking-[length:var(--tracking-tight)] flex items-baseline">
                   <span className="text-sidebar-foreground">TAC</span>
                   <span className="ml-1.5 text-accent-warning">
                     EXPRESS →
                   </span>
                 </div>
-                <p className="font-mono text-3xs tracking-paper-18 uppercase text-sidebar-foreground/50 truncate mt-1.5">
+                <p className="font-mono text-3xs tracking-paper-18 uppercase text-sidebar-foreground/70 truncate mt-1.5">
                   imphal // prod
                 </p>
               </Link>
@@ -281,7 +281,7 @@ export function Sidebar({ collapsible = false }: SidebarProps = {}) {
                 aria-label="Collapse sidebar"
                 className={cn(
                   "size-[22px] grid place-items-center shrink-0",
-                  "border border-sidebar-border bg-sidebar text-sidebar-foreground/50",
+                  "border border-sidebar-border bg-sidebar text-sidebar-foreground/70",
                   "hover:bg-sidebar-accent hover:text-sidebar-foreground",
                   "focus-visible:outline-none focus-visible:tac-focus-premium",
                   "transition-colors duration-fast ease-linear",
@@ -370,7 +370,7 @@ export function Sidebar({ collapsible = false }: SidebarProps = {}) {
             type="button"
             aria-label="User menu"
             className={cn(
-              "text-sidebar-foreground/50 hover:text-sidebar-foreground",
+              "text-sidebar-foreground/70 hover:text-sidebar-foreground",
               "focus-visible:outline-none focus-visible:tac-focus-premium",
               "transition-colors duration-fast ease-linear",
             )}
