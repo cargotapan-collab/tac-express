@@ -89,7 +89,7 @@ function OpsFinanceView({
           // variant is a single-page MVP missing the rate-lookup + line-item
           // breakdown.
           <OpsButton asChild variant="primary">
-            <Link href="/finance/create">
+            <Link href="/ops-console/finance/create">
               <RiAddLine aria-hidden className="size-3" />
               New Invoice
             </Link>
@@ -116,7 +116,7 @@ function OpsFinanceView({
           {buckets.map((b) => (
             <div
               key={b.label}
-              className={`px-3.5 py-2.5 bg-paper-2 border-l-[3px] ${b.toneClass}`}
+              className={`px-3.5 py-2.5 bg-paper-2 border-l-[length:var(--indicator-w)] ${b.toneClass}`}
             >
               <div className="paper-label">{b.label}</div>
               <div className="font-paper-display font-bold text-[length:var(--text-paper-22)] mt-1">
@@ -155,7 +155,7 @@ function OpsFinanceView({
           }
           cta={
             <OpsButton asChild variant="primary">
-              <Link href="/finance/create">
+              <Link href="/ops-console/finance/create">
                 <RiAddLine aria-hidden className="size-3" />
                 New Invoice
               </Link>

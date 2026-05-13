@@ -6,6 +6,7 @@ import globals from "globals"
 import tseslint from "typescript-eslint"
 
 import { config as baseConfig } from "./base.js"
+import { designSystemConfig } from "./design-system.js"
 
 /**
  * A custom ESLint configuration for libraries that use React.
@@ -39,4 +40,9 @@ export const config = [
       "react/prop-types": "off",
     },
   },
+  // TAC LAW gates (no lucide-react, no framer-motion, no raw colors, no
+  // bad radius, no raw text-[Npx], no raw tracking-[em]). Defined in
+  // design-system.js so the same rules apply to both packages/ui and
+  // apps/* — keeps the lint gate the single point of policy.
+  designSystemConfig,
 ]

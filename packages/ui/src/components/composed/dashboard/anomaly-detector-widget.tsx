@@ -160,7 +160,7 @@ export function AnomalyDetectorWidget({
     >
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
-          <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <p className="flex items-center gap-2 font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
             <RiBugLine className="size-3" />
             Anomaly Detector
             <Badge
@@ -190,7 +190,7 @@ export function AnomalyDetectorWidget({
             variant="ghost"
             size="sm"
             onClick={onRefresh}
-            className="font-mono text-[10px] uppercase tracking-widest"
+            className="font-mono text-paper-10 uppercase tracking-widest"
           >
             Refresh
           </Button>
@@ -199,7 +199,7 @@ export function AnomalyDetectorWidget({
 
       <ScrollArea className="max-h-80">
         {loading ? (
-          <div className="flex items-center justify-center py-12 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <div className="flex items-center justify-center py-12 font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
             Scanning telemetry…
           </div>
         ) : anomalies.length === 0 ? (
@@ -208,7 +208,7 @@ export function AnomalyDetectorWidget({
             <p className="font-heading text-sm font-semibold">
               All clear
             </p>
-            <p className="px-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <p className="px-6 font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
               No anomalies detected across the active fleet.
             </p>
           </div>
@@ -271,11 +271,11 @@ function AnomalyRow({
           >
             {anomaly.severity}
           </Badge>
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
             {TYPE_LABEL[anomaly.type]}
           </span>
           {anomaly.awbNumber && (
-            <span className="font-mono text-[11px] font-semibold tracking-widest">
+            <span className="font-mono text-paper-11 font-semibold tracking-widest">
               {anomaly.awbNumber}
             </span>
           )}
@@ -287,7 +287,7 @@ function AnomalyRow({
               variant="ghost"
               size="sm"
               onClick={() => onResolve(anomaly.id)}
-              className="font-mono text-[10px] uppercase tracking-widest"
+              className="font-mono text-paper-10 uppercase tracking-widest"
             >
               Dismiss
             </Button>
@@ -298,7 +298,7 @@ function AnomalyRow({
               variant="outline"
               size="sm"
               onClick={() => onInvestigate(anomaly)}
-              className="font-mono text-[10px] uppercase tracking-widest"
+              className="font-mono text-paper-10 uppercase tracking-widest"
             >
               Investigate
               <RiArrowRightLine />
@@ -308,7 +308,7 @@ function AnomalyRow({
       </div>
       <p className="text-xs text-muted-foreground">{anomaly.description}</p>
       <div className="space-y-0.5">
-        <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <div className="flex items-center justify-between font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
           <span>AI confidence</span>
           <span>{(conf * 100).toFixed(0)}%</span>
         </div>

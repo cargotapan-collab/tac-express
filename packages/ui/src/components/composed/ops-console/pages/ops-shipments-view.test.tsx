@@ -42,7 +42,7 @@ describe("OpsShipmentsView", () => {
     // leaving the page-header link as the only "New Shipment" link in the DOM.
     render(<OpsShipmentsView rows={[ROW_DELIVERED]} />)
     const cta = screen.getByRole("link", { name: /new shipment/i })
-    expect(cta).toHaveAttribute("href", "/shipments/create")
+    expect(cta).toHaveAttribute("href", "/ops-console/shipments/create")
   })
 
   it("renders a row for each provided shipment", () => {

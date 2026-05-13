@@ -13,13 +13,16 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic"
 
+// OpsPageHead is required (not optional) — the CreateShipmentForm step
+// indicator is not an <h1>, so without OpsPageHead the page fails axe's
+// `page-has-heading-one` rule (WCAG 2.4.6 / 1.3.1). See R0.1 audit findings.
 export default function OpsCreateShipmentPage() {
   return (
     <OpsFrame>
       <OpsPageHead
         eyebrow="Operations"
         title="New Shipment"
-        sub="Single-page form. AWB is generated server-side on commit."
+        sub="Capture sender + receiver + parcel details. AWB is generated server-side on commit."
       />
       <OpsCreateShipmentLive />
     </OpsFrame>

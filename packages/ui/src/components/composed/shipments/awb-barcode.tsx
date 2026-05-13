@@ -1,5 +1,7 @@
 "use client"
 
+
+
 import * as React from "react"
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -92,6 +94,7 @@ function AwbBarcode({
         {paths}
       </svg>
       {showText && (
+        // eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md
         <span className="font-mono text-xs tracking-[0.25em] mt-1 tabular-nums">
           {value}
         </span>

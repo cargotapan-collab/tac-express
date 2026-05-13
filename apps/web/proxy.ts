@@ -49,10 +49,17 @@ export default async function proxy(req: NextRequest) {
   }
 
   // 2. Refresh Supabase session cookies + read user.
+  // Catch AuthApiError ("Invalid Refresh Token") so a stale browser
+  // cookie doesn't crash every request — fall through as unauthenticated
+  // and let the redirect below send the visitor to /sign-in.
   const { supabase, response } = createMiddlewareClient(req)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] = null
+  try {
+    const result = await supabase.auth.getUser()
+    user = result.data.user
+  } catch {
+    user = null
+  }
 
   const isPublic =
     pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p))

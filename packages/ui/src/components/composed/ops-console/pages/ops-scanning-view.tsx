@@ -113,7 +113,7 @@ function OpsScanningView() {
           />
         </div>
 
-        <OpsCard ticks className="min-h-[240px] flex flex-col">
+        <OpsCard ticks className="min-h-[length:var(--spacing-chart-lg)] flex flex-col">
           <div className="paper-label">Scan Feed · Last 100</div>
           <div className="flex-1 grid place-items-center text-center text-paper-fg-3">
             <div>

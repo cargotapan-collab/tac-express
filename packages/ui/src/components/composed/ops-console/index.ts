@@ -1,5 +1,6 @@
 export { OpsShell, type OpsShellProps } from "./ops-shell"
-export { OpsSidebar } from "./ops-sidebar"
+// OpsSidebar removed — consolidated into the shared `<Sidebar>` at
+// `@workspace/ui/components/composed/sidebar`. Import that instead.
 export { OpsTopbar, type OpsTopbarProps } from "./ops-topbar"
 export { OpsFrame, type OpsFrameProps } from "./ops-frame"
 export { OpsPageHead, type OpsPageHeadProps } from "./ops-page-head"
@@ -8,6 +9,21 @@ export { OpsBadge, opsBadgeVariants, type OpsBadgeProps } from "./ops-badge"
 export { OpsCard, opsCardVariants, type OpsCardProps } from "./ops-card"
 export { OpsStatCard, type OpsStatCardProps } from "./ops-stat-card"
 export { OpsDashboard, type OpsDashboardProps } from "./ops-dashboard"
+export { OpsGrowthAreaChart, type OpsGrowthAreaChartProps } from "./ops-growth-chart"
+export { OpsVolumeBarChart, type OpsVolumeBarChartProps } from "./ops-volume-chart"
+export {
+  OpsUpcomingCalendar,
+  type OpsUpcomingCalendarProps,
+  type UpcomingOpItem,
+} from "./ops-upcoming-calendar"
+export {
+  OpsShipmentBarChart,
+  type OpsShipmentBarChartProps,
+} from "./ops-shipment-bar-chart"
+export {
+  OpsRevenueRadialChart,
+  type OpsRevenueRadialChartProps,
+} from "./ops-revenue-radial-chart"
 export { OpsTabs, type OpsTabsProps } from "./ops-tabs"
 export {
   OpsTable,

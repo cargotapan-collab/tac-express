@@ -194,3 +194,47 @@ if (routeAttribution.length > 0) {
   })
 }
 console.log(`\n✅ Wrote ${docPath}\n`)
+
+// ── Budget enforcement ────────────────────────────────────────────────────
+// Read the budget file (apps/dashboard/.bundle-budget.json) and fail the
+// run if any tracked metric exceeds its limit. Without this, the workflow
+// uploaded an artifact but enforced nothing — same "Phase 2 deferred"
+// pattern the review feedback called out.
+const BUDGET_PATH = join(ROOT, "apps/dashboard/.bundle-budget.json")
+if (existsSync(BUDGET_PATH)) {
+  const budget = JSON.parse(readFileSync(BUDGET_PATH, "utf8"))
+  const limits = budget.baseline ?? {}
+  const violations = []
+  const totalJs = byCategory.js
+  const largestChunk = jsChunks[0]?.size ?? 0
+
+  if (limits.totalStaticBytes && totalStatic > limits.totalStaticBytes) {
+    violations.push(
+      `Total static: ${human(totalStatic)} exceeds budget ${human(limits.totalStaticBytes)}`,
+    )
+  }
+  if (limits.jsBytes && totalJs > limits.jsBytes) {
+    violations.push(
+      `JS bytes: ${human(totalJs)} exceeds budget ${human(limits.jsBytes)}`,
+    )
+  }
+  if (limits.largestChunkBytes && largestChunk > limits.largestChunkBytes) {
+    violations.push(
+      `Largest chunk: ${human(largestChunk)} exceeds budget ${human(limits.largestChunkBytes)}`,
+    )
+  }
+
+  if (violations.length > 0) {
+    console.error("❌ Bundle-size budget exceeded:")
+    for (const v of violations) console.error(`   - ${v}`)
+    console.error(
+      "\nRaise the limit in apps/dashboard/.bundle-budget.json deliberately, with a same-PR justification.",
+    )
+    process.exit(1)
+  }
+  console.log(
+    `✅ Bundle within budget (total ${human(totalStatic)} / ${human(limits.totalStaticBytes)}, JS ${human(totalJs)} / ${human(limits.jsBytes)}, top chunk ${human(largestChunk)} / ${human(limits.largestChunkBytes)})\n`,
+  )
+} else {
+  console.warn(`⚠️ No budget file at ${BUDGET_PATH} — bundle-size gate is inactive.\n`)
+}

@@ -137,7 +137,7 @@ export function HubsManager({
           <h2 className="font-heading text-base font-semibold tracking-tight">
             Hub Network
           </h2>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <p className="font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
             {hubs.length} hub{hubs.length === 1 ? "" : "s"} · {hubs.filter((h) => h.isActive).length} active
           </p>
         </div>
@@ -172,7 +172,7 @@ export function HubsManager({
         <div className="border border-border bg-background">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border bg-muted/30 text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              <tr className="border-b border-border bg-muted/30 text-left font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
                 <th className="px-3 py-2">Code</th>
                 <th className="px-3 py-2">Name</th>
                 <th className="px-3 py-2">City</th>
@@ -189,17 +189,17 @@ export function HubsManager({
                   key={h.id}
                   className="border-b border-border/50 last:border-b-0 hover:bg-muted/20"
                 >
-                  <td className="px-3 py-2 font-mono text-[11px] font-semibold tracking-widest">
+                  <td className="px-3 py-2 font-mono text-paper-11 font-semibold tracking-widest">
                     {h.code}
                   </td>
                   <td className="px-3 py-2">{h.name}</td>
-                  <td className="px-3 py-2 font-mono text-[11px] uppercase tracking-wide">
+                  <td className="px-3 py-2 font-mono text-paper-11 uppercase tracking-wide">
                     {h.city}
                   </td>
-                  <td className="px-3 py-2 font-mono text-[11px] uppercase tracking-wide">
+                  <td className="px-3 py-2 font-mono text-paper-11 uppercase tracking-wide">
                     {h.state}
                   </td>
-                  <td className="px-3 py-2 font-mono text-[11px]">{h.pincode}</td>
+                  <td className="px-3 py-2 font-mono text-paper-11">{h.pincode}</td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-1">
                       {h.isOrigin && (
@@ -219,7 +219,7 @@ export function HubsManager({
                       type="button"
                       onClick={() => onToggleActive?.(h.id, !h.isActive)}
                       className={cn(
-                        "inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest transition-colors",
+                        "inline-flex items-center gap-1 font-mono text-paper-10 uppercase tracking-widest transition-colors",
                         h.isActive
                           ? "text-status-success hover:opacity-70"
                           : "text-muted-foreground hover:opacity-70"
@@ -331,7 +331,7 @@ export function HubsManager({
 
             <div className="grid gap-2 sm:grid-cols-3">
               <label className="flex items-center justify-between border border-border bg-background px-3 py-2">
-                <span className="font-mono text-[10px] uppercase tracking-widest">
+                <span className="font-mono text-paper-10 uppercase tracking-widest">
                   Allows origin
                 </span>
                 <Switch
@@ -340,7 +340,7 @@ export function HubsManager({
                 />
               </label>
               <label className="flex items-center justify-between border border-border bg-background px-3 py-2">
-                <span className="font-mono text-[10px] uppercase tracking-widest">
+                <span className="font-mono text-paper-10 uppercase tracking-widest">
                   Allows destination
                 </span>
                 <Switch
@@ -349,7 +349,7 @@ export function HubsManager({
                 />
               </label>
               <label className="flex items-center justify-between border border-border bg-background px-3 py-2">
-                <span className="font-mono text-[10px] uppercase tracking-widest">
+                <span className="font-mono text-paper-10 uppercase tracking-widest">
                   Active
                 </span>
                 <Switch

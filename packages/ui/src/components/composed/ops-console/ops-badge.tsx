@@ -11,9 +11,9 @@ const opsBadgeVariants = cva(
   [
     "inline-flex items-center gap-1.5 px-2 py-0.5",
     "border bg-paper-card",
-    "font-paper-mono font-medium text-[10px] tracking-[0.1em] uppercase",
-    // 5x5 square dot before the label
-    "before:content-[''] before:w-[5px] before:h-[5px] before:shrink-0",
+    "font-paper-mono font-medium text-paper-10 tracking-paper-10 uppercase",
+    // square dot before the label, sized by --status-dot token (R0 audit H5)
+    "before:content-[''] before:w-[length:var(--status-dot)] before:h-[length:var(--status-dot)] before:shrink-0",
   ],
   {
     variants: {

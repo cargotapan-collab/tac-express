@@ -7,11 +7,12 @@ import {
   RiPlaneLine,
   RiAlertLine,
   RiTimeLine,
-  RiSignalWifiErrorLine,
 } from "@workspace/ui/icons"
 import { OpsFrame } from "../ops-frame"
 import { OpsPageHead } from "../ops-page-head"
 import { OpsCard } from "../ops-card"
+import { OpsShipmentBarChart } from "../ops-shipment-bar-chart"
+import { OpsRevenueRadialChart } from "../ops-revenue-radial-chart"
 
 interface AnalyticsKpis {
   totalShipments: number
@@ -99,31 +100,10 @@ function OpsAnalyticsView({ kpis }: OpsAnalyticsViewProps) {
       {/* Charts */}
       <div className="grid grid-cols-2 gap-4">
         <OpsCard ticks>
-          <div className="paper-label mb-2.5">Shipment Trend · 30 days</div>
-          <svg aria-hidden viewBox="0 0 360 120" className="w-full">
-            <line x1="0" y1="100" x2="360" y2="100" stroke="var(--paper-line)" strokeDasharray="2 3" />
-            <line x1="0" y1="60" x2="360" y2="60" stroke="var(--paper-line)" strokeDasharray="2 3" />
-            <path
-              d="M0 100 L260 100 L260 30 L360 30 L360 120 L0 120 Z"
-              fill="var(--paper-violet-50)"
-            />
-            <path
-              d="M0 100 L260 100 L260 30 L360 30"
-              stroke="var(--paper-violet)"
-              strokeWidth="1.5"
-              fill="none"
-            />
-          </svg>
+          <OpsShipmentBarChart />
         </OpsCard>
-        <OpsCard ticks className="flex flex-col">
-          <div className="paper-label">Revenue Trend · 6 months</div>
-          <div className="flex-1 flex flex-col items-center justify-center text-center mt-4">
-            <RiSignalWifiErrorLine aria-hidden className="size-7 text-paper-fg-3" />
-            <div className="paper-label mt-2">Awaiting Signal</div>
-            <div className="font-paper-display text-[length:var(--text-paper-13)] text-paper-fg-3 mt-1">
-              2 · resumes at N ≥ 3
-            </div>
-          </div>
+        <OpsCard ticks>
+          <OpsRevenueRadialChart />
         </OpsCard>
       </div>
     </OpsFrame>

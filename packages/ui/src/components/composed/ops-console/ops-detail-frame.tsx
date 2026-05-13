@@ -16,7 +16,7 @@ interface OpsDetailFrameProps {
   status?: React.ReactNode
   /** Top-right action cluster (print, edit, etc.). */
   actions?: React.ReactNode
-  /** Back-link target. Defaults to the parent route via a single `..` if omitted. */
+  /** Back-link target. If omitted, the Back link is not rendered (no implicit `..` fallback). */
   backHref?: string
   /** Aside content — typically status + meta. */
   aside?: React.ReactNode

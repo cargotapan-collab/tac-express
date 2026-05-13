@@ -170,13 +170,23 @@ interface FieldProps {
 }
 
 function Field({ label, required, children, hint, error, className }: FieldProps) {
+  // a11y: implicit label-input association — the <label> element wraps the
+  // children so any interactive descendant (<input>, <select>, <textarea>)
+  // is associated with the label without needing a generated `htmlFor`+`id`
+  // pair. Fixes axe `label` + `select-name` violations the R0.1 re-audit
+  // surfaced inside this primitive (see docs/r0-audit-findings.md § C4/C5).
+  //
+  // The label text lives in a <span> child so the label is structural
+  // rather than visual; layout uses `space-y-1.5` on the label itself.
   return (
     <div className={cn("space-y-1.5", className)} data-slot="wizard-field">
-      <label className="flex items-center gap-1 font-mono text-2xs uppercase tracking-widest text-muted-foreground">
-        {label}
-        {required && <span className="text-destructive">*</span>}
+      <label className="block space-y-1.5">
+        <span className="flex items-center gap-1 font-mono text-2xs uppercase tracking-widest text-muted-foreground">
+          {label}
+          {required && <span className="text-destructive">*</span>}
+        </span>
+        {children}
       </label>
-      {children}
       {hint && !error && (
         <p className="font-sans text-xs text-muted-foreground/70">{hint}</p>
       )}

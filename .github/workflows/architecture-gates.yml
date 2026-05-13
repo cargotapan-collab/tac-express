@@ -1,0 +1,97 @@
+# Architecture gates — every PR runs these. Together with the existing
+# typecheck / lint / e2e workflows, this completes Sprint 5's CI hardening:
+#
+#   - registry-check: prevents the @tac registry from drifting out of sync
+#     with its source files. Catches a contributor editing
+#     packages/ui/src/components/button.tsx without re-running
+#     `pnpm --filter @workspace/ui registry:build`.
+#
+#   - audit:governance: enforces LAW 2 (no UI under apps/*/components/)
+#     and LAW 8 (no @supabase/supabase-js outside packages/database).
+#     Both are codified in scripts/audit-governance.mjs with exact-path
+#     allowlists, not pattern matching.
+#
+#   - bundle-size: enforces a hard budget per
+#     `apps/dashboard/.bundle-budget.json`. Exceeding any limit fails
+#     this workflow. Raise the budget deliberately, with a same-PR
+#     justification — the budget IS the contract.
+#
+# This is intentionally separated from .github/workflows/e2e.yml so a slow
+# Playwright run doesn't gate fast architectural checks.
+
+name: architecture-gates
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "scripts/**"
+      - ".github/workflows/architecture-gates.yml"
+  push:
+    branches: [main]
+
+concurrency:
+  group: arch-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  registry-check:
+    name: "@tac registry sync + smoke"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify @tac registry JSON files are in sync with sources
+        run: pnpm --filter @workspace/ui registry:check
+      - name: End-to-end smoke — local HTTP server + fetch + diff against source
+        run: pnpm --filter @workspace/ui registry:smoke
+
+  governance:
+    name: LAW gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run governance audit (LAW 2 / LAW 8 / design-system specifics)
+        run: pnpm audit:governance
+
+  bundle-size:
+    name: Bundle size
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build dashboard
+        run: pnpm --filter dashboard build
+      - name: Measure bundle size
+        run: pnpm measure:bundle
+      - name: Upload bundle report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-size-report
+          path: docs/BUNDLE-SIZE-LATEST.md
+          retention-days: 30

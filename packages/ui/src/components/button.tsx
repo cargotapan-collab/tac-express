@@ -25,7 +25,7 @@ const buttonVariants = cva(
     "border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap",
     "rounded-[var(--radius-md)] outline-none select-none",
     // v6: multi-axis transition handles bg + border + transform
-    "transition-[background-color,border-color,transform,box-shadow] duration-[80ms] ease-linear will-change-transform",
+    "transition-[background-color,border-color,transform,box-shadow] duration-fast ease-linear will-change-transform",
     // v6: premium focus signal
     "focus-visible:outline-1 focus-visible:outline-primary focus-visible:[outline-offset:1px] focus-visible:[box-shadow:0_0_8px_color-mix(in_oklch,var(--primary)_40%,transparent)]",
     // Disabled / aria-invalid carry over from v5 with the new bloom
@@ -40,7 +40,12 @@ const buttonVariants = cva(
         // Premium hover: bg shifts to primary/85 + sub-pixel lift on the offset shadow
         default: [
           "bg-primary text-primary-foreground shadow-sm",
-          "hover:bg-[color:var(--overlay-primary-strong)] hover:bg-primary/90",
+          // Single hover bg — `hover:bg-[color:var(--overlay-primary-strong)]`
+          // and `hover:bg-primary/90` both targeted the same CSS property
+          // with different values, so Tailwind's class-ordering picked one
+          // non-deterministically. Kept the primary/90 variant — closes
+          // Macroscope finding on button.json.
+          "hover:bg-primary/90",
           "hover:-translate-x-px hover:-translate-y-px hover:shadow-[5px_5px_0_0_var(--border)]",
           "active:translate-x-0 active:translate-y-0 active:shadow-sm",
         ],

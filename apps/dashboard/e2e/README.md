@@ -80,4 +80,4 @@ issues without breaking CI). Set `AXE_FAIL_ON_VIOLATIONS=1` to gate.
 Playwright would screenshot + audit the dark palette — which is correct
 output but different from the C (cream) theme operators use by default.
 `_auth.setup.ts` seeds `localStorage.theme = "light"` so subsequent specs
-inherit the Warm Linen palette.
+inherit the Modern Ivory palette.

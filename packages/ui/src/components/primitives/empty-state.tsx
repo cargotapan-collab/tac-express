@@ -39,7 +39,15 @@ function EmptyState({
         </div>
       ) : null}
       <p className="tac-mono-label mb-1">No data</p>
-      <h3 className="text-base font-semibold text-foreground">{title}</h3>
+      {/*
+        Heading is <h2>, not <h3>: when EmptyState is rendered directly under
+        a PageHeader's <h1> (e.g. /ops-console/audit, /ops-console/notifications
+        when no records), an <h3> introduced a heading-order skip and failed
+        axe (WCAG 1.3.1). h2 is the next level after the page h1 with no
+        intermediate; safe for callers that don't render their own h2.
+        Closes R0 audit M6.
+      */}
+      <h2 className="text-base font-semibold text-foreground">{title}</h2>
       {description ? (
         <p className="mt-1 max-w-sm text-sm text-muted-foreground">{description}</p>
       ) : null}

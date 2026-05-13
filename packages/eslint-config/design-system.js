@@ -171,6 +171,39 @@ export const designSystemConfig = {
         message:
           "❌ [v6 motion] Arbitrary duration value. Use the 3-layer motion vocabulary: duration-[80ms] (instant), duration-[180ms] (smooth), or duration-[320ms] (expressive). See globals.css --motion-instant/smooth/expressive.",
       },
+
+      // ── LAW 13: Zero-radius. Block non-spec rounded-* utilities ───────
+      // The design system mandates `--radius: 0rem`. Use rounded-none, or
+      // rounded-sm (which maps to 0 in our theme), but never the default
+      // rounded scale that ships with Tailwind.
+      {
+        selector:
+          "JSXAttribute[name.name='className'] > Literal[value=/\\brounded(-[trbl][lr]?)?-(xs|md|lg|xl|2xl|3xl|full)\\b/]",
+        message:
+          "❌ [TAC LAW-13] Non-spec rounded utility. Use `rounded-none` or `rounded-sm` (both map to 0rem in our theme).",
+      },
+
+      // ── LAW 3: Block raw pixel/rem text-[Npx] without var() reference ─
+      // Pattern catches: text-[10px], text-[1rem], text-[0.875rem]
+      // Allows: text-[length:var(--text-paper-13)], text-[length:var(--*)]
+      // Use the text-paper-N utilities or text-3xs/2xs/xs/sm/base/lg/xl/2xl
+      // backed by globals.css tokens instead.
+      {
+        selector:
+          "JSXAttribute[name.name='className'] > Literal[value=/\\btext-\\[\\d/]",
+        message:
+          "❌ [TAC LAW-3] Raw pixel/rem text size. Use a token utility: text-paper-9..32, or one of text-3xs/2xs/xs/sm/base/lg/xl. For one-off sizes, reference the token via text-[length:var(--text-paper-N)].",
+      },
+
+      // ── LAW 3: Block raw em tracking-[Xem] without var() reference ────
+      // Allows tracking-[length:var(--tracking-paper-N)] etc.
+      // Map to: tracking-paper-04/06/08/10/12/14/18 backed by globals.css.
+      {
+        selector:
+          "JSXAttribute[name.name='className'] > Literal[value=/\\btracking-\\[0?\\./]",
+        message:
+          "❌ [TAC LAW-3] Raw em tracking value. Use a token utility: tracking-paper-04/06/08/10/12/14/18, or the Tailwind defaults (tracking-tight/normal/wide/wider/widest). For one-off, reference via tracking-[length:var(--tracking-paper-N)].",
+      },
     ],
   },
 }

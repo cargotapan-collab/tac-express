@@ -1,8 +1,9 @@
-export {
-  OpsShipmentForm,
-  opsShipmentFormSchema,
-  type OpsShipmentFormInput,
-} from "./ops-shipment-form"
+// MVP forms (OpsShipmentForm / OpsManifestForm / OpsInvoiceForm) were
+// removed 2026-05-13 after the multi-step wizard restoration.
+// See docs/v6-mvp-regression-audit.md.
+//
+// Customer + rate-card surfaces never existed as wizards in v6 (these
+// /create routes are net-new in /ops-console), so their flat forms remain.
 export {
   OpsCustomerForm,
   opsCustomerFormSchema,
@@ -13,13 +14,3 @@ export {
   opsRateCardFormSchema,
   type OpsRateCardFormInput,
 } from "./ops-rate-card-form"
-export {
-  OpsManifestForm,
-  opsManifestFormSchema,
-  type OpsManifestFormInput,
-} from "./ops-manifest-form"
-export {
-  OpsInvoiceForm,
-  opsInvoiceFormSchema,
-  type OpsInvoiceFormInput,
-} from "./ops-invoice-form"

@@ -349,7 +349,7 @@ export function OpsInvoiceDetailLive({ id }: OpsInvoiceDetailLiveProps) {
         title={id}
         backHref="/ops-console/finance"
       >
-        <div className="border border-paper-err/40 border-l-[3px] border-l-paper-err bg-paper-err-bg/30 p-6 flex items-start gap-3">
+        <div className="border border-paper-err/40 border-l-[length:var(--indicator-w)] border-l-paper-err bg-paper-err-bg/30 p-6 flex items-start gap-3">
           <RiErrorWarningLine
             aria-hidden
             className="size-5 text-paper-err shrink-0"

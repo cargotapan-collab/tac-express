@@ -1,5 +1,7 @@
 "use client"
 
+
+
 import * as React from "react"
 import Link from "next/link"
 
@@ -71,9 +73,18 @@ function OpsShipmentsView({
   React.useEffect(() => setPageIndex(0), [tab])
   const [query, setQuery] = React.useState("")
 
-  const filtered = rows.filter((r) =>
-    tab === "All" ? true : r.status.toLowerCase() === tab.toLowerCase(),
-  )
+  const filtered = rows.filter((r) => {
+    const matchesTab =
+      tab === "All" || r.status.toLowerCase() === tab.toLowerCase()
+    const q = query.trim().toLowerCase()
+    const matchesQuery =
+      !q ||
+      r.id.toLowerCase().includes(q) ||
+      r.customer.toLowerCase().includes(q) ||
+      r.receiver.toLowerCase().includes(q) ||
+      r.route.toLowerCase().includes(q)
+    return matchesTab && matchesQuery
+  })
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePageIndex = Math.min(pageIndex, totalPages - 1)
@@ -93,7 +104,7 @@ function OpsShipmentsView({
           // primary "+ New" action on the full-featured v6 wizard preserves
           // feature parity until the paper wizard is rebuilt 1:1.
           <OpsButton asChild variant="primary">
-            <Link href="/shipments/create">
+            <Link href="/ops-console/shipments/create">
               <RiAddLine aria-hidden className="size-3" />
               New Shipment
             </Link>
@@ -101,6 +112,7 @@ function OpsShipmentsView({
         }
       />
       <OpsTabs items={[...TABS]} value={tab} onChange={setTab} />
+      {/* eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md */}
       <div className="mb-3.5 max-w-[520px]">
         <OpsFieldInput
           aria-label="Search shipments"
@@ -132,7 +144,7 @@ function OpsShipmentsView({
           }
           cta={
             <OpsButton asChild variant="primary">
-              <Link href="/shipments/create">
+              <Link href="/ops-console/shipments/create">
                 <RiAddLine aria-hidden className="size-3" />
                 New Shipment
               </Link>

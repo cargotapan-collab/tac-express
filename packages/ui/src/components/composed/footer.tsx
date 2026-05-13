@@ -34,7 +34,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold mb-6 text-foreground tracking-[0.2em] uppercase font-mono">Services</h4>
+            <h4 className="text-sm font-bold mb-6 text-foreground tracking-paper-20 uppercase font-mono">Services</h4>
             <ul className="flex flex-col gap-3 text-sm font-semibold text-foreground/80">
               <li><Link href="#features" className="hover:text-primary transition-colors">Air Cargo</Link></li>
               <li><Link href="#features" className="hover:text-primary transition-colors">Surface Cargo</Link></li>
@@ -44,7 +44,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold mb-6 text-foreground tracking-[0.2em] uppercase font-mono">Company</h4>
+            <h4 className="text-sm font-bold mb-6 text-foreground tracking-paper-20 uppercase font-mono">Company</h4>
             <ul className="flex flex-col gap-3 text-sm font-semibold text-foreground/80">
               <li><Link href="#" className="hover:text-primary transition-colors">About TAC Express</Link></li>
               <li><Link href="#how-it-works" className="hover:text-primary transition-colors">How It Works</Link></li>
@@ -54,7 +54,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold mb-6 text-foreground tracking-[0.2em] uppercase font-mono">Legal</h4>
+            <h4 className="text-sm font-bold mb-6 text-foreground tracking-paper-20 uppercase font-mono">Legal</h4>
             <ul className="flex flex-col gap-3 text-sm font-semibold text-foreground/80">
               <li><Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
               <li><Link href="#" className="hover:text-primary transition-colors">Terms of Service</Link></li>

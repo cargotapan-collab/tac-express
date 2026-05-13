@@ -1,0 +1,58 @@
+{
+  "button": {
+    "hash": "8faa967fe5e7a409",
+    "capturedAt": "2026-05-13T02:10:24.115Z"
+  },
+  "input": {
+    "hash": "76487cd7e1c6cf70",
+    "capturedAt": "2026-05-13T02:10:31.415Z"
+  },
+  "label": {
+    "hash": "bc6def371c5ecb10",
+    "capturedAt": "2026-05-13T02:10:38.442Z"
+  },
+  "textarea": {
+    "hash": "76061f768b3c442b",
+    "capturedAt": "2026-05-13T02:10:45.313Z"
+  },
+  "badge": {
+    "hash": "93e4f1ed20ab9d6d",
+    "capturedAt": "2026-05-13T02:10:52.282Z"
+  },
+  "separator": {
+    "hash": "2eaccc917de329c8",
+    "capturedAt": "2026-05-13T02:10:58.756Z"
+  },
+  "card": {
+    "hash": "e03bc2949310fc17",
+    "capturedAt": "2026-05-13T02:11:06.000Z"
+  },
+  "select": {
+    "hash": "27333a3f3f760aa8",
+    "capturedAt": "2026-05-13T02:11:13.047Z"
+  },
+  "dialog": {
+    "hash": "b408941b7837f11f",
+    "capturedAt": "2026-05-13T02:11:19.551Z"
+  },
+  "sheet": {
+    "hash": "c0945c23efc480cd",
+    "capturedAt": "2026-05-13T02:11:27.037Z"
+  },
+  "popover": {
+    "hash": "4c7bd7dbfa306ea3",
+    "capturedAt": "2026-05-13T02:11:34.370Z"
+  },
+  "tabs": {
+    "hash": "ec5377aacd03ef0b",
+    "capturedAt": "2026-05-13T02:11:41.518Z"
+  },
+  "table": {
+    "hash": "a71030ab5d09539d",
+    "capturedAt": "2026-05-13T02:11:48.338Z"
+  },
+  "calendar": {
+    "hash": "bf6f13e3854d6268",
+    "capturedAt": "2026-05-13T02:11:55.183Z"
+  }
+}

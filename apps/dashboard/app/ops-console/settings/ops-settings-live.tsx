@@ -3,9 +3,8 @@
 import * as React from "react"
 
 import { useSession } from "@workspace/ui/hooks/use-session"
-import {
-  OpsSettingsView,
-} from "@workspace/ui/components/composed/ops-console/pages"
+import { useInventoryByHub } from "@workspace/services/hooks/use-analytics"
+import { OpsSettingsView } from "@workspace/ui/components/composed/ops-console/pages"
 
 export function OpsSettingsLive() {
   const { user } = useSession()
@@ -23,6 +22,15 @@ export function OpsSettingsLive() {
     ((2 - pendingItems.length) / 2) * 100,
   )
 
+  // Pull the same hub data the Inventory page uses so the Hubs settings tab
+  // can list external hubs (those discovered from shipment data but not yet
+  // in the operator's configured list) for delete/rename.
+  const inventoryQuery = useInventoryByHub()
+  const discoveredHubs = React.useMemo<string[]>(() => {
+    const list = inventoryQuery.data ?? []
+    return list.map((h) => h.hub.replace(/\s+/g, "_").toUpperCase())
+  }, [inventoryQuery.data])
+
   return (
     <OpsSettingsView
       email={email}
@@ -32,6 +40,7 @@ export function OpsSettingsLive() {
       pendingItems={pendingItems}
       version="TAC Express v1.0"
       environment={process.env.NODE_ENV === "production" ? "production" : "development"}
+      discoveredHubs={discoveredHubs}
     />
   )
 }

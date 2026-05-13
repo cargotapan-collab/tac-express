@@ -6,7 +6,7 @@ import { cn } from "@workspace/ui/lib/utils"
 const opsCardVariants = cva("bg-paper-card border border-paper-line", {
   variants: {
     pad: {
-      default: "p-[18px]",
+      default: "p-[length:var(--spacing-gutter-md)]",
       lg: "p-6",
       none: "p-0",
     },

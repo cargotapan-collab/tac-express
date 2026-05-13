@@ -104,7 +104,7 @@ export function SavedViewSelector({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="gap-2">
-            <span className="font-mono text-[11px] uppercase tracking-widest">
+            <span className="font-mono text-paper-11 uppercase tracking-widest">
               {active ? active.name : "All shipments"}
             </span>
             {dirty && (

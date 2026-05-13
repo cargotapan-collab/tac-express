@@ -1,5 +1,7 @@
 "use client"
 
+
+
 import * as React from "react"
 import Lottie from "lottie-react"
 import { cn } from "@workspace/ui/lib/utils"
@@ -78,11 +80,13 @@ function SignInSplitLayout({
             </div>
 
             {/* Lottie animation */}
+            {/* eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md */}
             <div className="flex h-full min-h-[360px] items-center justify-center px-6 py-10">
               <Lottie
                 animationData={loginAnimation}
                 loop
                 autoplay
+                // eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md
                 className="size-full max-w-[320px]"
                 rendererSettings={{ preserveAspectRatio: "xMidYMid meet" }}
               />

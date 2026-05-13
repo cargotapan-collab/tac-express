@@ -130,4 +130,6 @@ export interface UpcomingOp {
   kind: string
   /** Pre-formatted ETA string. */
   eta: string
+  /** Raw departure date as ISO `YYYY-MM-DD`, when available. */
+  etaDate?: string | null
 }

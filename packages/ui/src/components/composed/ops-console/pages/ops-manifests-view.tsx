@@ -1,5 +1,7 @@
 "use client"
 
+
+
 import * as React from "react"
 import Link from "next/link"
 
@@ -7,12 +9,27 @@ import { RiAddLine, RiFileList3Line } from "@workspace/ui/icons"
 import { OpsFrame } from "../ops-frame"
 import { OpsPageHead } from "../ops-page-head"
 import { OpsButton } from "../ops-button"
-import { OpsBadge } from "../ops-badge"
+import { OpsBadge, type OpsBadgeProps } from "../ops-badge"
 import { OpsTabs } from "../ops-tabs"
-import { OpsCard } from "../ops-card"
+import {
+  OpsTable,
+  OpsTableHead,
+  OpsTableBody,
+  OpsTableRow,
+  OpsTableHeader,
+  OpsTableCell,
+} from "../ops-table"
 import { OpsSkeleton } from "../ops-skeleton"
 import { OpsEmptyState } from "../ops-empty-state"
 import { OpsErrorState } from "../ops-error-state"
+
+type ManifestStatus =
+  | "Draft"
+  | "Building"
+  | "Open"
+  | "Closed"
+  | "Departed"
+  | "Arrived"
 
 interface ManifestRow {
   id: string
@@ -21,7 +38,7 @@ interface ManifestRow {
   shipments: number
   weight: string
   date: string
-  status: "Draft" | "Building" | "Open" | "Closed" | "Departed" | "Arrived"
+  status: ManifestStatus
   /** Detail page href (typically `/ops-console/manifests/<uuid>`). */
   detailHref?: string
 }
@@ -43,6 +60,19 @@ const TABS = [
   "Arrived",
 ] as const
 
+// Status → badge tone — keeps the table scannable. Draft/Building are work-
+// in-progress (neutral/info), Open is the active state the operator should
+// notice (violet brand), Closed/Arrived are resolved (ok), Departed is in-
+// flight (info).
+const STATUS_TONE: Record<ManifestStatus, OpsBadgeProps["tone"]> = {
+  Draft: "neutral",
+  Building: "info",
+  Open: "violet",
+  Closed: "ok",
+  Departed: "info",
+  Arrived: "ok",
+}
+
 function OpsManifestsView({
   items,
   isLoading,
@@ -63,7 +93,7 @@ function OpsManifestsView({
           // → close). The paper variant at /ops-console/manifests/create is a
           // simplified preview without the scan loop.
           <OpsButton asChild variant="primary">
-            <Link href="/manifests/create">
+            <Link href="/ops-console/manifests/create">
               <RiAddLine aria-hidden className="size-3" />
               New Manifest
             </Link>
@@ -79,11 +109,8 @@ function OpsManifestsView({
           onRetry={onRetry}
         />
       ) : isLoading ? (
-        <div className="grid grid-cols-2 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <OpsSkeleton key={`m-sk-${i}`} className="h-32 w-full" />
-          ))}
-        </div>
+        // eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md
+        <OpsSkeleton className="h-[28rem] w-full" />
       ) : filtered.length === 0 ? (
         <OpsEmptyState
           icon={RiFileList3Line}
@@ -100,7 +127,7 @@ function OpsManifestsView({
           }
           cta={
             <OpsButton asChild variant="primary">
-              <Link href="/manifests/create">
+              <Link href="/ops-console/manifests/create">
                 <RiAddLine aria-hidden className="size-3" />
                 New Manifest
               </Link>
@@ -108,57 +135,93 @@ function OpsManifestsView({
           }
         />
       ) : (
-      <div className="grid grid-cols-2 gap-4">
-        {filtered.map((m) => (
-          <OpsCard key={m.id} ticks>
-            <div className="flex items-center justify-between mb-2">
-              <span className="paper-id text-[length:var(--text-paper-14)]">
-                {m.id}
-              </span>
-              <OpsBadge>{m.status}</OpsBadge>
-            </div>
-            <div className="font-paper-mono text-[length:var(--text-paper-12)] text-paper-fg-3">
-              {m.from} → {m.to}
-            </div>
-            <div className="flex items-start justify-between mt-4 pt-3.5 border-t border-paper-line">
-              <div>
-                <div className="paper-label">Shipments</div>
-                <div className="font-paper-display font-bold text-[length:var(--text-paper-18)] mt-0.5">
-                  {m.shipments}
-                </div>
-              </div>
-              <div>
-                <div className="paper-label">Weight</div>
-                <div className="font-paper-display font-bold text-[length:var(--text-paper-18)] mt-0.5">
-                  {m.weight} kg
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="paper-label">Created</div>
-                <div className="font-paper-mono text-[length:var(--text-paper-13)] mt-0.5">
-                  {m.date}
-                </div>
-              </div>
-            </div>
-            {/* Explicit View CTA so test automation has an unambiguous
-                clickable element — previous "wrap-the-card-in-Link" pattern
-                left some automation tools unable to discover the link. */}
-            <div className="flex justify-end mt-3 pt-3 border-t border-paper-line">
-              {m.detailHref ? (
-                <OpsButton asChild size="sm" variant="ghost">
-                  <Link href={m.detailHref} aria-label={`View manifest ${m.id}`}>
-                    View →
-                  </Link>
-                </OpsButton>
-              ) : (
-                <OpsButton size="sm" variant="ghost" disabled>
-                  View →
-                </OpsButton>
-              )}
-            </div>
-          </OpsCard>
-        ))}
-      </div>
+        <div className="overflow-x-auto">
+          <OpsTable>
+            <OpsTableHead>
+              <OpsTableRow>
+                {/* eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md */}
+                <OpsTableHeader className="w-[180px]">Manifest</OpsTableHeader>
+                <OpsTableHeader>Route</OpsTableHeader>
+                {/* eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md */}
+                <OpsTableHeader className="text-right w-[110px]">
+                  Shipments
+                </OpsTableHeader>
+                {/* eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md */}
+                <OpsTableHeader className="text-right w-[110px]">
+                  Weight
+                </OpsTableHeader>
+                {/* eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md */}
+                <OpsTableHeader className="w-[110px]">Created</OpsTableHeader>
+                {/* eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md */}
+                <OpsTableHeader className="w-[110px]">Status</OpsTableHeader>
+                {/* eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md */}
+                <OpsTableHeader className="w-[80px] text-right">
+                  <span className="sr-only">Actions</span>
+                </OpsTableHeader>
+              </OpsTableRow>
+            </OpsTableHead>
+            <OpsTableBody>
+              {filtered.map((m) => (
+                <OpsTableRow key={m.id}>
+                  <OpsTableCell>
+                    {m.detailHref ? (
+                      <Link
+                        href={m.detailHref}
+                        className="paper-id underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline"
+                      >
+                        {m.id}
+                      </Link>
+                    ) : (
+                      <span className="paper-id">{m.id}</span>
+                    )}
+                  </OpsTableCell>
+                  <OpsTableCell mono muted>
+                    {m.from} → {m.to}
+                  </OpsTableCell>
+                  <OpsTableCell
+                    mono
+                    className="text-right tabular-nums font-medium text-paper-fg-1"
+                  >
+                    {m.shipments}
+                  </OpsTableCell>
+                  <OpsTableCell
+                    mono
+                    className="text-right tabular-nums font-medium text-paper-fg-1"
+                  >
+                    {m.weight} kg
+                  </OpsTableCell>
+                  <OpsTableCell mono muted>
+                    {m.date}
+                  </OpsTableCell>
+                  <OpsTableCell>
+                    <OpsBadge tone={STATUS_TONE[m.status]}>{m.status}</OpsBadge>
+                  </OpsTableCell>
+                  <OpsTableCell className="text-right">
+                    {m.detailHref ? (
+                      // Use a generic aria-label so this trailing action link
+                      // does not collide with the unique ID-link match that
+                      // existing tests rely on (`getByRole("link", { name: /M-1001/i })`).
+                      <Link
+                        href={m.detailHref}
+                        aria-label="Open manifest details"
+                        className="font-paper-mono text-[length:var(--text-paper-11)] tracking-paper-10 uppercase text-paper-violet hover:underline underline-offset-4"
+                      >
+                        View →
+                      </Link>
+                    ) : (
+                      <span
+                        aria-hidden
+                        className="font-paper-mono text-[length:var(--text-paper-11)] tracking-paper-10 uppercase text-paper-fg-4"
+                      >
+                        —
+                      </span>
+                    )}
+                  </OpsTableCell>
+                </OpsTableRow>
+              ))}
+            </OpsTableBody>
+          </OpsTable>
+        </div>
       )}
     </OpsFrame>
   )

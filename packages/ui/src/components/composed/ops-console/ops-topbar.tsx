@@ -52,12 +52,19 @@ function OpsTopbar({ crumbs }: OpsTopbarProps) {
   }
 
   return (
-    <div
+    // <header role="banner"> wraps the top bar so the breadcrumbs, theme
+    // toggle, and account avatar are inside a recognised landmark.
+    // Previously the topbar was a plain <div> and axe flagged its descendants
+    // (hub indicator + theme group + account chip) as outside any region.
+    // Closes R0 audit C3.
+    <header
       data-slot="ops-topbar"
+      role="banner"
+      aria-label="Session controls"
       className="flex items-center px-6 h-14 border-b border-transparent"
     >
       {/* Breadcrumbs */}
-      <div className="font-paper-mono font-medium text-[12px] tracking-[0.04em] text-paper-fg-3">
+      <div className="font-paper-mono font-medium text-paper-12 tracking-paper-04 text-paper-fg-3">
         {crumbs.map((c, i) => (
           <React.Fragment key={`${c}-${i}`}>
             {i > 0 && <span className="mx-2 text-paper-fg-4">›</span>}
@@ -79,7 +86,7 @@ function OpsTopbar({ crumbs }: OpsTopbarProps) {
           className="flex items-center gap-1.5 h-8 px-2 border border-paper-line bg-paper-card text-paper-fg-3 hover:bg-paper-3 focus-visible:outline-none focus-visible:tac-focus-premium transition-colors duration-fast ease-linear"
         >
           <RiSearchLine aria-hidden className="size-3.5" />
-          <span className="font-paper-mono font-medium text-[10px] px-1.5 py-0.5 border border-paper-line text-paper-fg-2">
+          <span className="font-paper-mono font-medium text-paper-10 px-1.5 py-0.5 border border-paper-line text-paper-fg-2">
             ⌘K
           </span>
         </button>
@@ -105,7 +112,7 @@ function OpsTopbar({ crumbs }: OpsTopbarProps) {
                 aria-label={`Switch to ${THEME_TO_NEXT[t]} theme`}
                 onClick={() => onPick(t)}
                 className={cn(
-                  "w-7 h-[30px] border-r border-paper-line last:border-r-0 bg-paper-card",
+                  "w-7 h-[length:var(--toggle-h)] border-r border-paper-line last:border-r-0 bg-paper-card",
                   "font-paper-mono font-semibold text-[length:var(--text-paper-11)] text-paper-fg-2",
                   "hover:bg-paper-3 transition-colors duration-fast ease-linear",
                   "focus-visible:outline-none focus-visible:tac-focus-premium",
@@ -146,15 +153,19 @@ function OpsTopbar({ crumbs }: OpsTopbarProps) {
           <RiMoonClearLine aria-hidden className="size-4" />
         </button>
 
-        {/* Avatar */}
-        <div
-          aria-label="Account"
-          className="size-8 bg-paper-violet text-white border border-paper-violet-2 grid place-items-center font-paper-mono font-semibold text-[12px]"
+        {/* Avatar — interactive (account menu placeholder). A plain <div>
+           with aria-label is ignored by most assistive tech; a <button>
+           with aria-haspopup="menu" is the WCAG 4.1.2-compliant equivalent. */}
+        <button
+          type="button"
+          aria-label="Account menu"
+          aria-haspopup="menu"
+          className="size-8 bg-paper-violet [color:white] border border-paper-violet-2 grid place-items-center font-paper-mono font-semibold text-paper-12 hover:bg-paper-violet-2 focus-visible:outline-none focus-visible:tac-focus-premium transition-colors duration-fast ease-linear"
         >
           A
-        </div>
+        </button>
       </div>
-    </div>
+    </header>
   )
 }
 

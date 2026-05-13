@@ -38,6 +38,15 @@ interface ComboboxProps {
   className?: string
   triggerClassName?: string
   contentClassName?: string
+  /**
+   * Accessible name fallback for the trigger button. Set this when the
+   * Combobox isn't visually associated with a `<Label>` — without it,
+   * axe's `button-name` rule can flag the trigger if the placeholder
+   * text fails to render (briefly empty options array, etc.). Always
+   * passed via `aria-label` even when `selectedLabel` resolves, so
+   * screen-reader users get a stable role/name pair across state changes.
+   */
+  "aria-label"?: string
 }
 
 function Combobox({
@@ -51,6 +60,7 @@ function Combobox({
   className,
   triggerClassName,
   contentClassName,
+  "aria-label": ariaLabel,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
 
@@ -66,6 +76,7 @@ function Combobox({
             variant="outline"
             role="combobox"
             aria-expanded={open}
+            aria-label={ariaLabel ?? placeholder}
             disabled={disabled}
             className={cn(
               "w-full justify-between gap-2 font-mono text-xs uppercase tracking-wide",
@@ -105,7 +116,7 @@ function Combobox({
                     />
                     <span className="truncate">{option.label}</span>
                     {option.meta && (
-                      <span className="ml-auto font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      <span className="ml-auto font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
                         {option.meta}
                       </span>
                     )}

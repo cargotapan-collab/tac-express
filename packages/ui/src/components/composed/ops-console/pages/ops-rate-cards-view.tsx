@@ -1,5 +1,7 @@
 "use client"
 
+
+
 import * as React from "react"
 import Link from "next/link"
 
@@ -50,7 +52,7 @@ function OpsRateCardsView({ rows }: OpsRateCardsViewProps) {
         actions={
           // Points at the v6 rate-cards list which hosts the add/edit dialog.
           <OpsButton asChild variant="primary">
-            <Link href="/rate-cards">
+            <Link href="/ops-console/rates">
               <RiAddLine aria-hidden className="size-3" />
               Add Rate Card
             </Link>
@@ -61,6 +63,7 @@ function OpsRateCardsView({ rows }: OpsRateCardsViewProps) {
         <OpsFieldInput
           aria-label="Filter origin"
           placeholder="FILTER ORIGIN (E.G. IMPHA"
+          // eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md
           className="max-w-[240px]"
           value={origin}
           onChange={(e) => setOrigin(e.target.value)}
@@ -68,6 +71,7 @@ function OpsRateCardsView({ rows }: OpsRateCardsViewProps) {
         <OpsFieldInput
           aria-label="Filter destination"
           placeholder="FILTER DESTINATION"
+          // eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md
           className="max-w-[240px]"
           value={dest}
           onChange={(e) => setDest(e.target.value)}

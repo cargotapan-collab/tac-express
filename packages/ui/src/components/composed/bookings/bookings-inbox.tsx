@@ -1,5 +1,7 @@
 "use client"
 
+
+
 import * as React from "react"
 import Link from "next/link"
 import { format, parseISO } from "date-fns"
@@ -148,9 +150,10 @@ export function BookingsInbox({
       <Tabs value={tab}>
         <TabsContent value={tab}>
           <div className="border border-border bg-background">
+            {/* eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md */}
             <ScrollArea className="max-h-[70vh]">
               {loading ? (
-                <div className="flex items-center justify-center py-12 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                <div className="flex items-center justify-center py-12 font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
                   Loading bookings…
                 </div>
               ) : filtered.length === 0 ? (
@@ -243,10 +246,10 @@ function BookingRow({
         <Badge variant={STATUS_TONE[booking.status]} className="w-fit font-mono">
           {booking.status}
         </Badge>
-        <p className="font-mono text-[11px] tracking-widest">
+        <p className="font-mono text-paper-11 tracking-widest">
           {format(parseISO(booking.createdAt), "dd MMM · HH:mm")}
         </p>
-        <p className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <p className="flex items-center gap-1 font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
           <RiPhoneLine className="size-3" />
           {booking.whatsappNumber}
         </p>
@@ -256,7 +259,7 @@ function BookingRow({
       <div className="grid gap-1">
         <p className="text-sm">
           <span className="font-semibold">{booking.consignor.name}</span>
-          <span className="font-mono text-[10px] uppercase text-muted-foreground">
+          <span className="font-mono text-paper-10 uppercase text-muted-foreground">
             {" "}
             · {booking.consignor.city}, {booking.consignor.state}
           </span>
@@ -266,11 +269,11 @@ function BookingRow({
           <span className="font-semibold text-foreground">
             {booking.consignee.name}
           </span>
-          <span className="font-mono text-[10px] uppercase">
+          <span className="font-mono text-paper-10 uppercase">
             · {booking.consignee.city}, {booking.consignee.state}
           </span>
         </p>
-        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <p className="font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
           {booking.totalCount} pcs · {booking.totalWeight.toFixed(1)} kg
           {booking.awbNumber && (
             <>
@@ -288,7 +291,7 @@ function BookingRow({
           <p className="text-xs text-muted-foreground">{booking.notes}</p>
         )}
         {booking.rejectedReason && (
-          <p className="font-mono text-[11px] text-destructive">
+          <p className="font-mono text-paper-11 text-destructive">
             Rejected · {booking.rejectedReason}
           </p>
         )}
@@ -334,7 +337,7 @@ function BookingRow({
         {booking.status === "CONVERTED" && booking.shipmentId && (
           <Link
             href={`/shipments/${booking.shipmentId}`}
-            className="inline-flex h-8 items-center gap-2 border border-border px-3 font-mono text-[10px] uppercase tracking-widest text-foreground transition-colors hover:border-primary hover:text-primary"
+            className="inline-flex h-8 items-center gap-2 border border-border px-3 font-mono text-paper-10 uppercase tracking-widest text-foreground transition-colors hover:border-primary hover:text-primary"
           >
             View shipment
             <RiArrowRightLine className="size-3.5" />

@@ -18,6 +18,13 @@ import {
 } from "../ops-table"
 
 interface CustomerRow {
+  /**
+   * Stable unique identifier for React row reconciliation. Required —
+   * email is not guaranteed unique or even present in our customer
+   * records (B2B customers may share a billing email, individuals may
+   * have none). Use the customer's UUID from the database.
+   */
+  id: string
   name: string
   email: string
   phone: string
@@ -52,11 +59,12 @@ function OpsCustomersView({ rows }: OpsCustomersViewProps) {
         title="Customers"
         sub={`${rows.length} total customers`}
         actions={
-          // Points at the v6 customers list which hosts the create dialog
-          // (with GSTIN validation + statement download). The paper variant
-          // at /ops-console/customers/create is a simplified preview.
+          // Points directly at the dedicated v6 create route — the v6
+          // customers page no longer hosts an inline toggle form. Operators
+          // arrive on a focused two-step form (Identity → Address) instead
+          // of having to discover and click an inline button.
           <OpsButton asChild variant="primary">
-            <Link href="/customers">
+            <Link href="/ops-console/customers/create">
               <RiAddLine aria-hidden className="size-3" />
               New Customer
             </Link>
@@ -94,7 +102,7 @@ function OpsCustomersView({ rows }: OpsCustomersViewProps) {
         </OpsTableHead>
         <OpsTableBody>
           {filtered.map((r) => (
-            <OpsTableRow key={r.email}>
+            <OpsTableRow key={r.id}>
               <OpsTableCell>
                 <div className="font-paper-mono font-semibold uppercase text-[length:var(--text-paper-12)]">
                   {r.name}
