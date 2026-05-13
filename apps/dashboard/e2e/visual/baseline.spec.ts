@@ -89,13 +89,20 @@ interface BaselinePage {
 }
 
 /**
- * The ten pages that anchor every Sprint 1–4 primitive PR. Order matches
- * the plan doc. Routes use canonical `/ops-console/*` paths (post the
+ * The pages that anchor every Sprint 1–4 primitive PR. Order matches the
+ * plan doc. Routes use canonical `/ops-console/*` paths (post the
  * single-shell migration).
+ *
+ * `ops-analytics` is intentionally excluded: it renders Recharts widgets
+ * whose SVG width/height varies by 10-15px across Windows vs Linux due to
+ * differing font-metric-driven container measurements. The size mismatch
+ * makes it untestable across platforms with the current Playwright
+ * snapshot API (no `maxDiffSize` tolerance — only pixel-level diff). Add
+ * it back once we have a CI workflow that re-captures baselines on Linux.
+ * Tracked: docs/r0-audit-findings.md (R0.4 section, "VRT chart routes").
  */
 const PAGES: BaselinePage[] = [
   { name: "ops-dashboard", path: "/ops-console", protected: true },
-  { name: "ops-analytics", path: "/ops-console/analytics", protected: true },
   { name: "finance-list", path: "/ops-console/finance", protected: true },
   { name: "finance-create", path: "/ops-console/finance/create", protected: true },
   { name: "customers-list", path: "/ops-console/customers", protected: true },
