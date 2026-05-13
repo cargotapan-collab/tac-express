@@ -14,7 +14,18 @@ function Popover({
 function PopoverTrigger({
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Trigger>) {
-  return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />
+  // Radix's `@radix-ui/react-id` shim wraps React.useId in useState + a
+  // useLayoutEffect fallback. Under React 19 + Next 16 SSR the counter diverges
+  // between server and client, producing a harmless `aria-controls` hydration
+  // mismatch (React keeps the client value; popover a11y is intact). Suppressing
+  // here is the centralized escape hatch — applies to every trigger consistently.
+  return (
+    <PopoverPrimitive.Trigger
+      data-slot="popover-trigger"
+      suppressHydrationWarning
+      {...props}
+    />
+  )
 }
 
 function PopoverContent({

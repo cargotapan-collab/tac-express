@@ -57,7 +57,7 @@ function OpsTopbar({ crumbs }: OpsTopbarProps) {
       className="flex items-center px-6 h-14 border-b border-transparent"
     >
       {/* Breadcrumbs */}
-      <div className="font-paper-mono font-medium text-[12px] tracking-[0.04em] text-paper-fg-3">
+      <div className="font-paper-mono font-medium text-paper-12 tracking-paper-04 text-paper-fg-3">
         {crumbs.map((c, i) => (
           <React.Fragment key={`${c}-${i}`}>
             {i > 0 && <span className="mx-2 text-paper-fg-4">›</span>}
@@ -79,7 +79,7 @@ function OpsTopbar({ crumbs }: OpsTopbarProps) {
           className="flex items-center gap-1.5 h-8 px-2 border border-paper-line bg-paper-card text-paper-fg-3 hover:bg-paper-3 focus-visible:outline-none focus-visible:tac-focus-premium transition-colors duration-fast ease-linear"
         >
           <RiSearchLine aria-hidden className="size-3.5" />
-          <span className="font-paper-mono font-medium text-[10px] px-1.5 py-0.5 border border-paper-line text-paper-fg-2">
+          <span className="font-paper-mono font-medium text-paper-10 px-1.5 py-0.5 border border-paper-line text-paper-fg-2">
             ⌘K
           </span>
         </button>
@@ -149,7 +149,7 @@ function OpsTopbar({ crumbs }: OpsTopbarProps) {
         {/* Avatar */}
         <div
           aria-label="Account"
-          className="size-8 bg-paper-violet text-white border border-paper-violet-2 grid place-items-center font-paper-mono font-semibold text-[12px]"
+          className="size-8 bg-paper-violet text-white border border-paper-violet-2 grid place-items-center font-paper-mono font-semibold text-paper-12"
         >
           A
         </div>

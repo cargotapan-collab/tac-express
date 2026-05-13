@@ -1,5 +1,7 @@
 "use client"
 
+
+
 import * as React from "react"
 import Link from "next/link"
 import { formatDistanceToNow, isToday, isYesterday, parseISO } from "date-fns"
@@ -74,7 +76,7 @@ export function NotificationInbox({
           <h2 className="font-heading text-lg font-semibold tracking-tight">
             Inbox
           </h2>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <p className="font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
             {notifications.length} total · {unreadCount} unread
           </p>
         </div>
@@ -106,9 +108,10 @@ export function NotificationInbox({
 
         <TabsContent value={tab} className="mt-3">
           <div className="border border-border bg-background">
+            {/* eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md */}
             <ScrollArea className="max-h-[60vh]">
               {loading ? (
-                <div className="flex items-center justify-center py-12 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                <div className="flex items-center justify-center py-12 font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
                   Loading inbox…
                 </div>
               ) : filtered.length === 0 ? (
@@ -130,7 +133,7 @@ export function NotificationInbox({
                   {grouped.map(({ day, items }) => (
                     <section key={day}>
                       <header className="border-y border-border bg-muted/30 px-4 py-1.5">
-                        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                        <p className="font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
                           {day}
                         </p>
                       </header>
@@ -197,7 +200,7 @@ function NotificationRow({
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <div className="flex items-center gap-2 font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
           <span>{when}</span>
           {!notification.isRead && (
             <Button
@@ -217,7 +220,7 @@ function NotificationRow({
       {notification.link && (
         <Link
           href={notification.link}
-          className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-primary hover:underline"
+          className="inline-flex items-center gap-1 font-mono text-paper-10 uppercase tracking-widest text-primary hover:underline"
         >
           View
           <RiExternalLinkLine className="size-3" />

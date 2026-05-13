@@ -1,0 +1,110 @@
+# shadcn upstream-drift tracker — runs on a monthly cron.
+#
+# For each primitive in the @tac registry, fetches the current shadcn
+# source via `pnpm shadcn view <name>` and diffs against the TAC-local
+# file. Updates `docs/SHADCN-DRIFT-REPORT.md` and commits the change.
+# If any primitive has drifted since the last run, opens an issue
+# tagged `shadcn-upstream-drift` for triage.
+#
+# Why this exists:
+#   The "TAC primitives exceed shadcn 4.7.0" position in
+#   primitive-upgrade-audit.md decays silently without active tracking.
+#   In 12 months, "TAC exceeds shadcn" becomes "TAC diverged from
+#   shadcn three versions ago." This cron keeps the cherry-pick backlog
+#   current.
+#
+# Manual trigger:
+#   gh workflow run shadcn-drift-check.yml
+
+name: shadcn-drift-check
+
+on:
+  schedule:
+    # 03:00 UTC on the 1st of every month — well outside business hours
+    - cron: "0 3 1 * *"
+  workflow_dispatch:
+
+jobs:
+  drift:
+    name: Check & report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run drift checker
+        id: drift
+        run: |
+          node scripts/check-shadcn-drift.mjs
+          # Compute a fingerprint of the drift table so the issue-opening
+          # step below only fires when the report actually changed.
+          echo "fingerprint=$(sha256sum docs/SHADCN-DRIFT-REPORT.md | cut -c1-16)" >> $GITHUB_OUTPUT
+
+      - name: Commit report if changed
+        run: |
+          if ! git diff --quiet docs/SHADCN-DRIFT-REPORT.md; then
+            git config user.name "tac-drift-bot"
+            git config user.email "drift-bot@tac.example"
+            git add docs/SHADCN-DRIFT-REPORT.md
+            git commit -m "chore(drift): refresh shadcn drift report ($(date -u +%Y-%m-%d))"
+            git push
+          else
+            echo "No drift changes since last run."
+          fi
+
+      - name: Open triage issue if NEW drift detected
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("node:fs")
+            const body = fs.readFileSync("docs/SHADCN-DRIFT-REPORT.md", "utf8")
+            // Only count NEW drift (changed-since-last-run or newly-tracked).
+            // Steady-state "UNCHANGED" drift is the TAC customization layer
+            // and doesn't need monthly triage noise — that signal:noise
+            // failure mode was called out explicitly in the review feedback.
+            const newDrift = (body.match(/DRIFT · (NEW SINCE LAST RUN|NEWLY TRACKED)/g) || []).length
+            if (newDrift === 0) {
+              core.info("No new drift since last run; not opening an issue.")
+              return
+            }
+
+            // Reuse an existing open drift issue if one exists; otherwise create.
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: "shadcn-upstream-drift",
+              state: "open",
+              per_page: 1,
+            })
+
+            const title = `shadcn upstream drift — ${newDrift} primitive(s) changed upstream this month`
+            if (existing.data.length > 0) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                title,
+                body,
+              })
+              core.info(`Updated existing issue #${existing.data[0].number}`)
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["shadcn-upstream-drift"],
+              })
+              core.info("Opened new triage issue")
+            }

@@ -468,6 +468,7 @@ export function createOrbitalService(db: SupabaseClient) {
           title: row.manifest_number,
           kind: `${row.origin_hub} → ${row.dest_hub} · ${row.status}`,
           eta,
+          etaDate: row.departure_date,
         }
       })
     },

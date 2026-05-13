@@ -1,5 +1,7 @@
 "use client"
 
+
+
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "motion/react"
@@ -111,7 +113,7 @@ function LogisticsHero() {
                 placeholder="ENTER AWB / CARGO ID..."
                 aria-describedby={trackError ? "awb-locate-error" : undefined}
                 aria-invalid={trackError ? true : undefined}
-                className="h-14 font-mono text-sm border-none focus-visible:ring-0 rounded-none bg-transparent text-foreground uppercase placeholder:text-muted-foreground/30 px-6 font-bold tracking-[0.2em] focus-visible:outline-none focus-visible:tac-focus-premium"
+                className="h-14 font-mono text-sm border-none focus-visible:ring-0 rounded-none bg-transparent text-foreground uppercase placeholder:text-muted-foreground/30 px-6 font-bold tracking-paper-20 focus-visible:outline-none focus-visible:tac-focus-premium"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none hidden md:flex items-center">
                 <span className="tac-mono-label text-primary">STANDBY</span>
@@ -120,6 +122,7 @@ function LogisticsHero() {
             <Button
               type="submit"
               size="lg"
+              // eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md
               className="h-14 rounded-none font-mono font-bold text-sm tracking-[0.3em] uppercase bg-secondary text-secondary-foreground hover:bg-foreground hover:text-background w-full sm:w-auto px-10 transition-colors border-l border-secondary/20 focus-visible:outline-none focus-visible:tac-focus-premium"
             >
               <Icon name="scan" className="mr-3 w-5 h-5" /> LOCATE

@@ -52,11 +52,12 @@ function OpsCustomersView({ rows }: OpsCustomersViewProps) {
         title="Customers"
         sub={`${rows.length} total customers`}
         actions={
-          // Points at the v6 customers list which hosts the create dialog
-          // (with GSTIN validation + statement download). The paper variant
-          // at /ops-console/customers/create is a simplified preview.
+          // Points directly at the dedicated v6 create route — the v6
+          // customers page no longer hosts an inline toggle form. Operators
+          // arrive on a focused two-step form (Identity → Address) instead
+          // of having to discover and click an inline button.
           <OpsButton asChild variant="primary">
-            <Link href="/customers">
+            <Link href="/ops-console/customers/create">
               <RiAddLine aria-hidden className="size-3" />
               New Customer
             </Link>

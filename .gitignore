@@ -53,3 +53,8 @@ npm-debug.log*
 # stay in git; the per-run tmp/ output does not.
 testsprite_tests/tmp/
 testsprite_tests/.testsprite/
+
+# Audit working scratch — per-route JSON + v6 recovery snapshots written by
+# Claude_Preview audit runs. The consolidated docs in docs/ are the
+# artifacts that matter.
+.audit-cache/

@@ -48,8 +48,15 @@ export function createAuthService(db: SupabaseClient) {
     },
 
     async getUser() {
-      const { data } = await db.auth.getUser()
-      return data.user ?? null
+      // Swallow `AuthApiError: Invalid Refresh Token` and similar — return
+      // null so callers can treat the request as unauthenticated rather
+      // than seeing an exception bubble up from a stale cookie.
+      try {
+        const { data } = await db.auth.getUser()
+        return data.user ?? null
+      } catch {
+        return null
+      }
     },
 
     // ── Magic link ─────────────────────────────────────────────────────────────

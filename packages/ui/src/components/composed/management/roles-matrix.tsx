@@ -60,7 +60,7 @@ export function RolesMatrix({
           <h2 className="font-heading text-base font-semibold tracking-tight">
             Roles & Permissions
           </h2>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <p className="font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
             {roles.length} roles · canonical access matrix
           </p>
         </div>
@@ -76,7 +76,7 @@ export function RolesMatrix({
       <ScrollArea className="border border-border bg-background">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-border bg-muted/30 text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <tr className="border-b border-border bg-muted/30 text-left font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
               <th className="sticky left-0 z-10 bg-muted/30 px-3 py-2">Role</th>
               <th className="px-3 py-2">Modules</th>
               {PERMISSIONS.map((p) => (
@@ -101,11 +101,11 @@ export function RolesMatrix({
                 >
                   <th
                     scope="row"
-                    className="sticky left-0 z-10 bg-background px-3 py-2 text-left font-mono text-[11px] font-semibold tracking-widest"
+                    className="sticky left-0 z-10 bg-background px-3 py-2 text-left font-mono text-paper-11 font-semibold tracking-widest"
                   >
                     {role}
                   </th>
-                  <td className="px-3 py-2 font-mono text-[10px] uppercase tracking-wide">
+                  <td className="px-3 py-2 font-mono text-paper-10 uppercase tracking-wide">
                     {modulesLabel}
                   </td>
                   {PERMISSIONS.map((p) => (
@@ -113,7 +113,7 @@ export function RolesMatrix({
                       <PermPill on={Boolean(perms[p.key])} />
                     </td>
                   ))}
-                  <td className="px-3 py-2 font-mono text-[10px] uppercase tracking-wide">
+                  <td className="px-3 py-2 font-mono text-paper-10 uppercase tracking-wide">
                     {perms.hubRestriction ? (
                       <Badge variant="outline" className="font-mono">
                         {perms.hubRestriction}
@@ -130,7 +130,7 @@ export function RolesMatrix({
       </ScrollArea>
 
       {readOnly && (
-        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <p className="font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
           Editing is reserved for Phase 7 — when the role-permissions table
           is promoted from code to the database, with audit logging on every
           change.

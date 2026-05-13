@@ -13,7 +13,7 @@ export default function NotFound() {
           The route you&apos;re looking for doesn&apos;t exist.
         </p>
         <Button asChild className="font-mono text-xs uppercase tracking-wider h-8 px-4">
-          <Link href="/home">
+          <Link href="/ops-console">
             Back to dashboard
           </Link>
         </Button>

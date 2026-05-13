@@ -11,7 +11,7 @@ const opsBadgeVariants = cva(
   [
     "inline-flex items-center gap-1.5 px-2 py-0.5",
     "border bg-paper-card",
-    "font-paper-mono font-medium text-[10px] tracking-[0.1em] uppercase",
+    "font-paper-mono font-medium text-paper-10 tracking-paper-10 uppercase",
     // 5x5 square dot before the label
     "before:content-[''] before:w-[5px] before:h-[5px] before:shrink-0",
   ],

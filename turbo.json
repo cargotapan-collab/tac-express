@@ -57,6 +57,7 @@
                                            "E2E_INVOICE_ID",
                                            "E2E_AWB",
                                            "E2E_MANIFEST_ID",
+                                           "E2E_SEED_DB_OK",
                                            "AXE_FAIL_ON_VIOLATIONS"
                                        ]
                            },

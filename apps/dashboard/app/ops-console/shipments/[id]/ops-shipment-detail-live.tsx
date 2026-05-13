@@ -399,7 +399,7 @@ export function OpsShipmentDetailLive({ id }: Props) {
 // the v6 detail page; rendering chrome is paper here.
 
 const ShipmentNotesPanel = React.lazy(() =>
-  import("../../../(dashboard)/shipments/[id]/notes-tab").then((m) => ({
+  import("./notes-tab").then((m) => ({
     default: function NotesProxy({ shipmentId }: { shipmentId: string }) {
       return <m.ShipmentNotesTab shipmentId={shipmentId} />
     },

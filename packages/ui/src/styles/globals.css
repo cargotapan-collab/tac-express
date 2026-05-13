@@ -16,31 +16,33 @@
 
 :root {
   /* ══════════════════════════════════════════════════════════════════════════
-     LIGHT MODE — "Warm Linen" (May 2026)
-     The premium light aesthetic of 2026: warm off-white linen background,
-     deep violet-ink for contrast, warm taupe hairlines. Harmonizes the v6
-     Violet Grid with the Paper Ops Console so the two halves of the
-     dashboard read as one system.
-     Reference: Linear-refresh / Vercel v0 / Anthropic Paper / Notion ivory.
+     LIGHT MODE — "Modern Ivory" (May 2026 refresh)
+     Restrained ivory white — brighter and cleaner than Warm Linen, but
+     still warm enough to avoid sterile pure white. Pairs with deep
+     violet-ink foreground, muted taupe hairlines, and the brand violet
+     accent. Harmonizes v6 Violet Grid with the Paper Ops Console.
+     Reference: Apple Music light / Linear refresh / Anthropic Paper.
+     Source palette (sRGB → oklch):
+       #FFFDF7 page · #FFFEFA card · #DED6C8 border · #7A746B muted text
      ══════════════════════════════════════════════════════════════════════════ */
-  --background: oklch(0.9750 0.0090 86);   /* #F7F4ED — warm linen page bg */
+  --background: oklch(0.9920 0.0070 88);   /* #FFFDF7 — modern ivory page bg */
   --foreground: oklch(0.1700 0.0180 270);  /* deep violet-ink — sophisticated contrast vs flat black */
-  --card: oklch(0.9930 0.0040 85);         /* off-white card — subtle warmth, not pure white */
+  --card: oklch(0.9965 0.0035 88);         /* #FFFEFA — near-white card with a whisper of warmth */
   --card-foreground: oklch(0.1700 0.0180 270);
-  --popover: oklch(0.9930 0.0040 85);
+  --popover: oklch(0.9965 0.0035 88);
   --popover-foreground: oklch(0.1700 0.0180 270);
   --primary: oklch(0.5393 0.2713 286.7462);   /* brand violet — unchanged */
-  --primary-foreground: oklch(0.9850 0.0030 85);
-  --secondary: oklch(0.9420 0.0120 82);       /* warm secondary — linen-toned */
+  --primary-foreground: oklch(0.9920 0.0030 88);
+  --secondary: oklch(0.9720 0.0090 86);       /* #FAF6EE — muted ivory surface */
   --secondary-foreground: oklch(0.1700 0.0180 270);
-  --muted: oklch(0.9250 0.0140 80);
-  --muted-foreground: oklch(0.4400 0.0160 78); /* warm muted — accessibly readable */
-  --accent: oklch(0.9180 0.0260 285);          /* violet-tinted accent on linen */
+  --muted: oklch(0.9650 0.0100 86);
+  --muted-foreground: oklch(0.5200 0.0140 78); /* #7A746B — warm muted text, accessibly readable */
+  --accent: oklch(0.9550 0.0220 285);          /* violet-tinted accent on ivory */
   --accent-foreground: oklch(0.5393 0.2713 286.7462);
   --destructive: oklch(0.5885 0.2090 24.0041);
-  --destructive-foreground: oklch(0.9850 0.0030 85);
-  --border: oklch(0.8500 0.0220 80);           /* warm taupe-cream hairline */
-  --input: oklch(0.8500 0.0220 80);
+  --destructive-foreground: oklch(0.9920 0.0030 88);
+  --border: oklch(0.8650 0.0160 82);           /* #DED6C8 — muted taupe hairline */
+  --input: oklch(0.8650 0.0160 82);
   --ring: oklch(0.5393 0.2713 286.7462);
 
   --chart-1: oklch(0.5393 0.2713 286.7462);
@@ -49,13 +51,13 @@
   --chart-4: oklch(0.7500 0.1200 286.7462);
   --chart-5: oklch(0.3800 0.2200 286.7462);
 
-  --sidebar: oklch(0.9580 0.0150 84);          /* warmer linen sidebar — sits beside bg */
+  --sidebar: oklch(0.9820 0.0090 86);          /* ivory sidebar — one subtle step from page bg */
   --sidebar-foreground: oklch(0.1700 0.0180 270);
   --sidebar-primary: oklch(0.5393 0.2713 286.7462);
-  --sidebar-primary-foreground: oklch(0.9850 0.0030 85);
-  --sidebar-accent: oklch(0.9180 0.0260 285);
+  --sidebar-primary-foreground: oklch(0.9920 0.0030 88);
+  --sidebar-accent: oklch(0.9550 0.0220 285);
   --sidebar-accent-foreground: oklch(0.5393 0.2713 286.7462);
-  --sidebar-border: oklch(0.8500 0.0220 80);
+  --sidebar-border: oklch(0.8650 0.0160 82);
   --sidebar-ring: oklch(0.5393 0.2713 286.7462);
 
   /* Semantic status colors */
@@ -69,11 +71,11 @@
   --accent-info-foreground: oklch(1 0 0);
 
   /* Semantic surface aliases */
-  --surface: oklch(0.9650 0.0110 84);
+  --surface: oklch(0.9870 0.0070 86);
   --surface-foreground: oklch(0.1700 0.0180 270);
-  --overlay: oklch(0.9930 0.0040 85);
+  --overlay: oklch(0.9965 0.0035 88);
   --overlay-foreground: oklch(0.1700 0.0180 270);
-  --code-bg: oklch(0.9420 0.0120 82);
+  --code-bg: oklch(0.9720 0.0090 86);
 
   /* Print-safe forced tokens (for shipping labels + invoice views) */
   --print-bg: oklch(1 0 0);
@@ -147,9 +149,9 @@
   --surface-base:        var(--background);
   --surface-elevated:    var(--card);
   --surface-floating:    var(--popover);
-  --surface-interactive: oklch(0.9520 0.0150 82);   /* linen-aligned interactive */
-  --surface-hover:       oklch(0.9320 0.0180 80);   /* warm hover */
-  --surface-active:      oklch(0.9100 0.0200 78);   /* warm active */
+  --surface-interactive: oklch(0.9780 0.0090 86);   /* ivory-aligned interactive */
+  --surface-hover:       oklch(0.9580 0.0120 84);   /* warm hover */
+  --surface-active:      oklch(0.9350 0.0140 82);   /* warm active */
 
   /* ── v6 — Color-mix overlay tokens ──
      Pre-mixed transparency layers so components stop inlining color-mix() ad-hoc. */
@@ -211,32 +213,32 @@
      Source: .design-bundle (Anthropic Design export, May 2026).
      ══════════════════════════════════════════════════════════════════════════ */
 
-  /* Brand — May 2026 refinement, harmonized with v6 Warm Linen */
+  /* Brand — May 2026 Modern Ivory refresh, harmonized with v6 */
   --paper-ink:       oklch(0.1700 0.0180 270);          /* deep violet-ink — replaces near-black for premium feel */
-  --paper-orange:    oklch(0.5200 0.1600  55);          /* "EXPRESS →" accent — darkened from oklch(0.74) so the wordmark clears WCAG AA on the paper-2 sidebar background (was 2.07:1, now 5.04:1). Chroma slightly reduced to keep it from reading too saturated against the cream linen. */
+  --paper-orange:    oklch(0.5200 0.1600  55);          /* "EXPRESS →" accent — darkened so the wordmark clears WCAG AA on the paper-2 sidebar background. Chroma kept low to avoid over-saturation on the brighter ivory base. */
   --paper-violet:    oklch(0.5393 0.2713 286.7462);     /* primary action — unchanged brand */
   --paper-violet-2:  oklch(0.4595 0.2713 286.7462);     /* pressed */
-  --paper-violet-50: oklch(0.9710 0.0220 286.7462);     /* tinted surface — sits on linen.
+  --paper-violet-50: oklch(0.9740 0.0210 286.7462);     /* tinted surface — sits on ivory.
                                                             Lighter than the brand mid-tone so
                                                             paper-violet text on this surface
                                                             clears WCAG AA 4.5:1 at 10px. */
 
-  /* Warm linen neutrals — May 2026 evolution of #FAF8F2 */
-  --paper-bg:        oklch(0.9750 0.0090 86);           /* #F7F4ED — page bg, matches v6 --background */
-  --paper-2:         oklch(0.9520 0.0150 82);           /* sidebar bg — subtle step from page */
-  --paper-3:         oklch(0.9180 0.0230 78);           /* hover row */
-  --paper-line:      oklch(0.8500 0.0260 78);           /* warm taupe hairline */
-  --paper-line-2:    oklch(0.7500 0.0290 76);           /* stronger divider */
-  --paper-line-3:    oklch(0.5600 0.0240 74);           /* heavy / corner ticks */
+  /* Modern Ivory neutrals — May 2026 evolution */
+  --paper-bg:        oklch(0.9920 0.0070 88);           /* #FFFDF7 — page bg, matches v6 --background */
+  --paper-2:         oklch(0.9780 0.0090 86);           /* sidebar bg — subtle step from page */
+  --paper-3:         oklch(0.9540 0.0120 84);           /* hover row */
+  --paper-line:      oklch(0.8650 0.0160 82);           /* #DED6C8 — muted taupe hairline */
+  --paper-line-2:    oklch(0.7800 0.0190 80);           /* stronger divider */
+  --paper-line-3:    oklch(0.5900 0.0180 78);           /* heavy / corner ticks */
 
   --paper-fg-1:      oklch(0.1700 0.0180 270);          /* primary text — violet-ink */
   --paper-fg-2:      oklch(0.3200 0.0100 280);          /* secondary text */
-  --paper-fg-3:      oklch(0.4700 0.0150 76);           /* muted / labels */
-  --paper-fg-4:      oklch(0.6400 0.0160 80);           /* placeholders */
+  --paper-fg-3:      oklch(0.5200 0.0140 78);           /* #7A746B — muted / labels */
+  --paper-fg-4:      oklch(0.6700 0.0150 80);           /* placeholders */
 
-  /* Card surface — off-white-on-linen for layered warmth (was pure white) */
-  --paper-card:      oklch(0.9930 0.0040 85);           /* matches v6 --card */
-  --paper-card-2:    oklch(0.9780 0.0080 82);           /* deeper card for hovers */
+  /* Card surface — near-white-on-ivory for layered warmth (still not pure white) */
+  --paper-card:      oklch(0.9965 0.0035 88);           /* #FFFEFA — matches v6 --card */
+  --paper-card-2:    oklch(0.9870 0.0070 86);           /* deeper card for hovers */
 
   /* Semantic — keep status hues distinct on the warmer base */
   --paper-ok:        oklch(0.4700 0.1180 156);          /* darkened from oklch(0.535) for WCAG AA on paper-ok-bg (4.16:1 → 5.47:1) — affects ok-tone badges (Paid, Delivered) */
@@ -252,6 +254,27 @@
   --paper-font-display: 'Inter', system-ui, sans-serif;
   --paper-font-mono:    'JetBrains Mono', ui-monospace, Menlo, monospace;
   --paper-font-serif:   'Instrument Serif', Georgia, serif;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PAPER OPS CONSOLE — sidebar token overrides
+   The unified `<Sidebar>` component (packages/ui/src/components/composed/sidebar)
+   reads `--sidebar-*` variables for chrome. Inside the `.ops-console` scope we
+   re-bind those variables to the paper-* palette so the same component renders
+   with the warm-paper aesthetic without prop-level branching. Outside this
+   scope (i.e. on every v6 (dashboard) route) the sidebar falls back to the
+   `:root` definitions, which carry the Modern Ivory dashboard chrome.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.ops-console {
+  --sidebar:                     var(--paper-2);
+  --sidebar-foreground:          var(--paper-fg-1);
+  --sidebar-primary:             var(--paper-violet);
+  --sidebar-primary-foreground:  oklch(0.9850 0.0030 85);
+  --sidebar-accent:              var(--paper-violet-50);
+  --sidebar-accent-foreground:   var(--paper-violet);
+  --sidebar-border:              var(--paper-line);
+  --sidebar-ring:                var(--paper-violet);
 }
 
 .dark {
@@ -569,6 +592,15 @@
   --tracking-paper-12:     0.12em;   /* button / label */
   --tracking-paper-14:     0.14em;   /* eyebrow / sidebar section */
   --tracking-paper-18:     0.18em;   /* sidebar subtitle / IMPHAL · PROD */
+  --tracking-paper-20:     0.20em;   /* display wordmark — landing + wasteland (7 callers in composed/) */
+
+  /* Phase 5 — composed-component spacing tokens added during the design-
+     exceptions tokenisation pass. Each token replaces an arbitrary value
+     used 3+ times across composed/. */
+  --spacing-gutter-md: 1.125rem; /* 18px — settings two-col grid gap + OpsCard padding */
+  --spacing-chart-md: 12.5rem;   /* 200px — KPI chart container */
+  --spacing-chart-lg: 13.75rem;  /* 220px — Sprint 0 banner cap + KPI chart variant */
+  --spacing-chart-xl: 16.25rem;  /* 260px — banner full-bleed cap */
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);

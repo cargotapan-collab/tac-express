@@ -5,6 +5,7 @@
   "scripts": {
     "audit:auth-boundary": "node scripts/audit-auth-boundary.mjs",
     "audit:governance": "node scripts/audit-governance.mjs",
+    "audit:orphans:refresh-baseline": "AUDIT_ORPHANS_WRITE_BASELINE=1 node scripts/audit-governance.mjs",
     "audit:design-spec": "node scripts/audit-design-spec.mjs",
     "supabase:types": "supabase gen types typescript --local > packages/database/src/database.types.ts",
     "supabase:reset": "supabase db reset",

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "label",
+  "type": "registry:ui",
+  "title": "TAC Label",
+  "description": "Label primitive (Radix). TAC-tuned for the form-field rhythm.",
+  "registryDependencies": [
+    "@radix-ui/react-label"
+  ],
+  "files": [
+    {
+      "path": "src/components/primitives/label.tsx",
+      "type": "registry:ui",
+      "content": "\"use client\"\r\n\r\nimport * as React from \"react\"\r\nimport { Label as LabelPrimitive } from \"radix-ui\"\r\n\r\nimport { cn } from \"@workspace/ui/lib/utils\"\r\n\r\nfunction Label({\r\n  className,\r\n  ...props\r\n}: React.ComponentProps<typeof LabelPrimitive.Root>) {\r\n  return (\r\n    <LabelPrimitive.Root\r\n      data-slot=\"label\"\r\n      className={cn(\r\n        \"flex select-none items-center gap-2 font-mono text-paper-10 font-medium uppercase leading-none tracking-widest text-muted-foreground group-data-disabled:pointer-events-none group-data-disabled:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50\",\r\n        className\r\n      )}\r\n      {...props}\r\n    />\r\n  )\r\n}\r\n\r\nexport { Label }\r\n"
+    }
+  ]
+}

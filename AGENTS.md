@@ -259,6 +259,48 @@ function ComponentName({ className, variant, asChild = false, ...props }: Compon
 export { ComponentName, componentVariants }
 ```
 
+### Single shell — `/ops-console/*` only
+
+There is exactly one authenticated shell: `app/ops-console/`. The legacy v6 `(dashboard)` route group was deleted in the May 2026 single-shell migration; legacy `/foo` URLs are caught by `next.config.mjs` 308 redirects to `/ops-console/foo`. Auth gating + rate limiting live in `apps/dashboard/proxy.ts` (the Next.js 16 file convention — the older `middleware.ts` name is deprecated; do not reintroduce it). Internal nav must point at `/ops-console/*` paths; the redirects are bookmark-compat only, not an active routing path.
+
+### Shared Sidebar — themed via CSS scope, not props
+
+Primary navigation lives in `packages/ui/src/components/composed/sidebar/` (single `<Sidebar>` + `nav-config.ts`). Chrome is selected by CSS scope — the `.ops-console` class on `OpsShell` rebinds `--sidebar-*` to `--paper-*` in `globals.css`. Do not add a `theme`/`shell` prop or fork the component — VRT baseline `sidebar-paper-ops.png` (`e2e/visual.spec.ts`) locks the contract.
+
+### shadcn workflow (mandatory)
+
+Single source of truth for shadcn config is `packages/ui/components.json`. shadcn CLI is pinned at `4.7.0` in `packages/ui/package.json` and in `.mcp.json`. **Never** install shadcn at the workspace root. **Never** reintroduce `apps/*/components.json`.
+
+| Task | Command |
+|---|---|
+| Install a new primitive from the @tac registry (TAC-compliant, zero post-processing) | `pnpm --filter @workspace/ui exec shadcn add @tac/<name>` |
+| Install a primitive from upstream shadcn (raw output — must be filtered through `tac-ui-authoring`) | `pnpm --filter @workspace/ui exec shadcn add <name>` |
+| Update the @tac registry after editing a source primitive | `pnpm --filter @workspace/ui registry:build` |
+| Verify the @tac registry is in sync (CI gate) | `pnpm --filter @workspace/ui registry:check` |
+| Inspect the current shadcn 4.7.0 source for a primitive | `pnpm --filter @workspace/ui exec shadcn view <name>` |
+| Run the page-level VRT baseline (Sprint 0 anchor) | `pnpm --filter dashboard exec playwright test e2e/visual/baseline.spec.ts` |
+
+**Five mandatory checks before any commit that touches `packages/ui/`** (CI gates them all):
+
+1. `pnpm typecheck` ✓
+2. `pnpm lint` ✓ (no new TAC LAW warnings)
+3. `pnpm audit:governance` ✓ (LAW 2 + LAW 8 + design-system specifics)
+4. `pnpm --filter @workspace/ui registry:check` ✓ (no drift between source and @tac registry)
+5. `pnpm --filter dashboard exec playwright test e2e/visual/baseline.spec.ts` ✓ (0 pixel diff against baseline, or explicit re-baseline in same PR)
+
+### Primitive upgrade policy
+
+Per `docs/primitive-upgrade-audit.md`, TAC's primitives already exceed the shadcn 4.7.0 base in design intent (brutalist offset shadows, premium focus bloom, paper-scope portal content, glow variant). **Do not blindly swap to a newer shadcn output** — verbatim adoption regresses visuals.
+
+Upgrades follow this decision tree:
+1. **Run `shadcn view <name>`** — see what shadcn 4.7.0 emits.
+2. **Diff against `packages/ui/src/components/[...].tsx`** — identify the delta.
+3. **For each delta, classify as KEEP / ADOPT / FALSE-POSITIVE**, using `docs/primitive-upgrade-audit.md` precedents.
+4. **Apply only ADOPT deltas** — preferentially the ones marked "additive" (new size variants, new data attributes, new patterns that don't change existing visuals).
+5. **Run all five mandatory checks**, including VRT.
+
+The full multi-sprint plan lives in the PM-issued upgrade brief; the policy above is the durable rule the agent follows on every primitive-touching PR.
+
 ---
 
 ## 6. TESTING STANDARDS

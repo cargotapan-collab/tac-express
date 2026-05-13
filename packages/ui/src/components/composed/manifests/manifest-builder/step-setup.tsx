@@ -120,7 +120,7 @@ export function StepSetup({
               to create your first manifest.
             </p>
             <Link
-              href="/management"
+              href="/ops-console/management"
               className="inline-flex items-center gap-1.5 mt-1 tac-mono-label text-primary hover:text-foreground transition-colors duration-fast focus-visible:outline-none focus-visible:tac-focus-premium"
             >
               Go to Hub Management
@@ -139,6 +139,7 @@ export function StepSetup({
             value={value.fromHubId}
             onChange={(v) => update("fromHubId", v)}
             placeholder="Select origin"
+            aria-label="From Hub"
           />
         </div>
         <div className="grid gap-1.5">
@@ -150,6 +151,7 @@ export function StepSetup({
             value={value.toHubId}
             onChange={(v) => update("toHubId", v)}
             placeholder="Select destination"
+            aria-label="To Hub"
           />
         </div>
       </section>
@@ -165,13 +167,13 @@ export function StepSetup({
         >
           <ToggleGroupItem value="AIR" className="flex-1 gap-2" aria-label="Air freight">
             <RiPlaneLine />
-            <span className="font-mono text-[11px] uppercase tracking-widest">
+            <span className="font-mono text-paper-11 uppercase tracking-widest">
               Air
             </span>
           </ToggleGroupItem>
           <ToggleGroupItem value="TRUCK" className="flex-1 gap-2" aria-label="Truck freight">
             <RiTruckLine />
-            <span className="font-mono text-[11px] uppercase tracking-widest">
+            <span className="font-mono text-paper-11 uppercase tracking-widest">
               Truck
             </span>
           </ToggleGroupItem>
@@ -286,12 +288,12 @@ export function StepSetup({
 
       {/* Rules */}
       <section className="grid gap-2">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <p className="font-mono text-paper-10 uppercase tracking-widest text-muted-foreground">
           Auto-validate scans against
         </p>
         <div className="grid gap-2 sm:grid-cols-3">
           <label className="flex items-center justify-between border border-border bg-background px-3 py-2">
-            <span className="font-mono text-[11px] uppercase tracking-widest">
+            <span className="font-mono text-paper-11 uppercase tracking-widest">
               Only Ready Status
             </span>
             <Switch
@@ -300,7 +302,7 @@ export function StepSetup({
             />
           </label>
           <label className="flex items-center justify-between border border-border bg-background px-3 py-2">
-            <span className="font-mono text-[11px] uppercase tracking-widest">
+            <span className="font-mono text-paper-11 uppercase tracking-widest">
               Match Destination
             </span>
             <Switch
@@ -309,7 +311,7 @@ export function StepSetup({
             />
           </label>
           <label className="flex items-center justify-between border border-border bg-background px-3 py-2">
-            <span className="font-mono text-[11px] uppercase tracking-widest">
+            <span className="font-mono text-paper-11 uppercase tracking-widest">
               Exclude COD
             </span>
             <Switch

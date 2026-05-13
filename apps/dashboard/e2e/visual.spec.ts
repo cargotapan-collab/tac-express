@@ -121,3 +121,29 @@ test.describe("Authenticated Ops Console", () => {
     })
   })
 })
+
+// ── Sidebar — single component, single shell ────────────────────────────────
+//
+// The two-shell split (v6 `(dashboard)` + Paper Ops `/ops-console`) was
+// deleted in the May 2026 single-shell migration. The shared `<Sidebar />`
+// (packages/ui/src/components/composed/sidebar) now renders in only one
+// place — inside `.ops-console`, where `--sidebar-*` tokens resolve to
+// the paper palette. The previous v6-scope baseline has been retired
+// alongside the v6 route group.
+//
+// This snapshot remains as a visual anchor: any drift in the sidebar
+// (typography, structure, wordmark, chrome) shows up here.
+test.describe("Sidebar — single ops-console shell", () => {
+  test.skip(
+    !hasAuthSession(),
+    "No auth session — set E2E_USER_EMAIL + E2E_USER_PASSWORD",
+  )
+
+  test("sidebar in .ops-console scope (Paper Ops chrome)", async ({ page }) => {
+    await page.goto("/ops-console")
+    await page.waitForLoadState("networkidle")
+    const sidebar = page.locator('[data-slot="sidebar"]')
+    await expect(sidebar).toBeVisible()
+    await expect(sidebar).toHaveScreenshot("sidebar-paper-ops.png")
+  })
+})

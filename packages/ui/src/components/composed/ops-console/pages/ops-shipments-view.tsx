@@ -1,5 +1,7 @@
 "use client"
 
+
+
 import * as React from "react"
 import Link from "next/link"
 
@@ -93,7 +95,7 @@ function OpsShipmentsView({
           // primary "+ New" action on the full-featured v6 wizard preserves
           // feature parity until the paper wizard is rebuilt 1:1.
           <OpsButton asChild variant="primary">
-            <Link href="/shipments/create">
+            <Link href="/ops-console/shipments/create">
               <RiAddLine aria-hidden className="size-3" />
               New Shipment
             </Link>
@@ -101,6 +103,7 @@ function OpsShipmentsView({
         }
       />
       <OpsTabs items={[...TABS]} value={tab} onChange={setTab} />
+      {/* eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md */}
       <div className="mb-3.5 max-w-[520px]">
         <OpsFieldInput
           aria-label="Search shipments"
@@ -132,7 +135,7 @@ function OpsShipmentsView({
           }
           cta={
             <OpsButton asChild variant="primary">
-              <Link href="/shipments/create">
+              <Link href="/ops-console/shipments/create">
                 <RiAddLine aria-hidden className="size-3" />
                 New Shipment
               </Link>

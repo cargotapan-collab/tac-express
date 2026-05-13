@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Bundle-size budgets for the dashboard. Each limit is a hard CI gate — exceeding any of them fails the architecture-gates workflow. Update deliberately, with a same-PR justification.",
+  "baseline": {
+    "capturedAt": "2026-05-12",
+    "totalStaticBytes": 7423000,
+    "largestChunkBytes": 906000,
+    "jsBytes": 6280000,
+    "comment": "Captured from docs/BUNDLE-SIZE-LATEST.md (2026-05-12). Each value is the as-measured baseline + 5% headroom — small movements are fine, regressions like adding a 1MB chart library are not."
+  }
+}

@@ -1,5 +1,7 @@
 "use client"
 
+
+
 import * as React from "react"
 
 import {
@@ -48,7 +50,7 @@ function OpsNotificationsView({
         title="Notifications"
         sub="System alerts and activity updates"
       />
-      <div className="grid grid-cols-[1.4fr_1fr] gap-[18px]">
+      <div className="grid grid-cols-[1.4fr_1fr] gap-[length:var(--spacing-gutter-md)]">
         {/* Inbox */}
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -64,7 +66,7 @@ function OpsNotificationsView({
           <OpsTabs items={[...TABS]} value={tab} onChange={setTab} />
           <OpsCard
             ticks
-            className="min-h-[220px] grid place-items-center text-center"
+            className="min-h-[length:var(--spacing-chart-lg)] grid place-items-center text-center"
           >
             <div>
               <RiNotification3Line aria-hidden className="size-7 text-paper-fg-3 mx-auto" />
@@ -115,6 +117,7 @@ function OpsNotificationsView({
             <div className="mt-2.5 flex flex-col gap-2.5">
               {channels.map((c) => (
                 <div key={c.key} className="flex items-start gap-3">
+                  {/* eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md */}
                   <OpsBadge className="min-w-[74px] justify-center">
                     {c.key}
                   </OpsBadge>

@@ -4,7 +4,7 @@ import * as React from "react"
 import { usePathname } from "next/navigation"
 
 import { cn } from "@workspace/ui/lib/utils"
-import { OpsSidebar } from "./ops-sidebar"
+import { Sidebar } from "@workspace/ui/components/composed/sidebar"
 import { OpsTopbar } from "./ops-topbar"
 
 interface OpsShellProps {
@@ -76,7 +76,7 @@ function OpsShell({
         className,
       )}
     >
-      <OpsSidebar />
+      <Sidebar />
       <div className="flex flex-col min-w-0">
         <OpsTopbar crumbs={resolvedCrumbs} />
         <main className="flex-1 min-w-0">{children}</main>

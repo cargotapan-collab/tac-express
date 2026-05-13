@@ -89,7 +89,7 @@ function OpsFinanceView({
           // variant is a single-page MVP missing the rate-lookup + line-item
           // breakdown.
           <OpsButton asChild variant="primary">
-            <Link href="/finance/create">
+            <Link href="/ops-console/finance/create">
               <RiAddLine aria-hidden className="size-3" />
               New Invoice
             </Link>
@@ -155,7 +155,7 @@ function OpsFinanceView({
           }
           cta={
             <OpsButton asChild variant="primary">
-              <Link href="/finance/create">
+              <Link href="/ops-console/finance/create">
                 <RiAddLine aria-hidden className="size-3" />
                 New Invoice
               </Link>

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useQueryClient } from "@tanstack/react-query"
 
 import { useInventoryByHub } from "@workspace/services/hooks/use-analytics"
 import type { HubInventoryItem } from "@workspace/types"
@@ -11,7 +12,9 @@ import {
 
 function toHub(h: HubInventoryItem): HubInventory {
   return {
-    hubCode: h.hub.replace(/_/g, " "),
+    // Normalize whitespace into underscores so the view can pin
+    // defaults by canonical code (e.g. "NEW_DELHI").
+    hubCode: h.hub.replace(/\s+/g, "_").toUpperCase(),
     pieces: h.total,
     rows: [
       { label: "Created / Pending", value: h.created },
@@ -24,6 +27,20 @@ function toHub(h: HubInventoryItem): HubInventory {
 }
 
 export function OpsInventoryLive() {
-  const { data = [] } = useInventoryByHub()
-  return <OpsInventoryView hubs={data.map(toHub)} />
+  const queryClient = useQueryClient()
+  const { data = [], isFetching } = useInventoryByHub()
+
+  const handleRefresh = React.useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: ["analytics", "inventory-by-hub"],
+    })
+  }, [queryClient])
+
+  return (
+    <OpsInventoryView
+      hubs={data.map(toHub)}
+      isLoading={isFetching}
+      onRefresh={handleRefresh}
+    />
+  )
 }

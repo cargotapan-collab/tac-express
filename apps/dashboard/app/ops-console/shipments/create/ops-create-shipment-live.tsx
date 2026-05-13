@@ -6,27 +6,34 @@ import { toast } from "sonner"
 
 import { useCreateShipment } from "@workspace/services/hooks/use-shipments"
 import {
-  OpsShipmentForm,
-  type OpsShipmentFormInput,
-} from "@workspace/ui/components/composed/ops-console/forms"
+  CreateShipmentForm,
+  type CreateShipmentInput,
+} from "@workspace/ui/components/composed/shipments/create-shipment-form"
 
 /**
- * Live wrapper for the paper New Shipment form. Wiring mirrors the v6
- * `CreateShipmentPageClient` so the underlying mutation contract + toast
- * conventions are identical. This is the **canonical paper form pattern** —
- * other forms (manifest wizard, invoice wizard, customer, rate card) should
- * follow the same shape:
+ * Multi-step shipment wizard — restored 2026-05-13.
  *
- *   1. Server `page.tsx` mounts the live wrapper inside an OpsFrame.
- *   2. Live wrapper destructures `mutateAsync` + `isPending` from the hook.
- *   3. `onSubmit` maps the form schema → service input, calls `mutateAsync`,
- *      shows `toast.success(...)` or `toast.error(...)`, then `router.push`.
+ * History: this surface was downgraded to a single-page `OpsShipmentForm`
+ * during the shadcn transformation (commit eaa7f67, 2026-05-12). The
+ * `CreateShipmentForm` wizard (4 steps: Sender → Receiver → Package →
+ * Review) with `SmartAddressFields` pincode autocomplete and live
+ * volumetric-weight preview was never deleted from
+ * `packages/ui/src/components/composed/shipments/`, so this restoration is
+ * a re-wire of the route shell, not a rebuild. See
+ * `docs/v6-mvp-regression-audit.md` for the full audit.
+ *
+ * Volumetric weight rule: `volumetric = L × B × H / 5000` (cm → kg),
+ * `chargeable = max(actual, volumetric)`. Both stored alongside the
+ * dead-weight for billing audits downstream.
+ *
+ * Routing: lives at `/ops-console/shipments/create`; on success redirects
+ * to `/ops-console/shipments/<id>`.
  */
 export function OpsCreateShipmentLive() {
   const router = useRouter()
   const { mutateAsync, isPending } = useCreateShipment()
 
-  const onSubmit = async (data: OpsShipmentFormInput) => {
+  const onSubmit = async (data: CreateShipmentInput) => {
     try {
       const volumetric = (data.length * data.breadth * data.height) / 5000
       const chargeable = Math.max(data.weight, volumetric)
@@ -63,5 +70,5 @@ export function OpsCreateShipmentLive() {
     }
   }
 
-  return <OpsShipmentForm onSubmit={onSubmit} isLoading={isPending} />
+  return <CreateShipmentForm onSubmit={onSubmit} isLoading={isPending} />
 }

@@ -243,7 +243,7 @@ function NotificationBell() {
               {notifications.length} total
             </span>
             <Link
-              href="/notifications"
+              href="/ops-console/notifications"
               onClick={() => setOpen(false)}
               className="font-mono text-2xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
             >

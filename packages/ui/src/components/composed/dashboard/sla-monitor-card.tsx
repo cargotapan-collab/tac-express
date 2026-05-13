@@ -106,7 +106,7 @@ export function SLAMonitorCard({ breaches = [], loading, className }: SLAMonitor
       {breaches.length > 0 && (
         <div className="border-t border-border px-4 py-2">
           <a
-            href="/exceptions"
+            href="/ops-console/exceptions"
             className="inline-flex items-center gap-1 font-mono text-2xs uppercase tracking-wider text-primary hover:underline"
           >
             View all exceptions
