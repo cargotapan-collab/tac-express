@@ -14,6 +14,11 @@ const excludedDirs = new Set([
   // `worktrees/`, skill markdown that may quote forbidden patterns) that
   // shouldn't trip the governance scan.
   ".claude",
+  // `.audit-cache/` is the working scratch for Claude_Preview audit runs
+  // (gitignored). It can contain v6-*.tsx snapshots of deleted source
+  // that would falsely register as "consumers" of components otherwise
+  // recognised as orphans. Exclude so local + CI see identical orphan sets.
+  ".audit-cache",
 ])
 const sourceExtensions = new Set([".ts", ".tsx"])
 const errors = []

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-13T04:33:32.814Z",
+  "generatedAt": "2026-05-13T16:10:12.984Z",
   "paths": [
     "packages/ui/src/components/composed/dashboard-header.tsx",
     "packages/ui/src/components/composed/dashboard/anomaly-detector-widget.tsx",
@@ -12,12 +12,15 @@
     "packages/ui/src/components/composed/data-table.tsx",
     "packages/ui/src/components/composed/finance/aging-buckets.tsx",
     "packages/ui/src/components/composed/finance/finance-summary-cards.tsx",
+    "packages/ui/src/components/composed/finance/invoice-status-badge.tsx",
     "packages/ui/src/components/composed/finance/rate-card-form.tsx",
     "packages/ui/src/components/composed/finance/rate-card-table.tsx",
     "packages/ui/src/components/composed/hub-context-switcher.tsx",
     "packages/ui/src/components/composed/inventory/hub-inventory-card.tsx",
     "packages/ui/src/components/composed/lottie-hero.tsx",
+    "packages/ui/src/components/composed/manifests/manifest-action-bar.tsx",
     "packages/ui/src/components/composed/manifests/manifest-card.tsx",
+    "packages/ui/src/components/composed/manifests/manifest-shipments-table.tsx",
     "packages/ui/src/components/composed/manifests/offline-indicator.tsx",
     "packages/ui/src/components/composed/manifests/scan-feedback.tsx",
     "packages/ui/src/components/composed/manifests/scan-log.tsx",
