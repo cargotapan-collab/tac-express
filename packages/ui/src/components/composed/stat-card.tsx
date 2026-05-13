@@ -81,11 +81,13 @@ function StatCard({
   visual,
   onClick,
   monoValue = true,
+  onKeyDown: userOnKeyDown,
   ...props
 }: StatCardProps) {
   const isInteractive = Boolean(onClick)
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!isInteractive) return
+    userOnKeyDown?.(event)
+    if (!isInteractive || event.defaultPrevented) return
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
       onClick?.()
@@ -99,7 +101,7 @@ function StatCard({
       role={isInteractive ? "button" : undefined}
       tabIndex={isInteractive ? 0 : undefined}
       onClick={isInteractive ? onClick : undefined}
-      onKeyDown={isInteractive ? handleKeyDown : undefined}
+      onKeyDown={isInteractive || userOnKeyDown ? handleKeyDown : undefined}
       className={cn(
         statCardVariants({ variant, interactive: isInteractive }),
         className
@@ -117,7 +119,7 @@ function StatCard({
           <p
             data-slot="stat-card-value"
             className={cn(
-              "text-2xl font-bold text-foreground sm:text-3xl",
+              "t-h2 text-foreground",
               monoValue && "font-mono tabular-nums tracking-tight"
             )}
           >

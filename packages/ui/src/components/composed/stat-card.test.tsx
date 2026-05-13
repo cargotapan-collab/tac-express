@@ -121,6 +121,41 @@ describe("StatCard", () => {
       fireEvent.keyDown(screen.getByRole("button"), { key: "Tab" })
       expect(onClick).not.toHaveBeenCalled()
     })
+
+    it("calls consumer onKeyDown AND still activates onClick on Enter", () => {
+      const onClick: Mock<() => void> = vi.fn<() => void>()
+      const userOnKeyDown: Mock<(e: React.KeyboardEvent<HTMLDivElement>) => void> =
+        vi.fn<(e: React.KeyboardEvent<HTMLDivElement>) => void>()
+      render(
+        <StatCard label="X" value={1} onClick={onClick} onKeyDown={userOnKeyDown} />
+      )
+      fireEvent.keyDown(screen.getByRole("button"), { key: "Enter" })
+      expect(userOnKeyDown).toHaveBeenCalledTimes(1)
+      expect(onClick).toHaveBeenCalledTimes(1)
+    })
+
+    it("respects consumer preventDefault and skips onClick activation", () => {
+      const onClick: Mock<() => void> = vi.fn<() => void>()
+      const userOnKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        e.preventDefault()
+      }
+      render(
+        <StatCard label="X" value={1} onClick={onClick} onKeyDown={userOnKeyDown} />
+      )
+      fireEvent.keyDown(screen.getByRole("button"), { key: "Enter" })
+      expect(onClick).not.toHaveBeenCalled()
+    })
+
+    it("forwards onKeyDown to non-interactive cards (no onClick)", () => {
+      const userOnKeyDown: Mock<(e: React.KeyboardEvent<HTMLDivElement>) => void> =
+        vi.fn<(e: React.KeyboardEvent<HTMLDivElement>) => void>()
+      const { container } = render(
+        <StatCard label="X" value={1} onKeyDown={userOnKeyDown} />
+      )
+      const card = container.querySelector('[data-slot="stat-card"]')!
+      fireEvent.keyDown(card, { key: "Enter" })
+      expect(userOnKeyDown).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe("visual slot", () => {

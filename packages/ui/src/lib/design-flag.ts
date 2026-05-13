@@ -29,23 +29,39 @@ function normalize(value: string | null | undefined): DesignVersion | null {
 /**
  * Resolve the active design version. Safe to call from server and browser.
  * On the server, only `process.env.NEXT_PUBLIC_DESIGN` is consulted.
+ *
+ * `localStorage` access is guarded — Safari private mode, browser
+ * extensions, or strict cookie policies can throw on read; we fall back
+ * to the env default in that case.
  */
 export function getDesignVersion(): DesignVersion {
   if (typeof window !== "undefined") {
-    const local = normalize(window.localStorage.getItem(STORAGE_KEY))
-    if (local) return local
+    try {
+      const local = normalize(window.localStorage.getItem(STORAGE_KEY))
+      if (local) return local
+    } catch {
+      // localStorage access denied — fall through to env / default
+    }
   }
   const fromEnv = normalize(process.env.NEXT_PUBLIC_DESIGN)
   return fromEnv ?? DEFAULT_VERSION
 }
 
 /**
- * Browser-only setter. No-op on the server.
- * Returns the value that's now active so callers can update state in one step.
+ * Browser-only setter. On the server it's a no-op that returns the
+ * currently-resolved version (env-derived) so callers can update React
+ * state in one step without desyncing.
  */
 export function setDesignVersion(version: DesignVersion): DesignVersion {
-  if (typeof window === "undefined") return DEFAULT_VERSION
-  window.localStorage.setItem(STORAGE_KEY, version)
+  if (typeof window === "undefined") return getDesignVersion()
+  try {
+    window.localStorage.setItem(STORAGE_KEY, version)
+  } catch {
+    // localStorage write blocked — return the requested version so
+    // callers' in-memory state still reflects intent. The next page
+    // load will fall back to env / default since persistence failed.
+    return version
+  }
   window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY, newValue: version }))
   return version
 }

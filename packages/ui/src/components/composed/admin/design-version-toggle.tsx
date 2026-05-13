@@ -47,6 +47,10 @@ interface AdminDesignVersionToggleProps {
   className?: string
 }
 
+function isDesignVersion(value: string): value is DesignVersion {
+  return value === "v6" || value === "v7"
+}
+
 function AdminDesignVersionToggle({ className }: AdminDesignVersionToggleProps) {
   const { isAdmin, isLoading } = useRBAC()
   const { version, setVersion } = useDesignVersion()
@@ -58,7 +62,7 @@ function AdminDesignVersionToggle({ className }: AdminDesignVersionToggleProps) 
       data-slot="admin-design-version-toggle"
       aria-labelledby="design-version-heading"
       className={cn(
-        "flex flex-col gap-3 border border-border bg-card p-[var(--spacing-card-pad)] text-card-foreground shadow-[var(--shadow-brutal-sm)]",
+        "flex flex-col gap-3 border border-border bg-card p-card-pad text-card-foreground shadow-brutal-sm",
         className
       )}
     >
@@ -66,14 +70,16 @@ function AdminDesignVersionToggle({ className }: AdminDesignVersionToggleProps) 
         <h3 id="design-version-heading" className="t-overline text-muted-foreground">
           Design version (admin)
         </h3>
-        <p className="text-xs text-muted-foreground">
+        <p className="t-caption text-muted-foreground">
           Per-session override of the active dashboard design. Resets on sign-out.
         </p>
       </div>
 
       <RadioGroup
         value={version}
-        onValueChange={(value) => setVersion(value as DesignVersion)}
+        onValueChange={(value) => {
+          if (isDesignVersion(value)) setVersion(value)
+        }}
         className="gap-3"
       >
         {OPTIONS.map((option) => {
@@ -82,10 +88,10 @@ function AdminDesignVersionToggle({ className }: AdminDesignVersionToggleProps) 
             <div key={option.value} className="flex items-start gap-3">
               <RadioGroupItem id={id} value={option.value} className="mt-0.5" />
               <Label htmlFor={id} className="flex flex-col gap-0.5 cursor-pointer">
-                <span className="text-sm font-medium text-foreground">
+                <span className="t-data text-foreground">
                   {option.label}
                 </span>
-                <span className="text-xs text-muted-foreground font-normal">
+                <span className="t-caption text-muted-foreground">
                   {option.description}
                 </span>
               </Label>
