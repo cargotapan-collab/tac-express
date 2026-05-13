@@ -195,7 +195,12 @@ test.describe("B. Multi-step forms — render + validate + submit-or-feedback", 
     // Step 1 (Sender) signals — react-hook-form inputs aren't given stable
     // ids by the wizard, so we assert on placeholder text + the Next button.
     await expect(page.getByPlaceholder("John Doe")).toBeVisible()
-    await expect(page.getByRole("button", { name: /next/i })).toBeVisible()
+    // Anchored regex so we don't also match the Next.js Dev Tools button
+    // (aria-label="Open Next.js Dev Tools") which is rendered in dev mode.
+    // Wizard primitive renders the button label as uppercase "NEXT".
+    await expect(
+      page.getByRole("button", { name: /^next$/i }),
+    ).toBeVisible()
   })
 
   test("B3. Manifest builder — renders + step 1 (Setup) controls present", async ({
@@ -210,7 +215,12 @@ test.describe("B. Multi-step forms — render + validate + submit-or-feedback", 
 
     // Step 1 (Setup) signals — first step is "Manifest Setup"
     await expect(page.getByText(/manifest setup/i).first()).toBeVisible()
-    await expect(page.getByRole("button", { name: /next/i })).toBeVisible()
+    // Anchored regex so we don't also match the Next.js Dev Tools button
+    // (aria-label="Open Next.js Dev Tools") which is rendered in dev mode.
+    // Wizard primitive renders the button label as uppercase "NEXT".
+    await expect(
+      page.getByRole("button", { name: /^next$/i }),
+    ).toBeVisible()
   })
 
   test("B4. Invoice wizard — renders + step 1 controls present", async ({ page }) => {
@@ -230,7 +240,12 @@ test.describe("B. Multi-step forms — render + validate + submit-or-feedback", 
       page.getByRole("heading", { name: /new invoice/i }),
     ).toBeVisible()
     // Wizard primary action — exact label depends on step; Next is on step 1
-    await expect(page.getByRole("button", { name: /next/i })).toBeVisible()
+    // Anchored regex so we don't also match the Next.js Dev Tools button
+    // (aria-label="Open Next.js Dev Tools") which is rendered in dev mode.
+    // Wizard primitive renders the button label as uppercase "NEXT".
+    await expect(
+      page.getByRole("button", { name: /^next$/i }),
+    ).toBeVisible()
   })
 
   test("B5. Rate card create — renders + validates", async ({ page }) => {

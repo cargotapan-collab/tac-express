@@ -63,9 +63,15 @@ function hasAuthSession(): boolean {
  * capture procedure.
  */
 function hasBaselineSnapshots(): boolean {
+  // Playwright's snapshotPathTemplate in playwright.config.ts writes to
+  //   {testDir}/__snapshots__/{testFilePath}/{arg}-{projectName}{ext}
+  // → apps/dashboard/e2e/__snapshots__/visual/baseline.spec.ts/<name>.png
+  // The previous implementation looked at e2e/visual/baseline.spec.ts-snapshots/
+  // (Playwright's DEFAULT location) which doesn't exist because the config
+  // overrides the template. Fixed 2026-05-13.
   const snapshotsDir = path.join(
     process.cwd(),
-    "e2e/visual/baseline.spec.ts-snapshots",
+    "e2e/__snapshots__/visual/baseline.spec.ts",
   )
   try {
     const files = fs.readdirSync(snapshotsDir)
@@ -128,9 +134,15 @@ test("baseline integrity — snapshots must be captured or auth must be unset", 
 })
 
 test.describe("Phase 4 baseline — every PR must match these", () => {
+  // Skip gate: require auth in normal runs, OR allow bootstrap via
+  // BOOTSTRAP_BASELINE=1 which lets `playwright test --update-snapshots`
+  // create the snapshots on first run. Same logic ignores the empty-
+  // baseline state during bootstrap.
+  const isBootstrap = process.env.BOOTSTRAP_BASELINE === "1"
   test.skip(
-    !hasAuthSession() || !hasBaselineSnapshots(),
-    "Auth or baseline missing — see the 'baseline integrity' test above",
+    !hasAuthSession() || (!isBootstrap && !hasBaselineSnapshots()),
+    "Auth or baseline missing — see the 'baseline integrity' test above. " +
+      "First-run bootstrap: BOOTSTRAP_BASELINE=1 playwright test --update-snapshots",
   )
 
   for (const { name, path: routePath } of PAGES) {
