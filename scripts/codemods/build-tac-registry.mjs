@@ -74,7 +74,11 @@ async function main() {
       item.files.map(async (f) => {
         const abs = path.join(PKG_UI, f.path)
         try {
-          const content = await fs.readFile(abs, "utf8")
+          // Normalize line endings to LF so registry JSONs are byte-stable
+          // across Windows (CRLF source) and CI (LF source). Without this,
+          // the inlined content string captures the platform's line endings
+          // and registry:check fails on cross-platform commits.
+          const content = (await fs.readFile(abs, "utf8")).replace(/\r\n/g, "\n")
           // Sanity check — no raw text-[Npx] or tracking-[Xem] in the
           // content. If it has any, the registry would distribute a
           // LAW-violating file, defeating the @tac promise.
