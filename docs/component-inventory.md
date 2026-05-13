@@ -50,7 +50,7 @@ These are the shadcn-derived atoms. Each row corresponds to **one file** in `pri
 
 **TAC-original primitives** (no shadcn equivalent — do not upgrade): `animated-text`, `barcode-scanner`, `breadcrumbs`, `bulk-action-bar`, `density-toggle`, `empty-state`, `error-boundary`, `file-dropzone`, `multi-select`, `print-button`, `rich-text-editor`, `signature-pad`, `sla-badge`, `time-picker`, `transition-link`, `universal-barcode`, `wizard`.
 
-**Heroes (top-level top-folder)**: `HeroBadge.tsx`, `HeroStatsCard.tsx` — TAC originals, not shadcn primitives. Consider moving to `composed/dashboard/` for LAW 2 cleanliness.
+**Heroes (top-level top-folder)**: `HeroBadge.tsx` — TAC original, not a shadcn primitive. Consider moving to `composed/dashboard/` for LAW 2 cleanliness. `HeroStatsCard.tsx` was deleted in Phase 1 of the NextAdmin refactor; consumers now use `composed/stat-card.tsx`.
 
 ---
 
