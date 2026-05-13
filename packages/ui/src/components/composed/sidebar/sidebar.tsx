@@ -71,7 +71,7 @@ function SidebarBadge({
       data-slot="sidebar-badge"
       aria-label={`${count} pending ${label}`}
       className={cn(
-        "ml-auto inline-flex min-w-[1.25rem] h-4 items-center justify-center px-1.5",
+        "ml-auto inline-flex min-w-[length:var(--badge-min-w)] h-4 items-center justify-center px-1.5",
         "font-mono text-3xs font-semibold tracking-wider tabular-nums",
         "bg-sidebar-primary text-sidebar-primary-foreground",
       )}
@@ -104,17 +104,19 @@ function SidebarItem({
       className={cn(
         "group/sidebar-item relative flex items-center gap-2.5 px-4 py-2",
         "font-mono text-xs font-medium tracking-paper-10 uppercase",
-        "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+        "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground",
         "focus-visible:outline-none focus-visible:tac-focus-premium",
         "transition-colors duration-fast ease-linear",
-        active && "bg-sidebar-accent text-sidebar-primary",
+        // Active nav text was --sidebar-primary (paper-violet L=0.54) on
+        // --sidebar-accent (paper-violet-50 L=0.97). Switched to
+        // paper-violet-2 (L=0.46) for higher contrast — closes R0 audit C2.
+        active && "bg-sidebar-accent text-paper-violet-2",
       )}
     >
       {active && (
         <span
           aria-hidden
-          // eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md
-          className="absolute left-0 top-0 bottom-0 w-[3px] bg-sidebar-primary"
+          className="absolute left-0 top-0 bottom-0 w-[length:var(--indicator-w)] bg-sidebar-primary"
         />
       )}
       <Icon aria-hidden className="size-4 shrink-0" />
@@ -164,7 +166,7 @@ function SidebarGroup({
           className={cn(
             "flex w-full items-center justify-between px-[length:var(--spacing-gutter-md)] py-1 mt-2",
             "font-mono text-3xs font-medium tracking-paper-14 uppercase",
-            "text-sidebar-foreground/40 hover:text-sidebar-foreground/80",
+            "text-sidebar-foreground/65 hover:text-sidebar-foreground",
             "focus-visible:outline-none focus-visible:tac-focus-premium",
             "transition-colors duration-fast ease-linear",
           )}
@@ -176,7 +178,7 @@ function SidebarGroup({
           <RiArrowDownSLine
             aria-hidden
             className={cn(
-              "size-3 text-sidebar-foreground/40 transition-transform",
+              "size-3 text-sidebar-foreground/65 transition-transform",
               open ? "rotate-0" : "-rotate-90",
             )}
           />

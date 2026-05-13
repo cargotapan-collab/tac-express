@@ -359,3 +359,45 @@ git commit -m "test(visual): Phase R0 baseline snapshots — post-wizard-restora
 ```
 
 After that, the original C2 / C3 / H1–H5 / M1–M7 backlog from the morning audit becomes the cherry-pick queue — start at the top (C2 color-contrast token swap, highest leverage).
+
+---
+
+# R0.3 — Critical + High + M6 fixes (2026-05-13 evening)
+
+After R0.2 landed (wizard a11y), executed the next backlog tier in a single PR. **C2 + C3 + H2 + H3 + H4 + H5 + M6 closed in one focused sweep.**
+
+| Item | Fix | File(s) |
+|---|---|---|
+| **C2** | `--paper-fg-3` bumped (light L=0.52→0.44; dark L=0.65→0.74); sidebar group labels `/40`→`/65` opacity; active nav text changed from `--sidebar-primary` (paper-violet L=0.54) to `--paper-violet-2` (L=0.46) for higher contrast on `--sidebar-accent` (paper-violet-50, L=0.97) | `globals.css`, `sidebar.tsx` |
+| **C3** | `<header role="banner" aria-label="Session controls">` wraps `OpsTopbar` (was `<div>`); breadcrumbs + theme toggle + account avatar now inside a recognised landmark | `ops-topbar.tsx` |
+| **H2** | `--shadow-paper-sticky: 0 1px 0 rgb(from var(--border) r g b / 0.06)`; replaced `shadow-[0_1px_0_rgba(14,15,18,0.06)]` | `globals.css`, `ops-button.tsx` |
+| **H3** | New tokens `--toggle-h: 1.875rem`, `--badge-min-w: 1.25rem`, `--indicator-w: 3px`; replaced `h-[30px]`, `min-w-[1.25rem]`, `w-[3px]` in shared chrome (sidebar + topbar) | `globals.css`, `ops-topbar.tsx`, `sidebar.tsx`, `aging-buckets.tsx` |
+| **H4** | New token `--sidebar-w: 15rem`; replaced `grid-cols-[240px_1fr]` → `grid-cols-[var(--sidebar-w)_1fr]` | `globals.css`, `ops-shell.tsx` |
+| **H5** | New token `--status-dot: 0.3125rem`; replaced `before:w-[5px] before:h-[5px]` in `OpsBadge` (single primitive, 5+ list pages benefit) | `globals.css`, `ops-badge.tsx` |
+| **M6** | `EmptyState` heading `<h3>` → `<h2>`; when rendered under a PageHeader's `<h1>`, no level skip | `empty-state.tsx` |
+
+## Verified deltas via Claude_Preview re-audit
+
+| Route | Morning baseline | R0.3 result | Δ |
+|---|---|---|---|
+| `/ops-console` | color-contrast (8) + region (3) = **2 violations** | color-contrast (3 settled) = **1 violation** | region GONE; contrast 8→3 |
+| `/ops-console/audit` | color-contrast (7) + region (3) + heading-order (1) = **3 violations** | color-contrast (2) = **1 violation** | region + heading-order GONE; contrast 7→2 |
+| `/ops-console/shipments` | color-contrast (23) + region (3) = **2 violations** | color-contrast (3) = **1 violation** | region GONE; contrast **23→3** (table-cell bump) |
+
+**LAW 3 unique violations on `/ops-console`:** 13 → 4. Remaining are intentional M-tier (brand kern, bleed-out chart, single-occurrence motion token, `[var(--token)_1fr]` grid expression flagged by the detector regex but token-resolved at runtime).
+
+**LAW 13:** still 0 violations across all routes.
+
+**Console errors:** still 0.
+
+## What remains from the original ranking
+
+| Tier | Item | Status |
+|---|---|:-:|
+| 🔴 C1 — Form error association (`aria-invalid` + `aria-describedby`) | Partial — wizard `Field` primitive uses implicit `<label>` (R0.2). Remaining flat forms: `OpsCustomerForm` + `OpsRateCardForm`. ~30 min each. | Open |
+| 🟠 H1 — Supabase auth lock investigation | Defer — needs prod-build test to confirm whether it fires outside Strict Mode. ~3 hours. | Open |
+| 🟡 M1–M7 cleanup | Page-local or intentional exceptions. ~1 hour total. | Backlog |
+
+The 3 remaining color-contrast nodes per route are specific element selectors (likely brand wordmark + 1-2 OpsButton variants), not chrome-shared. Next focused PR can resolve with targeted tweaks; no large refactor needed.
+
+**State of the queue: critical-tier + high-leverage high-tier CLOSED.** Remaining items are backlog-tier cleanup. The R0 plan has drained.

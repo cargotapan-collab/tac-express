@@ -52,8 +52,15 @@ function OpsTopbar({ crumbs }: OpsTopbarProps) {
   }
 
   return (
-    <div
+    // <header role="banner"> wraps the top bar so the breadcrumbs, theme
+    // toggle, and account avatar are inside a recognised landmark.
+    // Previously the topbar was a plain <div> and axe flagged its descendants
+    // (hub indicator + theme group + account chip) as outside any region.
+    // Closes R0 audit C3.
+    <header
       data-slot="ops-topbar"
+      role="banner"
+      aria-label="Session controls"
       className="flex items-center px-6 h-14 border-b border-transparent"
     >
       {/* Breadcrumbs */}
@@ -105,7 +112,7 @@ function OpsTopbar({ crumbs }: OpsTopbarProps) {
                 aria-label={`Switch to ${THEME_TO_NEXT[t]} theme`}
                 onClick={() => onPick(t)}
                 className={cn(
-                  "w-7 h-[30px] border-r border-paper-line last:border-r-0 bg-paper-card",
+                  "w-7 h-[length:var(--toggle-h)] border-r border-paper-line last:border-r-0 bg-paper-card",
                   "font-paper-mono font-semibold text-[length:var(--text-paper-11)] text-paper-fg-2",
                   "hover:bg-paper-3 transition-colors duration-fast ease-linear",
                   "focus-visible:outline-none focus-visible:tac-focus-premium",
@@ -154,7 +161,7 @@ function OpsTopbar({ crumbs }: OpsTopbarProps) {
           A
         </div>
       </div>
-    </div>
+    </header>
   )
 }
 

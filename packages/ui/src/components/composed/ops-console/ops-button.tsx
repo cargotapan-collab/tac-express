@@ -21,7 +21,7 @@ const opsButtonVariants = cva(
       variant: {
         default: "border-paper-line bg-paper-card text-paper-fg-1 hover:bg-paper-3",
         primary:
-          "border-paper-violet-2 bg-paper-violet text-white hover:bg-paper-violet-2 shadow-[0_1px_0_rgba(14,15,18,0.06)]",
+          "border-paper-violet-2 bg-paper-violet text-white hover:bg-paper-violet-2 shadow-[var(--shadow-paper-sticky)]",
         ghost: "border-transparent bg-transparent text-paper-fg-1 hover:bg-paper-3",
         tab: "border-paper-line bg-transparent text-paper-fg-1 hover:bg-paper-3 data-[state=on]:border-paper-violet-2 data-[state=on]:bg-paper-violet data-[state=on]:text-white",
         danger:

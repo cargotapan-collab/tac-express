@@ -233,7 +233,10 @@
 
   --paper-fg-1:      oklch(0.1700 0.0180 270);          /* primary text — violet-ink */
   --paper-fg-2:      oklch(0.3200 0.0100 280);          /* secondary text */
-  --paper-fg-3:      oklch(0.5200 0.0140 78);           /* #7A746B — muted / labels */
+  /* fg-3: muted / labels. Bumped from L=0.52 → L=0.44 on 2026-05-13 to
+     push WCAG AA contrast on table muted cells (text-paper-fg-3 on
+     --paper-card 0.9965 → contrast > 4.5:1) — closes R0 audit C2. */
+  --paper-fg-3:      oklch(0.4400 0.0140 78);
   --paper-fg-4:      oklch(0.6700 0.0150 80);           /* placeholders */
 
   /* Card surface — near-white-on-ivory for layered warmth (still not pure white) */
@@ -422,7 +425,10 @@
 
   --paper-fg-1:      oklch(0.9556 0.0074 264.5319);     /* primary text */
   --paper-fg-2:      oklch(0.8200 0.0070 264);          /* secondary */
-  --paper-fg-3:      oklch(0.6500 0.0080 264);          /* muted / labels */
+  /* fg-3: muted / labels. Bumped from L=0.65 → L=0.74 on 2026-05-13 to
+     match the light-mode contrast bump (R0 audit C2). Dark theme has
+     inverse contrast logic — higher L on dark bg = more contrast. */
+  --paper-fg-3:      oklch(0.7400 0.0080 264);
   --paper-fg-4:      oklch(0.5000 0.0090 264);          /* placeholders */
 
   /* Card surface — dark mode flips to a slightly lighter ink for elevation */
@@ -601,6 +607,18 @@
   --spacing-chart-md: 12.5rem;   /* 200px — KPI chart container */
   --spacing-chart-lg: 13.75rem;  /* 220px — Sprint 0 banner cap + KPI chart variant */
   --spacing-chart-xl: 16.25rem;  /* 260px — banner full-bleed cap */
+
+  /* R0 audit — shared-chrome tokens added 2026-05-13 to retire pixel
+     literals + raw rgba shadows that recurred on every protected route.
+     Each closes a LAW 3 violation called out in docs/r0-audit-findings.md. */
+  --sidebar-w: 15rem;            /* 240px — root ops shell grid track (H4) */
+  --toggle-h: 1.875rem;          /* 30px — top-bar theme toggle button height (H3) */
+  --indicator-w: 3px;            /* 3px — active-row left accent + sidebar nav active mark (H3 / M5) */
+  --badge-min-w: 1.25rem;        /* 20px — sidebar badge minimum width (H3) */
+  --status-dot: 0.3125rem;       /* 5px — list-row status pill pseudo-element dot (H5) */
+  --shadow-paper-sticky: 0 1px 0 rgb(from var(--border) r g b / 0.06);
+  /* ↑ subtle bottom-line shadow on sticky table headers / list-page wrappers
+       — replaces shadow-[0_1px_0_rgba(14,15,18,0.06)] (H2). */
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
