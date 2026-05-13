@@ -60,7 +60,7 @@ describe("OpsFinanceView", () => {
     )
     expect(
       screen.getByRole("link", { name: /new invoice/i })
-    ).toHaveAttribute("href", "/finance/create")
+    ).toHaveAttribute("href", "/ops-console/finance/create")
   })
 
   it("renders aging-bucket cards from the provided buckets prop", () => {

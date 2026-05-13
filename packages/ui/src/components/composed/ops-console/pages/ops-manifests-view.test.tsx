@@ -40,7 +40,7 @@ describe("OpsManifestsView", () => {
     // and the only "New Manifest" link is the one in the page header.
     render(<OpsManifestsView items={[DRAFT_MANIFEST]} />)
     const cta = screen.getByRole("link", { name: /new manifest/i })
-    expect(cta).toHaveAttribute("href", "/manifests/create")
+    expect(cta).toHaveAttribute("href", "/ops-console/manifests/create")
   })
 
   it("renders a card per manifest with id, route, shipment count, weight", () => {

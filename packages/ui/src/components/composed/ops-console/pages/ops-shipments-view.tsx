@@ -73,9 +73,18 @@ function OpsShipmentsView({
   React.useEffect(() => setPageIndex(0), [tab])
   const [query, setQuery] = React.useState("")
 
-  const filtered = rows.filter((r) =>
-    tab === "All" ? true : r.status.toLowerCase() === tab.toLowerCase(),
-  )
+  const filtered = rows.filter((r) => {
+    const matchesTab =
+      tab === "All" || r.status.toLowerCase() === tab.toLowerCase()
+    const q = query.trim().toLowerCase()
+    const matchesQuery =
+      !q ||
+      r.id.toLowerCase().includes(q) ||
+      r.customer.toLowerCase().includes(q) ||
+      r.receiver.toLowerCase().includes(q) ||
+      r.route.toLowerCase().includes(q)
+    return matchesTab && matchesQuery
+  })
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePageIndex = Math.min(pageIndex, totalPages - 1)

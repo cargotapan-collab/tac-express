@@ -40,7 +40,12 @@ const buttonVariants = cva(
         // Premium hover: bg shifts to primary/85 + sub-pixel lift on the offset shadow
         default: [
           "bg-primary text-primary-foreground shadow-sm",
-          "hover:bg-[color:var(--overlay-primary-strong)] hover:bg-primary/90",
+          // Single hover bg — `hover:bg-[color:var(--overlay-primary-strong)]`
+          // and `hover:bg-primary/90` both targeted the same CSS property
+          // with different values, so Tailwind's class-ordering picked one
+          // non-deterministically. Kept the primary/90 variant — closes
+          // Macroscope finding on button.json.
+          "hover:bg-primary/90",
           "hover:-translate-x-px hover:-translate-y-px hover:shadow-[5px_5px_0_0_var(--border)]",
           "active:translate-x-0 active:translate-y-0 active:shadow-sm",
         ],

@@ -153,13 +153,17 @@ function OpsTopbar({ crumbs }: OpsTopbarProps) {
           <RiMoonClearLine aria-hidden className="size-4" />
         </button>
 
-        {/* Avatar */}
-        <div
-          aria-label="Account"
-          className="size-8 bg-paper-violet text-white border border-paper-violet-2 grid place-items-center font-paper-mono font-semibold text-paper-12"
+        {/* Avatar — interactive (account menu placeholder). A plain <div>
+           with aria-label is ignored by most assistive tech; a <button>
+           with aria-haspopup="menu" is the WCAG 4.1.2-compliant equivalent. */}
+        <button
+          type="button"
+          aria-label="Account menu"
+          aria-haspopup="menu"
+          className="size-8 bg-paper-violet [color:white] border border-paper-violet-2 grid place-items-center font-paper-mono font-semibold text-paper-12 hover:bg-paper-violet-2 focus-visible:outline-none focus-visible:tac-focus-premium transition-colors duration-fast ease-linear"
         >
           A
-        </div>
+        </button>
       </div>
     </header>
   )

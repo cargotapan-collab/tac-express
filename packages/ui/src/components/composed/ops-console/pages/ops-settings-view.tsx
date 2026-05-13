@@ -346,8 +346,11 @@ function OpsHubsSection({
     } else {
       setPendingDelete(code)
       // Auto-clear the "click again to confirm" state after 3s so it
-      // doesn't sit around indefinitely.
-      window.setTimeout(() => {
+      // doesn't sit around indefinitely. `globalThis.setTimeout` works
+      // in both Node SSR + browser; `window.setTimeout` would throw
+      // ReferenceError during server-side rendering of this client component
+      // if it ever ends up in a non-window context.
+      globalThis.setTimeout(() => {
         setPendingDelete((prev) => (prev === code ? null : prev))
       }, 3000)
     }
