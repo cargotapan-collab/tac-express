@@ -18,6 +18,13 @@ import {
 } from "../ops-table"
 
 interface CustomerRow {
+  /**
+   * Stable unique identifier for React row reconciliation. Required —
+   * email is not guaranteed unique or even present in our customer
+   * records (B2B customers may share a billing email, individuals may
+   * have none). Use the customer's UUID from the database.
+   */
+  id: string
   name: string
   email: string
   phone: string
@@ -95,7 +102,7 @@ function OpsCustomersView({ rows }: OpsCustomersViewProps) {
         </OpsTableHead>
         <OpsTableBody>
           {filtered.map((r) => (
-            <OpsTableRow key={r.email}>
+            <OpsTableRow key={r.id}>
               <OpsTableCell>
                 <div className="font-paper-mono font-semibold uppercase text-[length:var(--text-paper-12)]">
                   {r.name}
