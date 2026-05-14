@@ -25,6 +25,7 @@ import { OpsCard } from "../ops-card"
 import { OpsTabs } from "../ops-tabs"
 import { OpsFieldInput, OpsFieldLabel } from "../ops-field"
 import { OpsKbd } from "../ops-kbd"
+import { AdminDesignVersionToggle } from "../../admin/design-version-toggle"
 
 interface OpsSettingsViewProps {
   email: string
@@ -169,6 +170,11 @@ function OpsSettingsView({
                 </span>
               </div>
             </OpsCard>
+
+            {/* Admin-only design-version toggle (Phase 1 rollback Layer 3).
+                Renders nothing for non-admin roles. See
+                docs/ROLLBACK-PLAYBOOK.md § NextAdmin Refactor. */}
+            <AdminDesignVersionToggle />
           </div>
         </div>
       )}

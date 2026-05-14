@@ -221,13 +221,11 @@ const COMPOSED_ORPHAN_ALLOWLIST = new Set([
   // justification — comment describing why the export is reachable by
   // some other path (route group, manifest scan, dynamic import).
   //
-  // Phase 1 of the NextAdmin refactor (docs/REFACTOR-PHASE-1-SPEC.md) —
-  // both components are staged for wiring into the Dashboard reference
-  // refactor + Settings page within the same PR. Remove these entries
-  // once the route-level consumers land.
+  // StatCard — Phase 1 of the NextAdmin refactor. Staged for the
+  // Dashboard reference refactor (Phase 2b). Remove once a route-level
+  // consumer lands.
   "packages/ui/src/components/composed/stat-card.tsx::StatCard",
   "packages/ui/src/components/composed/stat-card.tsx::statCardVariants",
-  "packages/ui/src/components/composed/admin/design-version-toggle.tsx::AdminDesignVersionToggle",
 ])
 
 // Collect every named export from every composed source.
