@@ -84,7 +84,7 @@ Repo declares these as PostgreSQL **enums** with **lowercase** values:
 
 These are different tables. A repo migration that inserts `(shipment_id, event_type, occurred_at, scanned_by)` would fail against production. A production-style insert with `(source, staff_id, staff_name)` would fail against the repo's schema.
 
-### Finding 4 (LATENT BUG) — `record_invoice_payment` rejects all callers in production
+### Finding 4 (LATENT BUG) — `record_invoice_payment` rejects non-SUPER_ADMIN operational roles
 
 Production's `record_invoice_payment` body has:
 
@@ -98,14 +98,19 @@ if not exists (
 end if;
 ```
 
-But production's `profiles.role` CHECK constraint allows only:
-`SUPER_ADMIN, ADMIN, MANAGER, WAREHOUSE_IMPHAL, WAREHOUSE_DELHI, OPS, INVOICE, SUPPORT, WAREHOUSE_STAFF, OPS_STAFF, FINANCE_STAFF` — **no `OPERATOR`**.
+Production's `profiles.role` CHECK constraint allows only:
+`SUPER_ADMIN, ADMIN, MANAGER, WAREHOUSE_IMPHAL, WAREHOUSE_DELHI, OPS, INVOICE, SUPPORT, WAREHOUSE_STAFF, OPS_STAFF, FINANCE_STAFF`.
 
-So an `OPS` user trying to record a payment would be rejected with `42501 Unauthorized`. The role check is broken.
+Decomposing the `role in (...)` check against that list:
 
-`invoice_payments` table in production has 6 rows, so payments **have** been recorded — implying they were inserted directly (bypassing the RPC), OR the RPC was called by a user with the literal `SUPER_ADMIN` role, OR the check was different at some prior point.
+- `SUPER_ADMIN` **is** present — SUPER_ADMIN callers pass the gate.
+- `OPERATOR` **is not** present — no row could ever hold that value, so the `OPERATOR` branch never matches anyone. Dead code.
 
-**Impact:** if this RPC is called from app code today, every non-super-admin OPS staff gets a 401. Worth confirming with logs.
+**Net effect:** every **non-SUPER_ADMIN** caller — including the roles operationally responsible for recording payments (`OPS`, `OPS_STAFF`, `INVOICE`, `FINANCE_STAFF`) — receives `42501 Unauthorized`. SUPER_ADMIN callers work fine.
+
+`invoice_payments` has 6 rows in production. Given the role check, those were almost certainly recorded by a SUPER_ADMIN account (or inserted directly, bypassing the RPC). Worth confirming via prod logs once Sentry is wired (see #22) — Rule 2 (`module:finance` alerts) would catch every future rejection in real time.
+
+**Impact:** the role check is technically alive (SUPER_ADMIN works) but **semantically inverted from intent** (the RPC was clearly meant to allow operational roles to record payments while blocking, say, drivers — instead it blocks the very people who should be using it).
 
 ### Finding 5 — Roles list itself differs
 

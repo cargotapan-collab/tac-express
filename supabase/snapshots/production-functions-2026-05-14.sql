@@ -503,9 +503,17 @@ $function$;
 -- ============================================================================
 
 -- IMPORTANT — production has NO role gates on the 6 mutating RPCs above.
--- record_invoice_payment is the ONLY RPC with an embedded role check, and it
--- references roles SUPER_ADMIN and OPERATOR — neither of which exists in
--- production's profiles.role CHECK constraint (which uses SUPER_ADMIN, ADMIN,
--- MANAGER, WAREHOUSE_IMPHAL, WAREHOUSE_DELHI, OPS, INVOICE, SUPPORT,
--- WAREHOUSE_STAFF, OPS_STAFF, FINANCE_STAFF — no OPERATOR).
--- → record_invoice_payment in production refuses every caller. Latent bug.
+-- record_invoice_payment is the ONLY RPC with an embedded role check:
+--   role IN ('SUPER_ADMIN', 'OPERATOR')
+-- production.profiles.role CHECK constraint allows:
+--   SUPER_ADMIN, ADMIN, MANAGER, WAREHOUSE_IMPHAL, WAREHOUSE_DELHI,
+--   OPS, INVOICE, SUPPORT, WAREHOUSE_STAFF, OPS_STAFF, FINANCE_STAFF
+-- → SUPER_ADMIN is present, so SUPER_ADMIN callers pass the gate
+-- → OPERATOR is NOT present, so that branch never matches any row
+-- → Net effect: record_invoice_payment in production rejects every
+--   non-SUPER_ADMIN caller. Operational roles (OPS, OPS_STAFF, INVOICE,
+--   FINANCE_STAFF) all get 42501 Unauthorized — even though they're
+--   exactly the roles operationally responsible for recording payments.
+--   The 6 existing invoice_payments rows were either inserted directly
+--   (bypassing the RPC) or by a SUPER_ADMIN account. Worth confirming
+--   via prod logs once Sentry is wired (#22).
