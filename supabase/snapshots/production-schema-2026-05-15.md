@@ -33,7 +33,7 @@ None of these filenames exist in the repo. The repo's 11 migrations
 production — `supabase db push` skips by filename, so they would be net-new
 applications, not redefinitions.
 
-## 2. Tables (12 total, all RLS-enabled)
+## 2. Tables (13 total, all RLS-enabled)
 
 | Table | Rows | Notes |
 |---|---|---|
