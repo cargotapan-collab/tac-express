@@ -55,21 +55,36 @@ create trigger trg_shipment_created_event
   for each row
   execute function public.shipment_emit_created_event();
 
--- Backfill: every existing shipment without a CREATED event gets one,
--- timestamped to its created_at so the timeline reads correctly.
-insert into public.tracking_events
-  (awb_number, status, description, location, hub_code, source, staff_id, created_at)
-select
-  s.awb_number,
-  'CREATED',
-  'Shipment created',
-  coalesce(s.origin_hub, 'UNKNOWN'),
-  coalesce(s.origin_hub, 'UNKNOWN'),
-  'SYSTEM',
-  s.created_by,
-  s.created_at
-from public.shipments s
-where not exists (
-  select 1 from public.tracking_events te
-  where te.awb_number = s.awb_number and te.status = 'CREATED'
-);
+-- Backfill removed 2026-05-15. The original INSERT referenced columns
+-- (location, source, staff_id) that don't exist on the repo's
+-- tracking_events schema (per 20260430000002_core_schema.sql, which
+-- declares: shipment_id, awb_number, event_type, status, hub_code,
+-- description, occurred_at, scanned_by, metadata, created_at).
+--
+-- PostgreSQL validates an INSERT's column list at parse time even when
+-- the SELECT returns zero rows. So on a fresh `supabase db reset` this
+-- INSERT aborts the entire migration — blocking 20260514000001 (#73,
+-- the corrective trigger fix), 20260514000002 (#76, role gates),
+-- 20260514000003 (#79 partial), and every subsequent migration from
+-- running.
+--
+-- The trigger function defined above has the SAME column bug, but is
+-- lazily validated — only fails when actually called. On a fresh DB
+-- no shipments exist to trigger it. Migration 20260514000001 (#73)
+-- immediately follows this one and REPLACES the function body with
+-- the correct columns via CREATE OR REPLACE.
+--
+-- Net effect of this fix: 20260512000004 applies cleanly on a fresh
+-- stack, then 20260514000001 swaps the broken function body for the
+-- correct one. The conceptual backfill (every shipment gets a CREATED
+-- tracking_event) is now performed by 20260514000001's backfill query,
+-- which uses the correct repo schema.
+--
+-- Production is unaffected by this edit: production's migration history
+-- ends at 20260512164008 (a DIFFERENT filename for the same intent —
+-- see supabase/snapshots/REPO-VS-PRODUCTION-DIVERGENCE-2026-05-14.md).
+-- Production never had this filename's content applied; editing it
+-- changes nothing in production's recorded state.
+-- ----------------------------------------------------------------------
+-- (original backfill INSERT removed — see 20260514000001 for the
+--  correctly-columned replacement)
