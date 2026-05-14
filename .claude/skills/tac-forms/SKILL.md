@@ -16,6 +16,29 @@ description: >-
 
 ---
 
+## Scope — when this pattern applies
+
+This pattern is **mandatory** for forms that live in `packages/ui/src/components/composed/` — the reusable UI surface. Every form component there must use react-hook-form + zod.
+
+This pattern is **optional** for page-shell client components in `apps/*/app/**/*-client.tsx` that handle a single-field or single-purpose interaction. For those:
+
+- Plain `useState` + inline validation is acceptable.
+- The page shell is not reusable; pulling `react-hook-form` into `apps/*` either adds workspace deps (diverging from the `packages/ui` ownership pattern that V7CustomerForm and V7CreateShipmentWizard established) or forces a LAW-5 extraction into `packages/ui` for a single-route component. Both are churn for marginal benefit.
+
+The boundary: **if more than two interrelated fields, OR if the form is intended for reuse across routes, extract to `packages/ui` and apply this pattern.** Single-field route-shell forms can stay inline.
+
+| File | Why it lives where it does |
+|---|---|
+| `packages/ui/src/components/composed/customers/v7-customer-form.tsx` | Multi-field reusable form → **RHF + zod required** |
+| `packages/ui/src/components/composed/shipments/v7-create-shipment-wizard.tsx` | Multi-step wizard with draft persistence → **RHF + zod required** |
+| `apps/dashboard/app/track/track-search-client.tsx` | Single AWB regex, single route, no reuse → plain `useState` acceptable |
+| `apps/dashboard/app/track/track-tabs-client.tsx` | Toggle-only state → plain `useState` acceptable |
+| `apps/dashboard/app/ops-console/.../*-detail-client.tsx` | Page shell; inline edits delegate to dialogs that use RHF-backed forms from `packages/ui` |
+
+This boundary resolves [#25](https://github.com/cargotapan-collab/tac-express/issues/25) — Option 3 from the architectural finding (RHF+zod scope = `packages/ui` reusable forms only).
+
+---
+
 ## Standard Form Pattern
 
 ```tsx
