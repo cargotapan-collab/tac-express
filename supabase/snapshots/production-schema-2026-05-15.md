@@ -145,12 +145,13 @@ All policies use `(public)` role. Patterns observed:
 
 ## 7. Extensions installed
 
-Only 4 extensions are actually installed (others available but not enabled):
+Only 4 user-installed extensions are enabled (others available but not
+enabled), plus the built-in `plpgsql`:
 - `pgcrypto` (extensions schema, v1.3)
 - `uuid-ossp` (extensions schema, v1.1)
 - `pg_stat_statements` (extensions schema, v1.11)
 - `supabase_vault` (vault schema, v0.3.1)
-- `plpgsql` (pg_catalog, v1.0) — built-in
+- `plpgsql` (pg_catalog, v1.0) — built-in, always present
 
 The repo migration `20260430000001` declares `pgcrypto`, `uuid-ossp`,
 `pg_trgm`, `btree_gin`, `citext`. Production has only the first two; the
