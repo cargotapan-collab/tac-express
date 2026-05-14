@@ -8,7 +8,8 @@
     "audit:orphans:refresh-baseline": "AUDIT_ORPHANS_WRITE_BASELINE=1 node scripts/audit-governance.mjs",
     "audit:design-spec": "node scripts/audit-design-spec.mjs",
     "audit:db-types-fresh": "node scripts/audit-db-types-fresh.mjs",
-    "supabase:types": "supabase gen types typescript --local > packages/database/src/database.types.ts",
+    "supabase:types": "node scripts/supabase-types.mjs --local",
+    "supabase:types:remote": "node scripts/supabase-types.mjs --remote",
     "supabase:reset": "supabase db reset",
     "supabase:start": "supabase start",
     "build": "turbo build",
@@ -40,6 +41,7 @@
     "happy-dom": "^20.9.0",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
+    "supabase": "^2.98.2",
     "tsx": "^4.21.0",
     "turbo": "^2.9.6",
     "typescript": "5.9.3",
@@ -55,7 +57,8 @@
       "core-js-pure",
       "esbuild",
       "msw",
-      "sharp"
+      "sharp",
+      "supabase"
     ]
   }
 }
