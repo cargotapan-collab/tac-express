@@ -220,12 +220,6 @@ const COMPOSED_ORPHAN_ALLOWLIST = new Set([
   // Add `repoPath::ExportName` strings here only with a same-PR
   // justification — comment describing why the export is reachable by
   // some other path (route group, manifest scan, dynamic import).
-  //
-  // StatCard — Phase 1 of the NextAdmin refactor. Staged for the
-  // Dashboard reference refactor (Phase 2b). Remove once a route-level
-  // consumer lands.
-  "packages/ui/src/components/composed/stat-card.tsx::StatCard",
-  "packages/ui/src/components/composed/stat-card.tsx::statCardVariants",
 ])
 
 // Collect every named export from every composed source.

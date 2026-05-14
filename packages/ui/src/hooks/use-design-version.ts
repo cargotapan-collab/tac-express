@@ -12,8 +12,15 @@ import {
 /**
  * Subscribe to the active design version.
  *
- * Re-renders when the value changes in another tab (native `storage` event)
- * or in the current tab (synthetic `storage` dispatch from `setDesignVersion`).
+ * Initial state is seeded from the server-safe `getDesignVersion()` so the
+ * first render matches SSR (no `window`, env-or-default). On mount we
+ * re-read with `localStorage` access available — if the user-override
+ * differs, the resulting `setVersion()` triggers a client re-render that
+ * swaps the design without a redeploy.
+ *
+ * Also re-renders when the value changes in another tab (native `storage`
+ * event) or in the current tab (synthetic `storage` dispatch from
+ * `setDesignVersion`).
  *
  * Wraps the rollback flag from `lib/design-flag` so composed components can
  * branch on it without touching `localStorage` directly — see
@@ -27,6 +34,11 @@ export function useDesignVersion(): {
 
   React.useEffect(() => {
     if (typeof window === "undefined") return
+    // Hydration sync — the SSR pass had no `window`, so the initial state
+    // is env-or-default. Re-read now that `localStorage` is available so a
+    // per-user override actually takes effect on first client render.
+    setVersion(getDesignVersion())
+
     const onStorage = (event: StorageEvent) => {
       if (event.key && event.key !== DESIGN_FLAG_STORAGE_KEY) return
       setVersion(getDesignVersion())
