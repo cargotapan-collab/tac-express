@@ -9,6 +9,15 @@ const root = process.cwd()
 const excludedDirs = new Set([
   "node_modules", ".next", "dist", "coverage", ".turbo",
   "playwright-report", ".git",
+  // testsprite_tests/tmp/ holds auto-generated snapshots of repo docs
+  // (README, AGENTS, PR-DESCRIPTION, VIOLET-GRID-*). They are test
+  // artifacts, not authored source, and legitimately echo legacy spec
+  // strings from older revisions in their fixtures.
+  "testsprite_tests",
+  // .agents/ is archived legacy content per CLAUDE.md § 0 (Authority
+  // Chain). The canonical skills directory is .claude/skills/. Stale
+  // legacy-spec strings in archived skill copies should not gate CI.
+  ".agents",
 ])
 const allowed = new Set([
   // governance/documentation files where the patterns are described, not used.
