@@ -93,15 +93,18 @@ interface BaselinePage {
  * plan doc. Routes use canonical `/ops-console/*` paths (post the
  * single-shell migration).
  *
- * Cross-platform exclusions (both fail with image-size mismatch on Linux
+ * Cross-platform exclusions (all fail with image-size mismatch on Linux
  * CI vs Windows-captured baseline — Playwright's toHaveScreenshot has no
  * `maxDiffSize` tolerance, only pixel-level diff):
  *   - `ops-analytics`: Recharts SVG height differs ~11px (896 vs 907)
  *   - `manifests-list`: tab content + tabular layout differs ~114px (811 vs 925)
+ *   - `shipments-list`: tabular layout + filter chrome differs ~64px
+ *      (1280×1516 baseline vs 1280×1580 received; same pattern at 1920w
+ *      1393 vs 1455). Hit every PR in the May 14 audit session.
  *
  * The proper long-term fix is a CI workflow that re-captures baselines
  * on the Linux runner and commits them back. Until that exists, exclude
- * both routes here. Tracked: docs/r0-audit-findings.md (R0.4 section).
+ * these routes here. Tracked: docs/r0-audit-findings.md (R0.4 section).
  */
 const PAGES: BaselinePage[] = [
   { name: "ops-dashboard", path: "/ops-console", protected: true },
@@ -109,7 +112,7 @@ const PAGES: BaselinePage[] = [
   { name: "finance-create", path: "/ops-console/finance/create", protected: true },
   { name: "customers-list", path: "/ops-console/customers", protected: true },
   { name: "customers-create", path: "/ops-console/customers/create", protected: true },
-  { name: "shipments-list", path: "/ops-console/shipments", protected: true },
+  // shipments-list excluded — see Cross-platform exclusions in the docstring above
   { name: "inventory", path: "/ops-console/inventory", protected: true },
   { name: "settings", path: "/ops-console/settings", protected: true },
 ]
