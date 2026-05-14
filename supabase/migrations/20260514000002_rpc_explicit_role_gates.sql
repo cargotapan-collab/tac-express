@@ -31,9 +31,14 @@
 -- ----------------------------------------------------------------------------
 -- add_shipment_to_manifest
 -- ----------------------------------------------------------------------------
+-- Signature must match 20260430000003 (3-arg with p_staff_id) — otherwise this
+-- migration creates a 2-arg overload alongside the 3-arg function, leaving
+-- the app's 3-arg calls ungated. p_staff_id stays informational (body uses
+-- auth.uid()).
 create or replace function public.add_shipment_to_manifest(
   p_manifest_id uuid,
-  p_awb_number  text
+  p_awb_number  text,
+  p_staff_id    uuid default null
 )
 returns json
 language plpgsql
@@ -88,7 +93,10 @@ $$;
 -- ----------------------------------------------------------------------------
 -- depart_manifest
 -- ----------------------------------------------------------------------------
-create or replace function public.depart_manifest(p_manifest_id uuid)
+create or replace function public.depart_manifest(
+  p_manifest_id uuid,
+  p_staff_id    uuid default null
+)
 returns json
 language plpgsql
 security definer
@@ -135,7 +143,10 @@ $$;
 -- ----------------------------------------------------------------------------
 -- arrive_manifest
 -- ----------------------------------------------------------------------------
-create or replace function public.arrive_manifest(p_manifest_id uuid)
+create or replace function public.arrive_manifest(
+  p_manifest_id uuid,
+  p_staff_id    uuid default null
+)
 returns json
 language plpgsql
 security definer
@@ -215,11 +226,13 @@ $$;
 -- ----------------------------------------------------------------------------
 -- update_shipment_status
 -- ----------------------------------------------------------------------------
+-- Signature aligned with 20260430000003 + database.types.ts:660 + app callers.
+-- p_new_status arrives as text and is cast to shipment_status internally.
 create or replace function public.update_shipment_status(
   p_shipment_id uuid,
-  p_status      shipment_status,
-  p_description text default null,
-  p_hub_code    text default null
+  p_new_status  text,
+  p_staff_id    uuid default null,
+  p_notes       text default null
 )
 returns json
 language plpgsql
@@ -227,11 +240,17 @@ security definer
 set search_path = public
 as $$
 declare
-  v_awb text;
+  v_awb     text;
+  v_status  shipment_status;
 begin
+  -- Role check FIRST so unauthorized callers don't learn about enum values
+  -- through 'invalid input value for enum shipment_status' error messages.
+  -- The cast must happen inside BEGIN, after the gate, not in DECLARE.
   if not public.is_operations_or_above() and not public.is_warehouse_role() then
     raise exception 'Insufficient privileges' using errcode = '42501';
   end if;
+
+  v_status := p_new_status::shipment_status;
 
   select awb_number into v_awb from public.shipments where id = p_shipment_id;
   if v_awb is null then
@@ -239,9 +258,9 @@ begin
   end if;
 
   update public.shipments
-     set status = p_status,
-         delivered_at = case when p_status = 'delivered' then now() else delivered_at end,
-         cancelled_at = case when p_status = 'cancelled' then now() else cancelled_at end,
+     set status = v_status,
+         delivered_at = case when v_status = 'delivered' then now() else delivered_at end,
+         cancelled_at = case when v_status = 'cancelled' then now() else cancelled_at end,
          updated_at = now()
    where id = p_shipment_id;
 
@@ -250,21 +269,21 @@ begin
     p_shipment_id,
     v_awb,
     case
-      when p_status = 'delivered'        then 'delivered'::tracking_event_type
-      when p_status = 'cancelled'        then 'cancelled'::tracking_event_type
-      when p_status = 'returned'         then 'returned'::tracking_event_type
-      when p_status = 'out_for_delivery' then 'out_for_delivery'::tracking_event_type
-      when p_status = 'arrived'          then 'arrived_dest_hub'::tracking_event_type
-      when p_status = 'in_transit'       then 'in_transit'::tracking_event_type
+      when v_status = 'delivered'        then 'delivered'::tracking_event_type
+      when v_status = 'cancelled'        then 'cancelled'::tracking_event_type
+      when v_status = 'returned'         then 'returned'::tracking_event_type
+      when v_status = 'out_for_delivery' then 'out_for_delivery'::tracking_event_type
+      when v_status = 'arrived'          then 'arrived_dest_hub'::tracking_event_type
+      when v_status = 'in_transit'       then 'in_transit'::tracking_event_type
       else 'scan'::tracking_event_type
     end,
-    p_status,
-    p_hub_code,
-    coalesce(p_description, 'Status updated to ' || p_status::text),
+    v_status,
+    null,
+    coalesce(p_notes, 'Status updated to ' || v_status::text),
     auth.uid()
   );
 
-  return json_build_object('shipment_id', p_shipment_id, 'status', p_status, 'success', true);
+  return json_build_object('shipment_id', p_shipment_id, 'status', v_status, 'success', true);
 end;
 $$;
 
@@ -273,7 +292,8 @@ $$;
 -- ----------------------------------------------------------------------------
 create or replace function public.resolve_exception(
   p_exception_id uuid,
-  p_resolution   text
+  p_resolution   text,
+  p_staff_id     uuid default null
 )
 returns json
 language plpgsql
