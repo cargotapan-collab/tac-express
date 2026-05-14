@@ -153,6 +153,120 @@ dashboard.
    - Add a follow-up issue describing what broke + what the proper
      fix should look like
 
+---
+
+## NextAdmin Refactor (multi-phase, 2026-05+)
+
+The NextAdmin-inspired refactor reshapes layout tokens, page composition,
+StatCard / DataTableCard / FormCard primitives, and adds Postgres FTS +
+pgvector semantic search. Each phase ships as a single PR so any phase
+can be reverted independently. Read in order: [Layer 1](#layer-1--git-tag-doomsday-button) is the
+last-resort restore, [Layer 5](#layer-5--db-migration-rollback-phase-6-only) is the most invasive.
+
+### Pre-refactor baseline tag
+
+```bash
+git tag --list pre-nextadmin-refactor-v1
+# pre-nextadmin-refactor-v1 → commit 38e8848 (main @ PR #53 squash merge)
+```
+
+### Layer 1 — Git tag (doomsday button)
+
+Full restore of every line. Use only when Layers 2–5 cannot localize the
+problem.
+
+```bash
+git checkout pre-nextadmin-refactor-v1   # detached HEAD at the baseline
+git checkout -b recovery/full-restore     # branch
+# Cherry-pick any non-refactor commits that landed after the tag, then PR.
+```
+
+### Layer 2 — Phase-level PR revert
+
+Each phase below is one PR. `gh pr revert <PR#>` rolls back a phase
+without touching the others. Phases must not be bundled.
+
+| Phase | Scope | Touches DB? |
+|---|---|---|
+| 1 | spacing tokens + responsive padding + `PageShell` `wide` variant | No |
+| 2 | `StatCard` consolidation (replaces `HeroStatsCard` + ad-hoc KPIs) | No |
+| 3 | `DataTableCard` wrapper around existing `composed/data-table.tsx` | No |
+| 4 | Form primitives: `FormCard` / `FormStepper` / `FormGrid` / `FormFooter` | No |
+| 5 | Two-column detail-page pattern (Shipment, Customer) | No |
+| 6a | FTS migration (`search_vector` generated columns + GIN indexes) | Yes |
+| 6b | pgvector extension + embedding columns + HNSW + write-time trigger | Yes |
+| 6c | `global_search` RPC + `packages/services/src/search.service.ts` + `GlobalSearch` UI | No |
+
+### Layer 3 — Design-version flag (per-user)
+
+Refactored pages branch on `useDesignVersion()` from
+`@workspace/ui/hooks/use-design-version`. Default is `v6` (current). Set
+`v7` to opt into the new design. Resolution order:
+
+1. `window.localStorage['tac-design']` — per-user override
+2. `process.env.NEXT_PUBLIC_DESIGN` — per-deploy default
+3. `'v6'` — hard-coded default
+
+**Per-user revert** (no redeploy, no PR):
+
+```js
+// In browser DevTools, on any TAC Express tab:
+localStorage.setItem('tac-design', 'v6')
+location.reload()
+```
+
+**Deploy-wide revert** (Vercel/env): set `NEXT_PUBLIC_DESIGN=v6` (or
+unset it). Forces every user back to v6 on next page load.
+
+The admin-only Settings → System toggle ships with Phase 1 so
+non-technical reviewers can switch without DevTools.
+
+### Layer 4 — Visual regression baseline
+
+Run the full Playwright visual suite at the start of each phase and
+before merge. Unexpected delta on an unrelated page → block the PR.
+
+```bash
+pnpm --filter dashboard playwright test --grep @visual
+```
+
+### Layer 5 — DB migration rollback (Phase 6 only)
+
+Each migration in `supabase/migrations/<timestamp>_<slug>/` ships with a
+matching `down.sql` (LAW-aligned with `tac-supabase-schema`). Order
+matters — drop dependents first:
+
+```sql
+-- Phase 6c
+DROP FUNCTION IF EXISTS public.global_search(text, vector(384), text, text[], int);
+
+-- Phase 6b
+DROP TRIGGER  IF EXISTS shipments_embedding_sync ON public.shipments;
+DROP INDEX    IF EXISTS shipments_embedding_hnsw_idx;
+ALTER TABLE   public.shipments DROP COLUMN IF EXISTS embedding;
+-- (repeat for invoices / manifests / customers if rolled out)
+DROP EXTENSION IF EXISTS vector;   -- only after confirming no other consumer
+
+-- Phase 6a
+DROP INDEX    IF EXISTS shipments_search_idx;
+ALTER TABLE   public.shipments DROP COLUMN IF EXISTS search_vector;
+-- (repeat for invoices / manifests / customers if rolled out)
+```
+
+Search RPC is gated behind `SEARCH_V2_ENABLED` (Supabase env). Flip to
+`false` to disable the new search UI without a code revert; UI falls
+back to the legacy command palette.
+
+### Decision tree — "It looks wrong, restore"
+
+```
+Just my session?           → localStorage.setItem('tac-design','v6'); reload          (Layer 3)
+One phase regressed?       → gh pr revert <phase-PR#>                                  (Layer 2)
+Token/primitive broke unrelated pages? → gh pr revert <Phase-1-PR>                     (Layer 2)
+Search perf bad?           → set SEARCH_V2_ENABLED=false in Supabase env               (Layer 5)
+Whole refactor wrong?      → branch from `pre-nextadmin-refactor-v1`, reapply non-refactor work   (Layer 1)
+```
+
 ## Refs
 
 - Issue #13 (parent rollback-readiness scope)
@@ -160,3 +274,4 @@ dashboard.
 - PR #8 baseline: `9534b6f`
 - PR #14 (slicing rule — prevents future PRs from being this hard to
   roll back)
+- Tag `pre-nextadmin-refactor-v1` → baseline for the multi-phase NextAdmin refactor

@@ -640,6 +640,24 @@
                                       (PageShell). Caps reading/working width
                                       below the 1600px hardware frame so all
                                       dashboard pages share one rhythm. */
+  --spacing-page-wide: 96rem;      /* 1536px — wide PageShell variant for
+                                      KPI-heavy dashboards (Operations, CRM,
+                                      Inventory). Sits between page-content
+                                      and the 1600px hardware frame. Added
+                                      Phase 1 of the NextAdmin refactor. */
+
+  /* ── Page-gutter + card-rhythm tokens (NextAdmin parity, Violet-Grid translated) ──
+     Responsive page padding scales by breakpoint; card padding + gap are
+     viewport-invariant so the rhythm reads the same on every screen size. */
+  --spacing-page-pad-x-sm: 1rem;     /* 16px  — mobile gutter   */
+  --spacing-page-pad-x-md: 1.5rem;   /* 24px  — tablet+ gutter  */
+  --spacing-page-pad-x-lg: 2.5rem;   /* 40px  — 2xl+ gutter     */
+  --spacing-page-pad-y-sm: 1rem;
+  --spacing-page-pad-y-md: 1.5rem;
+  --spacing-page-pad-y-lg: 2rem;
+  --spacing-card-pad:      1.5rem;   /* 24px  — internal padding (default card)  */
+  --spacing-card-pad-lg:   1.875rem; /* 30px  — hero / KPI card                  */
+  --spacing-card-gap:      1.5rem;   /* 24px  — gap between sibling cards        */
   --spacing-panel-sm: 13.75rem;    /* 220px — chart container / hero (mobile)     */
   --spacing-panel-md: 15rem;       /* 240px — scroll-list panel                   */
   --spacing-panel-lg: 16.25rem;    /* 260px — hero (lg viewport)                  */

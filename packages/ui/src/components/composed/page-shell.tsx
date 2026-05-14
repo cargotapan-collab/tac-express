@@ -23,6 +23,7 @@ const pageShellVariants = cva("mx-auto w-full", {
   variants: {
     width: {
       content: "max-w-page-content",
+      wide: "max-w-page-wide",
       control: "max-w-control",
       full: "",
     },
