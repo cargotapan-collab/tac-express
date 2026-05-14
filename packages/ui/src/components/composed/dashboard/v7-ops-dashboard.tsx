@@ -12,10 +12,15 @@ import {
 import { PageShell } from "@workspace/ui/components/composed/page-shell"
 import { PageHeader } from "@workspace/ui/components/composed/page-header"
 import { StatCard } from "@workspace/ui/components/composed/stat-card"
+import { OpsGrowthAreaChart } from "@workspace/ui/components/composed/ops-console/ops-growth-chart"
+import { OpsVolumeBarChart } from "@workspace/ui/components/composed/ops-console/ops-volume-chart"
+import {
+  OpsUpcomingCalendar,
+  type UpcomingOpItem,
+} from "@workspace/ui/components/composed/ops-console/ops-upcoming-calendar"
 
 /**
- * V7OpsDashboard — NextAdmin-inspired Violet Grid v7 reference layout
- * (Phase 2b of the refactor).
+ * V7OpsDashboard — NextAdmin-inspired Violet Grid v7 reference layout.
  *
  * Rendered when `useDesignVersion()` resolves to `"v7"`. The Paper Ops
  * Console `<OpsDashboard />` remains the v6 default. Both share the same
@@ -27,10 +32,16 @@ import { StatCard } from "@workspace/ui/components/composed/stat-card"
  *   <grid cols=4 gap=card-gap>
  *     StatCard × 4 — Active Shipments / In Transit / Open Exceptions / Next Flight
  *   </grid>
+ *   <grid cols=3 gap=card-gap>
+ *     Card: <OpsGrowthAreaChart />
+ *     Card: <OpsVolumeBarChart />
+ *     Card: <OpsUpcomingCalendar />
+ *   </grid>
  *
- * Charts + upcoming operations panels are intentionally deferred to a
- * follow-up — this surface establishes the StatCard pattern on a real
- * route. See docs/REFACTOR-PHASE-1-SPEC.md for the full StatCard contract.
+ * Phase 2c adds the chart-panel row (chart components reused as-is from
+ * the Paper Ops Console; their internal Paper aesthetic is a
+ * transitional state — chart redesign is queued for a later phase).
+ * See docs/REFACTOR-PHASE-1-SPEC.md for the full StatCard contract.
  */
 
 interface V7OpsDashboardProps {
@@ -38,6 +49,7 @@ interface V7OpsDashboardProps {
   inTransit: number
   openExceptions: number
   nextFlightEta?: string
+  upcoming?: UpcomingOpItem[]
   className?: string
 }
 
@@ -46,6 +58,7 @@ function V7OpsDashboard({
   inTransit,
   openExceptions,
   nextFlightEta,
+  upcoming = [],
   className,
 }: V7OpsDashboardProps) {
   return (
@@ -95,7 +108,46 @@ function V7OpsDashboard({
           }
         />
       </div>
+
+      {/* Chart panel row — reuses Paper Ops Console chart primitives in
+          Violet Grid v6 frames. The recharts content + 7D/30D/90D toggle
+          are universal; the outer "Card" surface is the v7 vocabulary
+          (sharp corners, brutalist offset shadow, --spacing-card-pad).
+          Chart-component v7 redesign is Phase 2d/e. */}
+      <div
+        data-slot="v7-ops-dashboard-panels"
+        className="grid grid-cols-1 gap-card-gap lg:grid-cols-3"
+      >
+        <V7Panel data-testid="v7-panel-growth">
+          <OpsGrowthAreaChart />
+        </V7Panel>
+        <V7Panel data-testid="v7-panel-volume">
+          <OpsVolumeBarChart />
+        </V7Panel>
+        <V7Panel data-testid="v7-panel-upcoming">
+          <OpsUpcomingCalendar upcoming={upcoming} />
+        </V7Panel>
+      </div>
     </PageShell>
+  )
+}
+
+function V7Panel({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      data-slot="v7-panel"
+      className={cn(
+        "border border-border bg-card text-card-foreground p-card-pad shadow-brutal-sm",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
   )
 }
 
