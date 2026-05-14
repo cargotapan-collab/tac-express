@@ -27,6 +27,20 @@ function normalize(value: string | null | undefined): DesignVersion | null {
 }
 
 /**
+ * Resolve the deploy-default design version — the value both server and
+ * client agree on before any per-user override is applied. Reads only
+ * `process.env.NEXT_PUBLIC_DESIGN` (with a hardcoded fallback) and never
+ * touches `localStorage`. Use this as the initial state in any hook that
+ * is rendered during SSR — reading `localStorage` directly inside a
+ * `useState` initializer would trigger a hydration mismatch when the
+ * per-user override differs from the deploy-default.
+ */
+export function getDefaultDesignVersion(): DesignVersion {
+  const fromEnv = normalize(process.env.NEXT_PUBLIC_DESIGN)
+  return fromEnv ?? DEFAULT_VERSION
+}
+
+/**
  * Resolve the active design version. Safe to call from server and browser.
  * On the server, only `process.env.NEXT_PUBLIC_DESIGN` is consulted.
  *
@@ -43,8 +57,7 @@ export function getDesignVersion(): DesignVersion {
       // localStorage access denied — fall through to env / default
     }
   }
-  const fromEnv = normalize(process.env.NEXT_PUBLIC_DESIGN)
-  return fromEnv ?? DEFAULT_VERSION
+  return getDefaultDesignVersion()
 }
 
 /**
