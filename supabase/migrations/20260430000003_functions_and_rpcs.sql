@@ -111,9 +111,15 @@ $$;
 -- ----------------------------------------------------------------------------
 -- add_shipment_to_manifest  (idempotent)
 -- ----------------------------------------------------------------------------
+-- p_staff_id is informational; the function still uses auth.uid() for the
+-- audit columns. The named param exists so PostgREST can match the call from
+-- packages/database/src/repositories/manifest.repo.ts and matches what
+-- database.types.ts asserts (3-arg). Aligns repo signature with production's
+-- 20260422145228_fix_manifest_rpc_optional_staff_id migration.
 create or replace function public.add_shipment_to_manifest(
   p_manifest_id uuid,
-  p_awb_number  text
+  p_awb_number  text,
+  p_staff_id    uuid default null
 )
 returns json
 language plpgsql
@@ -164,7 +170,12 @@ $$;
 -- ----------------------------------------------------------------------------
 -- close_manifest_atomic
 -- ----------------------------------------------------------------------------
-create or replace function public.close_manifest_atomic(p_manifest_id uuid)
+-- p_staff_id is informational; the function still uses auth.uid() for the
+-- audit columns. Aligned with the 3-arg variant production has.
+create or replace function public.close_manifest_atomic(
+  p_manifest_id uuid,
+  p_staff_id    uuid default null
+)
 returns json
 language plpgsql
 security definer
@@ -205,7 +216,11 @@ $$;
 -- ----------------------------------------------------------------------------
 -- depart_manifest
 -- ----------------------------------------------------------------------------
-create or replace function public.depart_manifest(p_manifest_id uuid)
+-- p_staff_id is informational; body uses auth.uid().
+create or replace function public.depart_manifest(
+  p_manifest_id uuid,
+  p_staff_id    uuid default null
+)
 returns json
 language plpgsql
 security definer
@@ -248,7 +263,11 @@ $$;
 -- ----------------------------------------------------------------------------
 -- arrive_manifest
 -- ----------------------------------------------------------------------------
-create or replace function public.arrive_manifest(p_manifest_id uuid)
+-- p_staff_id is informational; body uses auth.uid().
+create or replace function public.arrive_manifest(
+  p_manifest_id uuid,
+  p_staff_id    uuid default null
+)
 returns json
 language plpgsql
 security definer
@@ -320,11 +339,17 @@ $$;
 -- ----------------------------------------------------------------------------
 -- update_shipment_status  (writes status + appends tracking event)
 -- ----------------------------------------------------------------------------
+-- Signature aligned to what packages/database/src/repositories/shipment.repo.ts
+-- calls and what database.types.ts:660 declares: (p_new_status text, p_notes?,
+-- p_shipment_id uuid, p_staff_id uuid). p_new_status arrives as text and is
+-- cast to shipment_status internally. p_staff_id is informational; the body
+-- uses auth.uid() for the audit column. hub_code is no longer a parameter
+-- (production's types don't expose it).
 create or replace function public.update_shipment_status(
   p_shipment_id uuid,
-  p_status      shipment_status,
-  p_description text default null,
-  p_hub_code    text default null
+  p_new_status  text,
+  p_staff_id    uuid default null,
+  p_notes       text default null
 )
 returns json
 language plpgsql
@@ -332,7 +357,8 @@ security definer
 set search_path = public
 as $$
 declare
-  v_awb text;
+  v_awb     text;
+  v_status  shipment_status := p_new_status::shipment_status;
 begin
   select awb_number into v_awb from public.shipments where id = p_shipment_id;
   if v_awb is null then
@@ -340,9 +366,9 @@ begin
   end if;
 
   update public.shipments
-     set status = p_status,
-         delivered_at = case when p_status = 'delivered' then now() else delivered_at end,
-         cancelled_at = case when p_status = 'cancelled' then now() else cancelled_at end,
+     set status = v_status,
+         delivered_at = case when v_status = 'delivered' then now() else delivered_at end,
+         cancelled_at = case when v_status = 'cancelled' then now() else cancelled_at end,
          updated_at = now()
    where id = p_shipment_id;
 
@@ -351,30 +377,34 @@ begin
     p_shipment_id,
     v_awb,
     case
-      when p_status = 'delivered'        then 'delivered'::tracking_event_type
-      when p_status = 'cancelled'        then 'cancelled'::tracking_event_type
-      when p_status = 'returned'         then 'returned'::tracking_event_type
-      when p_status = 'out_for_delivery' then 'out_for_delivery'::tracking_event_type
-      when p_status = 'arrived'          then 'arrived_dest_hub'::tracking_event_type
-      when p_status = 'in_transit'       then 'in_transit'::tracking_event_type
+      when v_status = 'delivered'        then 'delivered'::tracking_event_type
+      when v_status = 'cancelled'        then 'cancelled'::tracking_event_type
+      when v_status = 'returned'         then 'returned'::tracking_event_type
+      when v_status = 'out_for_delivery' then 'out_for_delivery'::tracking_event_type
+      when v_status = 'arrived'          then 'arrived_dest_hub'::tracking_event_type
+      when v_status = 'in_transit'       then 'in_transit'::tracking_event_type
       else 'scan'::tracking_event_type
     end,
-    p_status,
-    p_hub_code,
-    coalesce(p_description, 'Status updated to ' || p_status::text),
+    v_status,
+    null,
+    coalesce(p_notes, 'Status updated to ' || v_status::text),
     auth.uid()
   );
 
-  return json_build_object('shipment_id', p_shipment_id, 'status', p_status, 'success', true);
+  return json_build_object('shipment_id', p_shipment_id, 'status', v_status, 'success', true);
 end;
 $$;
 
 -- ----------------------------------------------------------------------------
 -- resolve_exception
 -- ----------------------------------------------------------------------------
+-- p_staff_id is informational; the body uses auth.uid() for resolved_by.
+-- Signature matches packages/database/src/repositories/exception.repo.ts
+-- which calls with { p_exception_id, p_staff_id, p_resolution }.
 create or replace function public.resolve_exception(
   p_exception_id uuid,
-  p_resolution   text
+  p_resolution   text,
+  p_staff_id     uuid default null
 )
 returns json
 language plpgsql
