@@ -41,13 +41,19 @@ export function OpsDashboardLive({ initialKpis }: OpsDashboardLiveProps) {
   const kpis = kpisQuery.data ?? initialKpis
 
   if (version === "v7") {
-    const nextUpcoming = upcomingQuery.data?.[0]
+    const upcomingItems = (upcomingQuery.data ?? []).map((op: UpcomingOp) => ({
+      id: op.id,
+      label: op.title,
+      eta: op.eta,
+      etaDate: op.etaDate,
+    }))
     return (
       <V7OpsDashboard
         activeShipments={kpis.activeShipments ?? 0}
         inTransit={kpis.inTransit ?? 0}
         openExceptions={kpis.openExceptions ?? 0}
-        nextFlightEta={nextUpcoming?.eta}
+        nextFlightEta={upcomingItems[0]?.eta}
+        upcoming={upcomingItems}
       />
     )
   }
