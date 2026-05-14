@@ -93,10 +93,15 @@ jobs:
           version: latest
       - name: Start Supabase (db + auth + storage only — minimal)
         # --exclude trims the boot to ~60s on GH runners by skipping
-        # services we don't need to validate migrations.
+        # services we don't need to validate migrations. Container names
+        # per `supabase start --help`: edge-runtime, gotrue, imgproxy, kong,
+        # logflare, mailpit, postgres-meta, postgrest, realtime, storage-api,
+        # studio, supavisor, vector. We keep gotrue + postgrest + kong so the
+        # auth template path validation still runs (catches our May 2026
+        # missing-template-files class of bug).
         run: |
           supabase start \
-            --exclude=studio,inbucket,realtime,storage-api,imgproxy,edge-runtime,logflare,vector,pgmeta
+            --exclude=studio,mailpit,realtime,storage-api,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor
       - name: Reset DB — apply every migration + seed against empty Postgres
         # `db reset` drops the schema and replays migrations in order. Any
         # migration that contains invalid SQL, references missing columns,
