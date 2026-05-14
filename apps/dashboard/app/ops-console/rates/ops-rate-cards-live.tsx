@@ -4,10 +4,12 @@ import * as React from "react"
 
 import { useRateCards } from "@workspace/services/hooks/use-rate-cards"
 import type { RateCard } from "@workspace/types"
+import { useDesignVersion } from "@workspace/ui/hooks/use-design-version"
 import {
   OpsRateCardsView,
   type RateCardRow,
 } from "@workspace/ui/components/composed/ops-console/pages"
+import { V7OpsRateCards } from "@workspace/ui/components/composed/rates/v7-ops-rate-cards"
 
 function toRow(rc: RateCard): RateCardRow {
   return {
@@ -26,5 +28,8 @@ function toRow(rc: RateCard): RateCardRow {
 
 export function OpsRateCardsLive() {
   const { data = [] } = useRateCards({ isActive: true })
-  return <OpsRateCardsView rows={data.map(toRow)} />
+  const { version } = useDesignVersion()
+  const rows = data.map(toRow)
+  if (version === "v7") return <V7OpsRateCards rows={rows} />
+  return <OpsRateCardsView rows={rows} />
 }
