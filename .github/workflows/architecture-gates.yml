@@ -16,6 +16,13 @@
 #     this workflow. Raise the budget deliberately, with a same-PR
 #     justification — the budget IS the contract.
 #
+#   - migrations-fresh-apply: runs `supabase db reset` against an empty
+#     Postgres so any migration that won't apply cleanly fails the PR.
+#     Catches the May 2026 broken-trigger-migration class of bug, where
+#     the SQL parsed at definition time but exploded on backfill / first
+#     INSERT. CodeRabbit / Macroscope cannot catch this — it requires
+#     actually executing the SQL.
+#
 # This is intentionally separated from .github/workflows/e2e.yml so a slow
 # Playwright run doesn't gate fast architectural checks.
 
@@ -28,6 +35,7 @@ on:
       - "apps/**"
       - "packages/**"
       - "scripts/**"
+      - "supabase/**"
       - ".github/workflows/architecture-gates.yml"
   push:
     branches: [main]
@@ -68,6 +76,36 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Run governance audit (LAW 2 / LAW 8 / design-system specifics)
         run: pnpm audit:governance
+
+  migrations-fresh-apply:
+    name: Migrations apply on fresh DB
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The workflow's top-level `paths:` filter already gates this whole
+    # workflow to PRs touching apps/packages/scripts/supabase/workflow,
+    # so this job runs whenever the workflow runs. Boot + reset + CLI
+    # install is ~2 min — acceptable cost for the safety net.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start Supabase (db + auth + storage only — minimal)
+        # --exclude trims the boot to ~60s on GH runners by skipping
+        # services we don't need to validate migrations.
+        run: |
+          supabase start \
+            --exclude=studio,inbucket,realtime,storage-api,imgproxy,edge-runtime,logflare,vector,pgmeta
+      - name: Reset DB — apply every migration + seed against empty Postgres
+        # `db reset` drops the schema and replays migrations in order. Any
+        # migration that contains invalid SQL, references missing columns,
+        # uses an undefined enum value, or fails its own backfill will
+        # exit non-zero here.
+        run: supabase db reset --debug
+      - name: Stop Supabase (best effort)
+        if: always()
+        run: supabase stop --no-backup || true
 
   bundle-size:
     name: Bundle size
