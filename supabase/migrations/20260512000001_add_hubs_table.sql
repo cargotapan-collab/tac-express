@@ -42,7 +42,7 @@ create policy hubs_modify_super_admin on public.hubs
   for all using (
     exists (
       select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'SUPER_ADMIN'
+      where p.id = auth.uid() and p.role = 'super_admin'
     )
   );
 

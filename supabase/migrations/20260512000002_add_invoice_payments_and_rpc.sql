@@ -47,7 +47,7 @@ create policy invoice_payments_insert on public.invoice_payments
   for insert with check (
     exists (
       select 1 from public.profiles p
-      where p.id = auth.uid() and p.role in ('SUPER_ADMIN','OPERATOR')
+      where p.id = auth.uid() and p.role in ('super_admin','operations')
     )
   );
 
@@ -77,7 +77,7 @@ begin
   -- Authentication gate: must be a logged-in operator or super admin.
   if not exists (
     select 1 from public.profiles p
-    where p.id = auth.uid() and p.role in ('SUPER_ADMIN','OPERATOR')
+    where p.id = auth.uid() and p.role in ('super_admin','operations')
   ) then
     raise exception 'Unauthorized: only operators or super admins can record payments.'
       using errcode = '42501';

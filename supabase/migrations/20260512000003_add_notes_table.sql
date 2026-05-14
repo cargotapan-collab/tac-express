@@ -47,6 +47,6 @@ create policy notes_delete_own_or_admin on public.notes
     created_by = auth.uid()
     or exists (
       select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'SUPER_ADMIN'
+      where p.id = auth.uid() and p.role = 'super_admin'
     )
   );

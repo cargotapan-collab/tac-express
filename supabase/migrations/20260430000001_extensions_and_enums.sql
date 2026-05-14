@@ -3,6 +3,28 @@
 -- Migration: 20260430000001
 -- ============================================================================
 
+-- Disable function-body validation for the duration of this migration.
+--
+-- Several helper functions defined below (current_user_role, current_user_hub,
+-- the is_*_or_above helpers) are language=sql and reference public.profiles —
+-- but profiles is not created until migration 20260430000002_core_schema.sql.
+-- With Postgres' default check_function_bodies=on, the SQL parser tries to
+-- resolve public.profiles at CREATE FUNCTION time and fails with
+-- "relation does not exist". language=plpgsql functions are exempt because
+-- they parse lazily.
+--
+-- Production is unaffected: this migration was applied long before the CI
+-- gate existed, supabase_migrations.schema_migrations records that fact,
+-- and `supabase db push` skips already-applied migrations by filename. The
+-- session GUC only matters for fresh local stacks (CI, new dev environments)
+-- replaying every migration via `supabase db reset`.
+--
+-- The structurally correct fix is to move these helpers into 20260430000002
+-- (after profiles exists), but that would require editing two committed
+-- migrations and risks divergence with environments that already applied
+-- the originals. The GUC is the minimum-risk fix.
+set check_function_bodies = off;
+
 create extension if not exists "uuid-ossp" with schema extensions;
 create extension if not exists "pgcrypto" with schema extensions;
 create extension if not exists "pg_trgm"  with schema extensions;
