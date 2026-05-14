@@ -1,7 +1,7 @@
 # Production schema snapshot — 2026-05-15
 
 Captured via Supabase MCP (`mdvnphbucrpspntrezmj`). This is the authoritative
-state of production at the time of capture. Source of truth for the Path C
+state of production at the time of capture. Source of truth for the migration
 reconciliation effort tracked by issue #78.
 
 ---
