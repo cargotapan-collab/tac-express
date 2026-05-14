@@ -3,17 +3,20 @@
 > **You are picking up TAC Express where the 2026-05-14 session left off.** Read this top-to-bottom before opening any other file. It is designed to take 5 minutes and get you productive immediately.
 
 **Restore point:** `git tag pre-audit-fixes-v1` (still valid; `git checkout pre-audit-fixes-v1` rolls back the entire prior session).
-**Last commit on `main`:** `c526ef2` — `ci(arch-gates): supabase db reset on every PR touching migrations (#77)`
-**Date this doc was written:** 2026-05-14
-**Author of last session:** Claude Code (Opus 4.7)
+**Last commit on `main`:** `64b7d38` — `docs: 2026-05-14 session retro + next-session handoff (#83)`
+**Date this doc was written:** 2026-05-14 (updated by the PM-mode follow-up session same day)
+**Author of last session:** Claude Code (Opus 4.7), then a second PM-mode pass that merged #83 and ratified #78 via read-only investigation
+
+> **Updated 2026-05-14 PM session:** #83 merged. #78's P0 has been **confirmed and sharpened** — not just suspected. PRs #82/#81 are queue-ready but were classifier-blocked from agent-merge in this session; they need either a typed authorization phrase from you or a permission rule. See § 0, § 2, § 3.1 below for the updated reality.
 
 ---
 
 ## 0. READ THIS FIRST — three things you must NOT do
 
 1. **Do NOT skip [`tac-express-onboarding`](.claude/skills/tac-express-onboarding/SKILL.md).** It is mandatory per `CLAUDE.md § 0.5` (the GBrain four-step gate). The previous session drifted for 6 hours by skipping it. Load it as your literal first action.
-2. **Do NOT add to the audit/infrastructure backlog before resolving [#78](https://github.com/cargotapan-collab/tac-express/issues/78) (production-vs-repo migration drift).** Until that's resolved, every `CREATE OR REPLACE FUNCTION` migration may be a no-op in production. The previous session learned this the hard way — PR #76's role gates likely don't take effect.
+2. **Do NOT add new schema work before #78 closes — it is now confirmed P0, not suspected.** The PM-mode investigation update on [#78](https://github.com/cargotapan-collab/tac-express/issues/78#issuecomment-4448164120) found three things: (a) PR #76 was never deployed to production (production's migration history ends at May 12); (b) even if deployed, it targets the wrong signature (2-arg in repo, 3-arg in production and in the app); (c) the repo is internally inconsistent — `database.types.ts` and app code disagree with the repo's own migration. Every `CREATE OR REPLACE FUNCTION` PR you ship inherits this disease until #78 step 1 (rewrite `functions_and_rpcs.sql` to 3-arg) lands.
 3. **Do NOT start a new wizard (Phase 4c/4d) without a written `tac-brainstorming` spec.** No exceptions. The Phase 4b spec → approval → ship cycle is documented in [PR #82](https://github.com/cargotapan-collab/tac-express/pull/82) — copy that template.
+4. **Do NOT attempt to merge from a fresh agent session without explicit typed authorization or a permission rule.** The PM session learned this — the classifier reads "act as PM" as too indirect for high-severity actions like merging to `main`. To unblock cleanly, either (a) type "merge PR #N now" verbatim per PR, or (b) add a permission rule for `mcp__github__merge_pull_request` in `.claude/settings.local.json`.
 
 ---
 
@@ -49,16 +52,22 @@ If the agent asks "what's the task?", see § 4.
 
 ## 2. Current state snapshot
 
-### Open PRs (4) — these need your attention
+### Open PRs (3 + this one) — these need your attention
 
 | PR | Title | Status | Action |
 |---|---|---|---|
-| [#74](https://github.com/cargotapan-collab/tac-express/pull/74) | DB-types staleness gate + safe regen wrapper | UNSTABLE (gate firing as designed) | **Run on the branch:** `pnpm exec supabase login` → `pnpm supabase:types:remote` → commit the regenerated `database.types.ts` → push → merge. No Docker required (`--remote` mode). |
-| [#81](https://github.com/cargotapan-collab/tac-express/pull/81) | Silence two recurring CI noise sources | UNSTABLE (advisory only) | Review + merge. After this lands, `pnpm audit:all` and `visual + a11y` jobs go clean for all future PRs. |
-| [#82](https://github.com/cargotapan-collab/tac-express/pull/82) | **NextAdmin Phase 4b — V7 Shipment Wizard** | UNSTABLE (advisory) | Review + merge. Browser-verified end-to-end including draft restoration. |
-| [#83](https://github.com/cargotapan-collab/tac-express/pull/83) | 2026-05-14 session retro + handoff doc | (this session's retro) | Review + merge. Doc-only. |
+| [#74](https://github.com/cargotapan-collab/tac-express/pull/74) | DB-types staleness gate + safe regen wrapper | UNSTABLE — **double-blocked, see status comment** | Stale base (4 commits behind main) AND needs `pnpm exec supabase login`. Per [my comment on #74](https://github.com/cargotapan-collab/tac-express/pull/74#issuecomment-4448167664): rebase → `supabase login` → `pnpm supabase:types:remote` → commit → push → merge. **Better to wait until #78 step 1 closes** (rewriting the migration to 3-arg) so the regen doesn't pull in production-only signatures the migration doesn't define. |
+| [#81](https://github.com/cargotapan-collab/tac-express/pull/81) | Silence two recurring CI noise sources | UNSTABLE (advisory only) — ready to merge | **Awaiting your explicit merge.** Classifier blocked the PM-session attempt; needs a typed authorization like "merge PR #81 now". |
+| [#82](https://github.com/cargotapan-collab/tac-express/pull/82) | **NextAdmin Phase 4b — V7 Shipment Wizard** | UNSTABLE (advisory) — ready to merge | **Awaiting your explicit merge.** Same classifier story as #81. Browser-verified end-to-end including draft restoration. |
+| [this PR] | Handoff doc update (PM session) | TBD | Review + merge after the other three land so the handoff reflects the new state. |
 
-**Recommended merge order:** #83 → #82 → #81 → #74. None block each other; pick whatever you want first. #74 is the only one that needs you to do something locally before it can merge.
+**Recommended merge order:** #82 → #81 → this PR → (later, after #78) → #74. #82 first because it's the user-facing product value; #81 second because it cleans CI noise; this PR third so the handoff is current. None block each other.
+
+> **Why the PM session couldn't merge #82/#81 itself:** the auto-mode classifier reads "act as PM" or AskUserQuestion answers as too indirect for `mcp__github__merge_pull_request` to `main`. To grant durable authorization, add this to `.claude/settings.local.json`:
+> ```json
+> { "permissions": { "allow": ["mcp__github__merge_pull_request"] } }
+> ```
+> Or just type `merge PR 82` / `merge PR 81` verbatim to a future agent. One-time typed authorization is also fine.
 
 ### Open Issues (10) — full backlog
 
@@ -71,7 +80,7 @@ If the agent asks "what's the task?", see § 4.
 | [#56](https://github.com/cargotapan-collab/tac-express/issues/56) | Move prettifyHubCode re-export to lib/ | follow-up | yesterday |
 | [#57](https://github.com/cargotapan-collab/tac-express/issues/57) | Replace inline empty-row in OpsExceptionsView with OpsEmptyState | follow-up | yesterday |
 | [#58](https://github.com/cargotapan-collab/tac-express/issues/58) | Align OpsRateCardsView Add Rate Card button label | follow-up | yesterday |
-| **[#78](https://github.com/cargotapan-collab/tac-express/issues/78)** | **Reconcile repo migrations with production schema** | **P0 — read this first** | this session |
+| **[#78](https://github.com/cargotapan-collab/tac-express/issues/78)** | **Reconcile repo migrations with production schema** | **P0 — confirmed, see [investigation comment](https://github.com/cargotapan-collab/tac-express/issues/78#issuecomment-4448164120)** | this session |
 | [#79](https://github.com/cargotapan-collab/tac-express/issues/79) | Supabase advisors: 38 security warnings | P1 | this session |
 | [#80](https://github.com/cargotapan-collab/tac-express/issues/80) | May-12 migration backlog (6 latent bugs from CI gate) | — | this session |
 
@@ -87,11 +96,25 @@ These exist locally on the previous session's machine but were NOT committed (ou
 
 ## 3. Critical context (the things that will trip you up)
 
-### 3.1. Production migrations are NOT what's in the repo
+### 3.1. Production migrations are NOT what's in the repo — and the repo is internally inconsistent
 
-Production has 17 migrations from April 21–22 + May 11–12. Repo has 11 from April 30 + May 12 + May 14. They are **independently maintained**. `supabase db push` skips by filename, so production is safe from accidental schema corruption — but every `CREATE OR REPLACE FUNCTION` in a fix migration creates a *new* function next to production's existing one (PostgreSQL function overloading). **PR #76's role-gate hardening is suspected ineffective in production** because production calls 3-arg signatures (`add_shipment_to_manifest(uuid, text, uuid)`) while the repo defines 2-arg ones.
+Production has 17 migrations from April 21–22 + May 11–12. Repo has 11 from April 30 + May 12 + May 14. They are **independently maintained**. `supabase db push` skips by filename, so production is safe from accidental schema corruption — but the divergence has compounded into three problems:
 
-Full details + resolution options: [issue #78](https://github.com/cargotapan-collab/tac-express/issues/78).
+1. **PR #76 was never deployed to production.** Confirmed via `mcp__supabase__list_migrations`: production's history ends at `20260512164008`. The May-14 migrations (#73, #76) are not there. So the role-gate hardening is currently inactive on production. Production is running the original April-21 RPC definitions with no explicit role gates.
+
+2. **PR #76 targets the wrong signature.** Production has 3-arg `add_shipment_to_manifest(uuid, text, uuid)` from `20260422145228_fix_manifest_rpc_optional_staff_id`. Repo's migration defines the 2-arg version. So even if you pushed #76 to production today, PostgreSQL would create a new 2-arg overload alongside the existing 3-arg function — and the app keeps calling the 3-arg one ungated.
+
+3. **The repo is internally inconsistent.** `packages/database/src/database.types.ts:640` and the app code (`manifest.service.ts:90-93`, `manifest.repo.ts:56-83`) all assume the 3-arg signature with `p_staff_id`. But the repo's `supabase/migrations/20260430000003_functions_and_rpcs.sql:114` defines the 2-arg version. So `supabase db reset` locally would produce a broken environment (PostgREST can't find a 3-arg overload). The types file was clearly generated against production, where the 3-arg version exists.
+
+**Resolution sequence (per [my comment on #78](https://github.com/cargotapan-collab/tac-express/issues/78#issuecomment-4448164120)):**
+
+1. Rewrite `functions_and_rpcs.sql` to the 3-arg signatures so the repo becomes self-consistent and `supabase db reset` works.
+2. Snapshot production schema → check in as frozen reference (`supabase/snapshots/production-schema-2026-05-14.sql`).
+3. Rewrite PR #76's migration to target the corrected 3-arg signatures.
+4. Deploy. Verify gates actually gate by trying a customer-role call against `update_shipment_status` and expecting SQLSTATE `42501`.
+5. Remove `continue-on-error` from `migrations-fresh-apply` in `.github/workflows/architecture-gates.yml`.
+
+~2 hours for steps 1-3, ~30 min for steps 4-5. Much less than the "two weeks" estimate in the original #78 body — we're aligning *current state*, not reconstructing *history*.
 
 ### 3.2. The CI gate that finds bugs is in soft-fail mode
 
@@ -131,9 +154,9 @@ If port 3001 is already taken (by another dev server), `pnpm --filter dashboard 
 
 **Pick ONE of these. Do NOT bundle.**
 
-### Option A — Close the open queue (recommended; ~30 min)
+### Option A — Close the open queue (recommended; ~15 min)
 
-The fastest path to a clean board. Merge #83, #82, #81 in any order. For #74, run the type regen on the branch then merge. After this, you have 0 open PRs and a clean baseline for new work.
+The fastest path to a clean board. #83 is already merged. Merge **#82 → #81 → this handoff-update PR** in that order (type the merge command explicitly so the classifier doesn't block). Defer #74 until #78 step 1 lands. After this you have 1 deferred PR (#74) and a clean baseline for new work.
 
 ### Option B — Start NextAdmin Phase 4c (New Manifest wizard) (recommended; ~one focused session)
 
@@ -150,9 +173,19 @@ Same template as Phase 4b. Use [PR #82](https://github.com/cargotapan-collab/tac
 
 The hook from #82 (`useShipmentDraft`) can be generalized to `useFormDraft<T>` and reused for the manifest wizard's draft persistence. Even better: do the generalization as a tiny refactor PR FIRST (one concern), then the manifest wizard PR depends on it.
 
-### Option C — Resolve #78 (production-vs-repo migration drift) (high-leverage; ~one session)
+### Option C — Resolve #78 (production-vs-repo migration drift) (high-leverage; ~2-3 hours, NOT a full session anymore)
 
-The strategic finding from the prior session. Until this resolves, every migration PR is suspect. The four ranked resolution options are in [#78](https://github.com/cargotapan-collab/tac-express/issues/78). Recommended: schema-dump-based reconciliation. This unblocks the value of #76, validates the value of #77, and makes future migration work load-bearing again.
+The PM-mode investigation in this session sharpened the resolution path. See § 3.1 for the 5-step sequence — it is now a concrete checklist, not an open exploration. The 5-step plan unblocks the value of #76, validates the value of #77, makes #74 cleanly mergeable, and de-risks all future schema PRs. **This is the highest-leverage single task on the board.**
+
+Concretely:
+1. Load `tac-supabase-schema` skill.
+2. Rewrite `supabase/migrations/20260430000003_functions_and_rpcs.sql` so every RPC the app calls (see grep `db.rpc("` in `packages/`) has the signature that matches both `database.types.ts` AND production.
+3. Run `pnpm vitest` — current tests will catch any remaining inconsistency.
+4. Snapshot production schema. (Owner runs `pg_dump --schema-only` — needs interactive Supabase login.)
+5. Rewrite PR #76's migration to target the corrected signatures. Open as a separate PR that depends on step 2.
+6. Owner deploys with `supabase db push` (needs interactive login).
+7. Verify gates with a manual test from a customer-role session.
+8. Open PR that removes `continue-on-error` from architecture-gates.yml and closes #78.
 
 ### Option D — Address #79 (Supabase advisors) (lower priority; can batch with B or C)
 
@@ -266,7 +299,9 @@ The May-14 session shipped Phase 4b in ~3 hours by following this exactly. The s
 
 The previous session shipped real value (one production-breaking bug fix, one product feature, three strategic findings) but drifted hard for half its duration before correcting. The corrective half is the template. The drift half is the cautionary tale.
 
-**Best practice in software is sometimes shipping the next PR, and sometimes calling the line.** When in doubt, ask: *does this work move us down the published roadmap, or am I discovering new work?* The first is product. The second is research that needs ratification before it becomes work.
+**The PM-mode follow-up session (this update)** did three things in roughly an hour: merged #83, ratified #78 via read-only investigation (and sharpened it from "suspected P0" to "confirmed P0 with concrete resolution sequence"), and posted blocker status on #74. It also discovered that the auto-mode classifier will refuse to merge production PRs from indirect authority ("act as PM"). That friction is the system working as intended — but it means agent sessions cannot blind-clear queues; the owner is in the loop for `main` writes.
+
+**Best practice in software is sometimes shipping the next PR, and sometimes calling the line.** When in doubt, ask: *does this work move us down the published roadmap, or am I discovering new work?* The first is product. The second is research that needs ratification before it becomes work. The PM session leaned hard on the *ratification* mode for #78 — that's why it stayed read-only and didn't try to fix anything, just produced a concrete plan for the next session to execute.
 
 This is a **logistics company web app**. Every UI decision serves an operator who is creating, dispatching, scanning, or invoicing a shipment under time pressure. Keep that operator at the centre of every decision.
 
