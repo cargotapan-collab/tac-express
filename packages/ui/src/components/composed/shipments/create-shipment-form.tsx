@@ -3,7 +3,6 @@
 import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { cn } from "@workspace/ui/lib/utils"
 import {
   Wizard,
@@ -15,30 +14,10 @@ import {
   type SmartAddressValue,
 } from "@workspace/ui/components/composed/smart-address-fields"
 
-const createShipmentSchema = z.object({
-  senderName: z.string().min(2, "Name required"),
-  senderPhone: z.string().min(10, "Valid phone required"),
-  senderAddress: z.string().min(5, "Address required"),
-  senderCity: z.string().min(2, "City required"),
-  senderState: z.string().min(2, "State required"),
-  senderPincode: z.string().length(6, "6-digit pincode required"),
-  receiverName: z.string().min(2, "Name required"),
-  receiverPhone: z.string().min(10, "Valid phone required"),
-  receiverAddress: z.string().min(5, "Address required"),
-  receiverCity: z.string().min(2, "City required"),
-  receiverState: z.string().min(2, "State required"),
-  receiverPincode: z.string().length(6, "6-digit pincode required"),
-  weight: z.coerce.number().positive("Weight must be positive"),
-  length: z.coerce.number().positive(),
-  breadth: z.coerce.number().positive(),
-  height: z.coerce.number().positive(),
-  declaredValue: z.coerce.number().min(0),
-  description: z.string().min(2, "Description required"),
-  paymentMode: z.enum(["TO_PAY", "PAID", "TBB"]),
-  serviceType: z.enum(["STANDARD", "EXPRESS", "PRIORITY"]),
-})
-
-type CreateShipmentInput = z.infer<typeof createShipmentSchema>
+import {
+  createShipmentSchema,
+  type CreateShipmentInput,
+} from "./create-shipment-schema"
 
 const STEPS: WizardStep[] = [
   { id: "sender", label: "Sender" },
@@ -319,4 +298,9 @@ function CreateShipmentForm({ onSubmit, isLoading, className }: CreateShipmentFo
 }
 
 export { CreateShipmentForm }
-export type { CreateShipmentInput }
+// Schema + type re-exported here for backwards compatibility; new consumers
+// should import directly from `./create-shipment-schema`.
+export {
+  createShipmentSchema,
+  type CreateShipmentInput,
+} from "./create-shipment-schema"
