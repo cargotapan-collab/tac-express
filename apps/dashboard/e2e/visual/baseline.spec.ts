@@ -117,14 +117,14 @@ const PAGES: BaselinePage[] = [
   { name: "finance-create", path: "/ops-console/finance/create", protected: true },
   { name: "customers-list", path: "/ops-console/customers", protected: true },
   { name: "customers-create", path: "/ops-console/customers/create", protected: true },
-  // shipments-list excluded — see Cross-platform exclusions in the docstring above
+  // shipments-list excluded — see Excluded routes in the docstring above
   { name: "inventory", path: "/ops-console/inventory", protected: true },
   // settings excluded — content-growth drift, see docstring above; re-baseline candidate
 ]
 
 // Single up-front assertion: baselines must exist OR auth must be unset.
 // The two valid states are:
-//   1. Baselines exist + auth set     → all 10 page tests run, gate is active
+//   1. Baselines exist + auth set     → all pages in `PAGES` run, gate is active
 //   2. Auth UNSET (e.g. CI without secrets) → all tests skip cleanly
 //
 // The invalid state we explicitly fail on:
