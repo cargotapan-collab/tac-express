@@ -15,19 +15,26 @@ import { z } from "zod"
  * are silently invalidated rather than silently rehydrated into a form
  * shape that no longer matches.
  */
+// Indian phone numbers are exactly 10 digits; pincodes are exactly 6 digits.
+// Use regex (not min/length on a generic string) so non-digit input is rejected
+// at the schema level — these values flow into AWBs, invoices, and printed
+// labels where a stray space or letter is a real operational problem.
+const PHONE_REGEX = /^\d{10}$/
+const PINCODE_REGEX = /^\d{6}$/
+
 export const createShipmentSchema = z.object({
   senderName: z.string().min(2, "Name required"),
-  senderPhone: z.string().min(10, "Valid phone required"),
+  senderPhone: z.string().trim().regex(PHONE_REGEX, "10-digit phone required"),
   senderAddress: z.string().min(5, "Address required"),
   senderCity: z.string().min(2, "City required"),
   senderState: z.string().min(2, "State required"),
-  senderPincode: z.string().length(6, "6-digit pincode required"),
+  senderPincode: z.string().trim().regex(PINCODE_REGEX, "6-digit pincode required"),
   receiverName: z.string().min(2, "Name required"),
-  receiverPhone: z.string().min(10, "Valid phone required"),
+  receiverPhone: z.string().trim().regex(PHONE_REGEX, "10-digit phone required"),
   receiverAddress: z.string().min(5, "Address required"),
   receiverCity: z.string().min(2, "City required"),
   receiverState: z.string().min(2, "State required"),
-  receiverPincode: z.string().length(6, "6-digit pincode required"),
+  receiverPincode: z.string().trim().regex(PINCODE_REGEX, "6-digit pincode required"),
   weight: z.coerce.number().positive("Weight must be positive"),
   length: z.coerce.number().positive(),
   breadth: z.coerce.number().positive(),

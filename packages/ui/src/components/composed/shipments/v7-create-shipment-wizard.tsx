@@ -137,6 +137,13 @@ function V7CreateShipmentWizard({
   const isLastStep = step === STEPS.length - 1
 
   async function handleAdvanceOrSubmit() {
+    // Re-entrancy guard: the form's onFormSubmit fires on Enter, which can
+    // race with a pending submit on the last step. Without this an operator
+    // mashing Enter while the network is in-flight can fire the parent's
+    // onSubmit twice and create two shipments. The button has disabled,
+    // but the form-level Enter handler bypasses it.
+    if (isLoading) return
+
     if (!isLastStep) {
       const valid = await trigger(STEP_FIELDS[step] ?? [])
       if (valid) setStep((s) => Math.min(s + 1, STEPS.length - 1))
@@ -547,7 +554,12 @@ function V7CreateShipmentWizard({
                 ],
                 [
                   "Declared value",
-                  values.declaredValue ? `₹${values.declaredValue}` : undefined,
+                  // Use != null (not truthy) so a legitimate ₹0 declared value
+                  // renders correctly. Schema permits min(0); the review screen
+                  // should match.
+                  values.declaredValue != null
+                    ? `₹${values.declaredValue}`
+                    : undefined,
                 ],
                 ["Payment", values.paymentMode],
                 ["Service", values.serviceType],
