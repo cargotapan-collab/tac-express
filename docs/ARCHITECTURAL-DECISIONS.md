@@ -196,4 +196,68 @@ export function generateWhatsAppShareUrl(params: {
 | Custom font | ❌ | LAW 4 |
 | Custom radius | ❌ | LAW 13 (`--radius: 0rem`) |
 
+---
+
+## Decision 8 — Migration drift reconciliation: **Path A (production-as-baseline)**
+
+**Status:** Pending owner confirmation as of 2026-05-15. Catalog filed in
+`supabase/snapshots/MIGRATION-DRIFT-CATALOG-2026-05-15.md`.
+
+**Context:** Production Supabase (`mdvnphbucrpspntrezmj`) carries 17
+migrations under names that do not exist in the repo (`20260421*` family).
+The repo has 11 migrations under different names (`20260430*`, `20260512000*`,
+`20260514*`) that have never been applied to production. Independent
+maintenance over six weeks produced **structurally different schemas** —
+not just function-signature drift, but a fundamentally different model
+(repo: enum types + lowercase values; production: TEXT + CHECK +
+UPPERCASE values; different lifecycle states for shipments/manifests;
+different role names; different helper-function names).
+
+**Options considered** (full analysis in catalog §6):
+
+- **Path A — Production is baseline (chosen).** Generate one consolidated
+  baseline migration from production schema. Archive the divergent repo
+  migrations. Insert production's filenames into
+  `supabase_migrations.schema_migrations` once. Forward migrations only
+  from here.
+- **Path B — Repo is truth, push everything.** Rejected: high production
+  risk, requires maintenance window for a live logistics app.
+- **Path C — Edit repo migrations to match production.** Rejected after
+  the May 15 snapshot: the divergence is structural, not cosmetic.
+  Editing every migration to match would damage audit-trail integrity
+  more than archiving them, and takes weeks instead of days.
+
+**Why Path A:**
+
+1. Production is already correct (modulo the `OPERATOR` RLS bug — see
+   below) and serves real customer traffic. Treating it as the baseline
+   minimizes change to live state.
+2. One generation step + one archive move + one bookkeeping insert is
+   bounded work. Editing 11 migrations to match a different schema
+   model is unbounded.
+3. Audit-trail integrity is preserved — archived migrations stay
+   readable in `supabase/migrations/_archive/` for git-blame value.
+4. CI gate `migrations-fresh-apply` becomes load-bearing immediately
+   after the baseline lands. Today it runs against a fictional schema.
+
+**Forward implications:**
+
+- Repo enum types are abandoned. Domain code in `packages/services` /
+  `packages/types` must use string literal unions matching production
+  CHECK lists (UPPERCASE).
+- The first forward migration after baseline fixes the latent
+  `invoice_payments_insert` bug (policy references nonexistent role
+  `'OPERATOR'` — only `SUPER_ADMIN` can currently insert payments).
+- Future schema changes go through normal `supabase migration new` flow.
+- The CI staleness gate added in #74 keeps `database-types.ts` in lock-step
+  with the new baseline.
+
+**What this does NOT change:**
+
+- No production data is touched.
+- No production schema is altered by this PR — it captures and catalogs
+  only. The forward "fix `OPERATOR` role" migration ships separately.
+- All RPC, RLS, and trigger semantics in production continue exactly
+  as today.
+
 — END OF DECISIONS —
