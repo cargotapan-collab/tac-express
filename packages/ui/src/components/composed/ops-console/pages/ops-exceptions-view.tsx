@@ -41,7 +41,7 @@ function OpsExceptionsView({ rows }: OpsExceptionsViewProps) {
         // proper heading. Closes #57.
         <OpsEmptyState
           icon={RiShieldCheckLine}
-          eyebrow="No exceptions"
+          eyebrow="NO EXCEPTIONS"
           headline="All shipments are clear."
           description="No exceptions are open right now. If a shipment is delayed, damaged, or lost, it will appear here for action."
         />
