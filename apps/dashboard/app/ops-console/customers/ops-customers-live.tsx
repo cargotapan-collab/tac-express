@@ -4,10 +4,12 @@ import * as React from "react"
 
 import { useCustomers } from "@workspace/services/hooks/use-customers"
 import type { Customer } from "@workspace/types"
+import { useDesignVersion } from "@workspace/ui/hooks/use-design-version"
 import {
   OpsCustomersView,
   type CustomerRow,
 } from "@workspace/ui/components/composed/ops-console/pages"
+import { V7OpsCustomers } from "@workspace/ui/components/composed/customers/v7-ops-customers"
 
 function toRow(c: Customer): CustomerRow {
   return {
@@ -26,5 +28,9 @@ function toRow(c: Customer): CustomerRow {
 
 export function OpsCustomersLive() {
   const { data = [] } = useCustomers({})
-  return <OpsCustomersView rows={data.map(toRow)} />
+  const { version } = useDesignVersion()
+  const rows = data.map(toRow)
+
+  if (version === "v7") return <V7OpsCustomers rows={rows} />
+  return <OpsCustomersView rows={rows} />
 }
