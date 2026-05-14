@@ -136,6 +136,13 @@ interface OpsGrowthAreaChartProps {
 function OpsGrowthAreaChart({ className }: OpsGrowthAreaChartProps) {
   const [range, setRange] = React.useState<Range>("90d")
 
+  // Per-instance gradient IDs (see <defs> below). useId() produces a stable
+  // unique ID per component mount; concat'd suffixes keep the two gradients
+  // distinguishable from each other within the same instance. Closes #55.
+  const reactId = React.useId()
+  const deliveredFillId = `${reactId}-delivered`
+  const exceptionsFillId = `${reactId}-exceptions`
+
   const filteredData = React.useMemo(() => {
     const referenceDate = new Date("2024-06-30")
     const daysToSubtract = range === "7d" ? 7 : range === "30d" ? 30 : 90
@@ -191,11 +198,16 @@ function OpsGrowthAreaChart({ className }: OpsGrowthAreaChartProps) {
       >
         <AreaChart data={filteredData} margin={{ left: 0, right: 0, top: 4 }}>
           <defs>
-            <linearGradient id="opsFillDelivered" x1="0" y1="0" x2="0" y2="1">
+            {/* Per-instance gradient IDs. SVG <defs> IDs are global in the
+                document, so two charts mounted side-by-side (e.g. dashboard
+                + analytics tile in a future A/B layout, or Storybook multi-
+                instance) would have the second silently inherit the first's
+                gradient fills. useId() scopes them. Closes #55. */}
+            <linearGradient id={deliveredFillId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="var(--color-delivered)" stopOpacity={0.8} />
               <stop offset="95%" stopColor="var(--color-delivered)" stopOpacity={0.1} />
             </linearGradient>
-            <linearGradient id="opsFillExceptions" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={exceptionsFillId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="var(--color-exceptions)" stopOpacity={0.8} />
               <stop offset="95%" stopColor="var(--color-exceptions)" stopOpacity={0.1} />
             </linearGradient>
@@ -228,14 +240,14 @@ function OpsGrowthAreaChart({ className }: OpsGrowthAreaChartProps) {
           <Area
             dataKey="exceptions"
             type="natural"
-            fill="url(#opsFillExceptions)"
+            fill={`url(#${exceptionsFillId})`}
             stroke="var(--color-exceptions)"
             stackId="a"
           />
           <Area
             dataKey="delivered"
             type="natural"
-            fill="url(#opsFillDelivered)"
+            fill={`url(#${deliveredFillId})`}
             stroke="var(--color-delivered)"
             stackId="a"
           />
