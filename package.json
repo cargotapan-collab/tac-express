@@ -7,7 +7,9 @@
     "audit:governance": "node scripts/audit-governance.mjs",
     "audit:orphans:refresh-baseline": "AUDIT_ORPHANS_WRITE_BASELINE=1 node scripts/audit-governance.mjs",
     "audit:design-spec": "node scripts/audit-design-spec.mjs",
-    "supabase:types": "supabase gen types typescript --local > packages/database/src/database.types.ts",
+    "audit:db-types-fresh": "node scripts/audit-db-types-fresh.mjs",
+    "supabase:types": "node scripts/supabase-types.mjs --local",
+    "supabase:types:remote": "node scripts/supabase-types.mjs --remote",
     "supabase:reset": "supabase db reset",
     "supabase:start": "supabase start",
     "build": "turbo build",
@@ -26,7 +28,7 @@
     "audit:skills": "pnpm dlx tsx scripts/audit-skills.ts",
     "test:routing-eval": "pnpm dlx tsx scripts/test-routing-eval.ts",
     "measure:bundle": "node scripts/measure-bundle-size.mjs",
-    "audit:all": "pnpm audit:governance && pnpm audit:auth-boundary && pnpm audit:skills && pnpm audit:design-spec && pnpm test:routing-eval"
+    "audit:all": "pnpm audit:governance && pnpm audit:auth-boundary && pnpm audit:skills && pnpm audit:design-spec && pnpm audit:db-types-fresh && pnpm test:routing-eval"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
@@ -39,6 +41,7 @@
     "happy-dom": "^20.9.0",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
+    "supabase": "^2.98.2",
     "tsx": "^4.21.0",
     "turbo": "^2.9.6",
     "typescript": "5.9.3",
@@ -54,7 +57,8 @@
       "core-js-pure",
       "esbuild",
       "msw",
-      "sharp"
+      "sharp",
+      "supabase"
     ]
   }
 }
