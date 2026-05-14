@@ -105,6 +105,18 @@ function V7CreateShipmentWizard({
 
   const [step, setStep] = React.useState(0)
 
+  // In-flight latch — catches the second of two rapid handler invocations.
+  // The isLoading prop only flips true once the parent's network mutation
+  // is in flight, which is too late: a rapid Next double-click both enters
+  // the body while trigger() is still async, and a rapid Enter mash during
+  // the final-step handleSubmit window both run before isLoading observes
+  // the pending state. Both are operationally serious in a logistics
+  // workflow — double-stepped wizards skip validation, double-submits
+  // create duplicate shipments. The ref version is set/cleared
+  // synchronously around the entire awaited body so the second invocation
+  // returns instantly.
+  const isInFlightRef = React.useRef(false)
+
   const {
     register,
     handleSubmit,
@@ -137,27 +149,37 @@ function V7CreateShipmentWizard({
   const isLastStep = step === STEPS.length - 1
 
   async function handleAdvanceOrSubmit() {
-    // Re-entrancy guard: the form's onFormSubmit fires on Enter, which can
-    // race with a pending submit on the last step. Without this an operator
-    // mashing Enter while the network is in-flight can fire the parent's
-    // onSubmit twice and create two shipments. The button has disabled,
-    // but the form-level Enter handler bypasses it.
-    if (isLoading) return
-
-    if (!isLastStep) {
-      const valid = await trigger(STEP_FIELDS[step] ?? [])
-      if (valid) setStep((s) => Math.min(s + 1, STEPS.length - 1))
-      return
+    // Re-entrancy guard. Two cases to defend against, both operationally
+    // serious in a logistics workflow:
+    //   (a) Enter-mashing during the final-step submit fires the form's
+    //       onFormSubmit multiple times before isLoading flips true,
+    //       creating duplicate shipments.
+    //   (b) Rapid Next double-clicks on step 0/1/2 both enter the body
+    //       while trigger() is still resolving; the second click then
+    //       fires its own setStep advance AFTER the first already did,
+    //       skipping a validation pass.
+    // isLoading covers (a) once the parent reports it. isInFlightRef
+    // covers (b) and the small window of (a) before isLoading goes true.
+    if (isLoading || isInFlightRef.current) return
+    isInFlightRef.current = true
+    try {
+      if (!isLastStep) {
+        const valid = await trigger(STEP_FIELDS[step] ?? [])
+        if (valid) setStep((s) => Math.min(s + 1, STEPS.length - 1))
+        return
+      }
+      // Last step → run handleSubmit which validates ALL fields one more
+      // time (defense against any field that wasn't on STEP_FIELDS).
+      await handleSubmit(async (values) => {
+        await onSubmit(values)
+        // Only clear the draft once the parent's onSubmit resolves
+        // successfully. If it throws, the draft is preserved so the
+        // operator can fix and retry.
+        clear()
+      })()
+    } finally {
+      isInFlightRef.current = false
     }
-    // Last step → run handleSubmit which validates ALL fields one more
-    // time (defense against any field that wasn't on STEP_FIELDS).
-    await handleSubmit(async (values) => {
-      await onSubmit(values)
-      // Only clear the draft once the parent's onSubmit resolves
-      // successfully. If it throws, the draft is preserved so the
-      // operator can fix and retry.
-      clear()
-    })()
   }
 
   function handleBack() {

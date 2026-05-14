@@ -80,4 +80,43 @@ describe("V7CreateShipmentWizard", () => {
     const primary = buttons.find((b) => b.textContent?.toLowerCase().includes("…"))
     expect(primary ?? buttons[buttons.length - 1]).toBeDisabled()
   })
+
+  // Operationally serious for a logistics workflow: rapid double-clicks on Next
+  // (or Enter mashing on the final-step submit) must not both advance / submit.
+  // Without the in-flight latch this would skip step validation or create
+  // duplicate shipments. The guard is a single ref-based latch synchronously
+  // set on entry and cleared in `finally`, so the second click returns instantly.
+  it("rapid double-click on Next does not advance two steps for one validation pass", async () => {
+    // Seed a draft so Step 1 (Sender) is valid — otherwise both clicks would
+    // be blocked by validation, not by the in-flight latch, and we'd be
+    // testing the wrong thing.
+    seedDraft({
+      senderName: "Alice From Imphal",
+      senderPhone: "9876543210",
+      senderAddress: "123 Khwairamband Road",
+      senderCity: "Imphal",
+      senderState: "Manipur",
+      senderPincode: "795001",
+    })
+
+    render(<V7CreateShipmentWizard onSubmit={vi.fn()} />)
+
+    // Capture the Next button (its identity is stable across the click pair).
+    const nextBtn = screen.getByRole("button", { name: /next/i })
+
+    // Fire two clicks synchronously in the same microtask — this is the
+    // operator-double-click pattern. Without the latch, both invocations
+    // see step=0 in closure and both call setStep(s => s+1), netting +2.
+    // With the latch, the second invocation returns before doing any work.
+    await act(async () => {
+      nextBtn.click()
+      nextBtn.click()
+    })
+
+    // After both clicks resolve, we should be on Step 2 (Receiver), not Step 3.
+    // Receiver fields are present...
+    expect(screen.getByLabelText(/receiver name/i)).toBeInTheDocument()
+    // ...and Package step fields are NOT (weight is unique to Package).
+    expect(screen.queryByLabelText(/weight \(kg\)/i)).not.toBeInTheDocument()
+  })
 })
