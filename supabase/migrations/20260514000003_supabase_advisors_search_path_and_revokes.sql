@@ -158,12 +158,22 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- 13. resolve_exception
+-- 13. resolve_exception — DIVERGENT POSITIONAL ORDER between repo and production
+--   - production:   (p_exception_id uuid, p_staff_id uuid, p_resolution text)
+--   - repo #85:     (p_exception_id uuid, p_resolution text, p_staff_id uuid)
+-- PostgreSQL identifies overloads by positional type list, so ALTER FUNCTION
+-- must use the matching order for each environment. Branch on which one
+-- actually exists. Macroscope caught this on PR #89 (comment_id 3243084057).
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
              WHERE n.nspname = 'public' AND p.proname = 'resolve_exception'
-               AND pg_get_function_identity_arguments(p.oid) IN ('p_exception_id uuid, p_staff_id uuid, p_resolution text',
-                                                                  'p_exception_id uuid, p_resolution text, p_staff_id uuid DEFAULT NULL::uuid')) THEN
+               AND pg_get_function_identity_arguments(p.oid) = 'p_exception_id uuid, p_resolution text, p_staff_id uuid DEFAULT NULL::uuid') THEN
+    -- repo / #85 order: (uuid, text, uuid)
+    ALTER FUNCTION public.resolve_exception(uuid, text, uuid) SET search_path = public, pg_catalog;
+  ELSIF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+                WHERE n.nspname = 'public' AND p.proname = 'resolve_exception'
+                  AND pg_get_function_identity_arguments(p.oid) = 'p_exception_id uuid, p_staff_id uuid, p_resolution text') THEN
+    -- production order: (uuid, uuid, text)
     ALTER FUNCTION public.resolve_exception(uuid, uuid, text) SET search_path = public, pg_catalog;
   END IF;
 END $$;
@@ -247,9 +257,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- resolve_exception — same positional-order divergence as the ALTER above.
+-- Branch by exact signature so the REVOKE targets the function that exists.
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-             WHERE n.nspname = 'public' AND p.proname = 'resolve_exception') THEN
+             WHERE n.nspname = 'public' AND p.proname = 'resolve_exception'
+               AND pg_get_function_identity_arguments(p.oid) = 'p_exception_id uuid, p_resolution text, p_staff_id uuid DEFAULT NULL::uuid') THEN
+    REVOKE EXECUTE ON FUNCTION public.resolve_exception(uuid, text, uuid) FROM anon;
+  ELSIF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+                WHERE n.nspname = 'public' AND p.proname = 'resolve_exception'
+                  AND pg_get_function_identity_arguments(p.oid) = 'p_exception_id uuid, p_staff_id uuid, p_resolution text') THEN
     REVOKE EXECUTE ON FUNCTION public.resolve_exception(uuid, uuid, text) FROM anon;
   END IF;
 END $$;
