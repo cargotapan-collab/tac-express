@@ -241,11 +241,16 @@ set search_path = public
 as $$
 declare
   v_awb     text;
-  v_status  shipment_status := p_new_status::shipment_status;
+  v_status  shipment_status;
 begin
+  -- Role check FIRST so unauthorized callers don't learn about enum values
+  -- through 'invalid input value for enum shipment_status' error messages.
+  -- The cast must happen inside BEGIN, after the gate, not in DECLARE.
   if not public.is_operations_or_above() and not public.is_warehouse_role() then
     raise exception 'Insufficient privileges' using errcode = '42501';
   end if;
+
+  v_status := p_new_status::shipment_status;
 
   select awb_number into v_awb from public.shipments where id = p_shipment_id;
   if v_awb is null then
