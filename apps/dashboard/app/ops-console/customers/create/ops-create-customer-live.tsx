@@ -5,14 +5,17 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { useCreateCustomer } from "@workspace/services/hooks/use-customers"
+import { useDesignVersion } from "@workspace/ui/hooks/use-design-version"
 import {
   OpsCustomerForm,
   type OpsCustomerFormInput,
 } from "@workspace/ui/components/composed/ops-console/forms"
+import { V7CustomerForm } from "@workspace/ui/components/composed/customers/v7-customer-form"
 
 export function OpsCreateCustomerLive() {
   const router = useRouter()
   const { mutateAsync, isPending } = useCreateCustomer()
+  const { version } = useDesignVersion()
 
   const onSubmit = async (data: OpsCustomerFormInput) => {
     try {
@@ -38,5 +41,8 @@ export function OpsCreateCustomerLive() {
     }
   }
 
+  if (version === "v7") {
+    return <V7CustomerForm onSubmit={onSubmit} isLoading={isPending} />
+  }
   return <OpsCustomerForm onSubmit={onSubmit} isLoading={isPending} />
 }
