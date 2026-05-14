@@ -47,13 +47,16 @@ create policy hubs_modify_super_admin on public.hubs
   );
 
 -- Seed hubs matching existing shipment/manifest codes.
-insert into public.hubs (code, name, city, state) values
-  ('IMPHAL',    'Imphal Hub',     'Imphal',    'Manipur'),
-  ('NEW_DELHI', 'New Delhi Hub',  'New Delhi', 'Delhi'),
-  ('BOM',       'Mumbai Hub',     'Mumbai',    'Maharashtra'),
-  ('MAA',       'Chennai Hub',    'Chennai',   'Tamil Nadu'),
-  ('BLR',       'Bangalore Hub',  'Bangalore', 'Karnataka'),
-  ('CCU',       'Kolkata Hub',    'Kolkata',   'West Bengal'),
-  ('HYD',       'Hyderabad Hub',  'Hyderabad', 'Telangana'),
-  ('PNQ',       'Pune Hub',       'Pune',      'Maharashtra')
+-- pincode + address are NOT NULL on the hubs table (per 20260430000002),
+-- so the seed must include both. Production hubs already have authoritative
+-- values; these placeholder seeds only fire on a fresh local DB.
+insert into public.hubs (code, name, city, state, pincode, address) values
+  ('IMPHAL',    'Imphal Hub',     'Imphal',    'Manipur',     '795001', 'Imphal Hub Office'),
+  ('NEW_DELHI', 'New Delhi Hub',  'New Delhi', 'Delhi',       '110001', 'New Delhi Hub Office'),
+  ('BOM',       'Mumbai Hub',     'Mumbai',    'Maharashtra', '400001', 'Mumbai Hub Office'),
+  ('MAA',       'Chennai Hub',    'Chennai',   'Tamil Nadu',  '600001', 'Chennai Hub Office'),
+  ('BLR',       'Bangalore Hub',  'Bangalore', 'Karnataka',   '560001', 'Bangalore Hub Office'),
+  ('CCU',       'Kolkata Hub',    'Kolkata',   'West Bengal', '700001', 'Kolkata Hub Office'),
+  ('HYD',       'Hyderabad Hub',  'Hyderabad', 'Telangana',   '500001', 'Hyderabad Hub Office'),
+  ('PNQ',       'Pune Hub',       'Pune',      'Maharashtra', '411001', 'Pune Hub Office')
 on conflict (code) do nothing;
