@@ -1,31 +1,42 @@
 -- ============================================================================
 -- TAC Express — Seed data (idempotent)
 -- ============================================================================
+--
+-- Mirrors production's hubs + a representative slice of production's rate
+-- cards. Updated 2026-05-15 to match the production-aligned baseline
+-- (20260515000001_baseline_from_production.sql) — the prior seed was
+-- written against the archived repo migrations and referenced columns
+-- that no longer exist (hubs.pincode/address, rate_cards.name/customer_id/
+-- transport_mode/base_rate/etc.).
 
-insert into public.hubs (code, name, city, state, country, pincode, address, is_active)
+insert into public.hubs (code, name, city, state, country, is_active)
 values
-  ('IMP', 'Imphal Hub',     'Imphal',     'Manipur',         'IN', '795001', 'Tiddim Road, Imphal',                          true),
-  ('DEL', 'Delhi Hub',      'New Delhi',  'Delhi',           'IN', '110037', 'Cargo Terminal, IGI Airport',                  true),
-  ('BLR', 'Bengaluru Hub',  'Bengaluru',  'Karnataka',       'IN', '560300', 'Air Cargo Complex, Devanahalli',               true),
-  ('BOM', 'Mumbai Hub',     'Mumbai',     'Maharashtra',     'IN', '400099', 'Air Cargo Complex, Sahar',                     true),
-  ('GAU', 'Guwahati Hub',   'Guwahati',   'Assam',           'IN', '781015', 'LGBI Cargo Terminal',                          true),
-  ('CCU', 'Kolkata Hub',    'Kolkata',    'West Bengal',     'IN', '700052', 'Cargo Complex, NSCBI Airport',                 true),
-  ('MAA', 'Chennai Hub',    'Chennai',    'Tamil Nadu',      'IN', '600027', 'Cargo Complex, Meenambakkam',                  true),
-  ('HYD', 'Hyderabad Hub',  'Hyderabad',  'Telangana',       'IN', '500409', 'Cargo Terminal, Shamshabad',                   true),
-  ('AGT', 'Agartala Hub',   'Agartala',   'Tripura',         'IN', '799006', 'MBB Cargo Terminal',                           true),
-  ('IXA', 'Aizawl Hub',     'Aizawl',     'Mizoram',         'IN', '796012', 'Lengpui Cargo Terminal',                       true)
+  ('IMPHAL',    'Imphal Hub',    'Imphal',    'Manipur',     'IN', true),
+  ('NEW_DELHI', 'New Delhi Hub', 'New Delhi', 'Delhi',       'IN', true),
+  ('BLR',       'Bangalore Hub', 'Bangalore', 'Karnataka',   'IN', true),
+  ('BOM',       'Mumbai Hub',    'Mumbai',    'Maharashtra', 'IN', true),
+  ('CCU',       'Kolkata Hub',   'Kolkata',   'West Bengal', 'IN', true),
+  ('MAA',       'Chennai Hub',   'Chennai',   'Tamil Nadu',  'IN', true),
+  ('HYD',       'Hyderabad Hub', 'Hyderabad', 'Telangana',   'IN', true),
+  ('PNQ',       'Pune Hub',      'Pune',      'Maharashtra', 'IN', true)
 on conflict (code) do nothing;
 
--- Default rate card (used when no customer-specific card matches)
+-- Default rate cards for the IMPHAL ↔ NEW_DELHI primary route (matches
+-- the shipments table defaults). Production has 28 rate cards; this seed
+-- ships a representative slice covering both directions and both service
+-- levels so local dev can complete the full create-shipment flow.
 insert into public.rate_cards (
-  name, customer_id, origin_hub, dest_hub, service_level, transport_mode,
-  base_rate, rate_per_kg, min_charge, fuel_surcharge_pct,
-  handling_fee, docket_charge, packing_charge, insurance_pct, volumetric_divisor,
-  is_active, effective_from
+  origin_hub, dest_hub, service_level,
+  weight_slab_min, weight_slab_max,
+  rate_per_kg, docket_charge, fuel_surcharge_pct, handling_fee, is_active
 )
 values
-  ('Default — Standard Road',  null, null, null, 'standard', 'road', 50, 18, 100, 8, 25, 30, 0,  0.5, 5000, true, current_date),
-  ('Default — Express Road',   null, null, null, 'express',  'road', 80, 28, 200, 8, 35, 30, 0,  0.5, 5000, true, current_date),
-  ('Default — Priority Air',   null, null, null, 'priority', 'air', 250, 65, 500, 12, 50, 50, 0, 1.0, 6000, true, current_date),
-  ('Default — Same Day Air',   null, null, null, 'same_day', 'air', 500, 95, 800, 15, 50, 50, 0, 1.0, 6000, true, current_date)
+  ('IMPHAL',    'NEW_DELHI', 'STANDARD', 0,   5,     180,  60, 8,  30, true),
+  ('IMPHAL',    'NEW_DELHI', 'STANDARD', 5,   99999, 150,  60, 8,  30, true),
+  ('IMPHAL',    'NEW_DELHI', 'PRIORITY', 0,   5,     240,  75, 10, 50, true),
+  ('IMPHAL',    'NEW_DELHI', 'PRIORITY', 5,   99999, 200,  75, 10, 50, true),
+  ('NEW_DELHI', 'IMPHAL',    'STANDARD', 0,   5,     180,  60, 8,  30, true),
+  ('NEW_DELHI', 'IMPHAL',    'STANDARD', 5,   99999, 150,  60, 8,  30, true),
+  ('NEW_DELHI', 'IMPHAL',    'PRIORITY', 0,   5,     240,  75, 10, 50, true),
+  ('NEW_DELHI', 'IMPHAL',    'PRIORITY', 5,   99999, 200,  75, 10, 50, true)
 on conflict do nothing;
