@@ -50,9 +50,11 @@ function OpsRateCardsView({ rows }: OpsRateCardsViewProps) {
         title="Rate Cards"
         sub="Pricing rules per route, service level, and weight slab"
         actions={
-          // Points at the v6 rate-cards list which hosts the add/edit dialog.
+          // Routes to the dedicated create page (apps/dashboard/app/ops-console/rates/create/).
+          // The label "Add Rate Card" now matches the destination — operators land on a
+          // form, not a list. Closes #58.
           <OpsButton asChild variant="primary">
-            <Link href="/ops-console/rates">
+            <Link href="/ops-console/rates/create">
               <RiAddLine aria-hidden className="size-3" />
               Add Rate Card
             </Link>

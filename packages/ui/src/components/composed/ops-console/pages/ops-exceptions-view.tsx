@@ -1,7 +1,10 @@
 import * as React from "react"
 
+import { RiShieldCheckLine } from "@workspace/ui/icons"
+
 import { OpsFrame } from "../ops-frame"
 import { OpsPageHead } from "../ops-page-head"
+import { OpsEmptyState } from "../ops-empty-state"
 import {
   OpsTable,
   OpsTableHead,
@@ -31,29 +34,30 @@ function OpsExceptionsView({ rows }: OpsExceptionsViewProps) {
         title="Exceptions"
         sub="Shipment exceptions requiring attention"
       />
-      <OpsTable>
-        <OpsTableHead>
-          <tr>
-            <OpsTableHeader>AWB</OpsTableHeader>
-            <OpsTableHeader>Status</OpsTableHeader>
-            <OpsTableHeader>Sender</OpsTableHeader>
-            <OpsTableHeader>Receiver</OpsTableHeader>
-            <OpsTableHeader>Route</OpsTableHeader>
-          </tr>
-        </OpsTableHead>
-        <OpsTableBody>
-          {rows.length === 0 ? (
-            <OpsTableRow>
-              <OpsTableCell
-                colSpan={5}
-                muted
-                className="text-center py-8"
-              >
-                No exceptions — all clear
-              </OpsTableCell>
-            </OpsTableRow>
-          ) : (
-            rows.map((r) => (
+      {rows.length === 0 ? (
+        // Standardised empty state instead of an inline OpsTableCell. Matches
+        // the 4-element pattern (icon + eyebrow + headline + description)
+        // used by every other ops-console list and gives screen readers a
+        // proper heading. Closes #57.
+        <OpsEmptyState
+          icon={RiShieldCheckLine}
+          eyebrow="NO EXCEPTIONS"
+          headline="All shipments are clear."
+          description="No exceptions are open right now. If a shipment is delayed, damaged, or lost, it will appear here for action."
+        />
+      ) : (
+        <OpsTable>
+          <OpsTableHead>
+            <tr>
+              <OpsTableHeader>AWB</OpsTableHeader>
+              <OpsTableHeader>Status</OpsTableHeader>
+              <OpsTableHeader>Sender</OpsTableHeader>
+              <OpsTableHeader>Receiver</OpsTableHeader>
+              <OpsTableHeader>Route</OpsTableHeader>
+            </tr>
+          </OpsTableHead>
+          <OpsTableBody>
+            {rows.map((r) => (
               <OpsTableRow key={r.awb}>
                 <OpsTableCell>
                   <span className="paper-id">{r.awb}</span>
@@ -63,10 +67,10 @@ function OpsExceptionsView({ rows }: OpsExceptionsViewProps) {
                 <OpsTableCell>{r.receiver}</OpsTableCell>
                 <OpsTableCell mono>{r.route}</OpsTableCell>
               </OpsTableRow>
-            ))
-          )}
-        </OpsTableBody>
-      </OpsTable>
+            ))}
+          </OpsTableBody>
+        </OpsTable>
+      )}
     </OpsFrame>
   )
 }

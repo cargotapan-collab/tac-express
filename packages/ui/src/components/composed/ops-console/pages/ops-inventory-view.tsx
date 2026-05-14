@@ -11,7 +11,7 @@ import {
   RiSettingsLine,
 } from "@workspace/ui/icons"
 import { cn } from "@workspace/ui/lib/utils"
-import { useHubConfig, prettifyHubCode } from "@workspace/ui/lib/hub-config"
+import { useHubConfig } from "@workspace/ui/lib/hub-config"
 import Link from "next/link"
 import { OpsFrame } from "../ops-frame"
 import { OpsPageHead } from "../ops-page-head"
@@ -254,5 +254,9 @@ function OpsInventoryView({
   )
 }
 
-export { OpsInventoryView, prettifyHubCode }
+export { OpsInventoryView }
+// Note: `prettifyHubCode` lives in `@workspace/ui/lib/hub-config` and should be
+// imported from there directly. The previous re-export from this page module
+// leaked an abstraction boundary (utilities should not flow through pages).
+// Closes #56.
 export type { OpsInventoryViewProps, HubInventory }
