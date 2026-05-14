@@ -7,6 +7,7 @@
     "audit:governance": "node scripts/audit-governance.mjs",
     "audit:orphans:refresh-baseline": "AUDIT_ORPHANS_WRITE_BASELINE=1 node scripts/audit-governance.mjs",
     "audit:design-spec": "node scripts/audit-design-spec.mjs",
+    "audit:db-types-fresh": "node scripts/audit-db-types-fresh.mjs",
     "supabase:types": "supabase gen types typescript --local > packages/database/src/database.types.ts",
     "supabase:reset": "supabase db reset",
     "supabase:start": "supabase start",
@@ -26,7 +27,7 @@
     "audit:skills": "pnpm dlx tsx scripts/audit-skills.ts",
     "test:routing-eval": "pnpm dlx tsx scripts/test-routing-eval.ts",
     "measure:bundle": "node scripts/measure-bundle-size.mjs",
-    "audit:all": "pnpm audit:governance && pnpm audit:auth-boundary && pnpm audit:skills && pnpm audit:design-spec && pnpm test:routing-eval"
+    "audit:all": "pnpm audit:governance && pnpm audit:auth-boundary && pnpm audit:skills && pnpm audit:design-spec && pnpm audit:db-types-fresh && pnpm test:routing-eval"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
