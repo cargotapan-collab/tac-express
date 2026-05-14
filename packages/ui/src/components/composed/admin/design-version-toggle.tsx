@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { cva } from "class-variance-authority"
 
 import { cn } from "@workspace/ui/lib/utils"
 import { useDesignVersion } from "@workspace/ui/hooks/use-design-version"
@@ -11,6 +12,10 @@ import {
   RadioGroupItem,
 } from "@workspace/ui/components/primitives/radio-group"
 import { Label } from "@workspace/ui/components/primitives/label"
+
+const adminDesignVersionToggleVariants = cva(
+  "flex flex-col gap-3 border border-border bg-card p-card-pad text-card-foreground shadow-brutal-sm"
+)
 
 /**
  * AdminDesignVersionToggle — admin-only Settings widget for flipping the
@@ -65,10 +70,7 @@ function AdminDesignVersionToggle({ className }: AdminDesignVersionToggleProps) 
     <section
       data-slot="admin-design-version-toggle"
       aria-labelledby={headingId}
-      className={cn(
-        "flex flex-col gap-3 border border-border bg-card p-card-pad text-card-foreground shadow-brutal-sm",
-        className
-      )}
+      className={cn(adminDesignVersionToggleVariants(), className)}
     >
       <div className="flex flex-col gap-1">
         <h3 id={headingId} className="t-overline text-muted-foreground">
@@ -81,6 +83,7 @@ function AdminDesignVersionToggle({ className }: AdminDesignVersionToggleProps) 
 
       <RadioGroup
         value={version}
+        aria-labelledby={headingId}
         onValueChange={(value) => {
           if (isDesignVersion(value)) setVersion(value)
         }}
