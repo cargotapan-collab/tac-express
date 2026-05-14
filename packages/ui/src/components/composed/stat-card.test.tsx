@@ -134,6 +134,20 @@ describe("StatCard", () => {
       expect(onClick).toHaveBeenCalledTimes(1)
     })
 
+    it("calls consumer onKeyDown AND still activates onClick on Space (stopPropagation only)", () => {
+      const onClick: Mock<() => void> = vi.fn<() => void>()
+      const userOnKeyDown: Mock<(e: React.KeyboardEvent<HTMLDivElement>) => void> =
+        vi.fn<(e: React.KeyboardEvent<HTMLDivElement>) => void>((e) => {
+          e.stopPropagation()
+        })
+      render(
+        <StatCard label="X" value={1} onClick={onClick} onKeyDown={userOnKeyDown} />
+      )
+      fireEvent.keyDown(screen.getByRole("button"), { key: " " })
+      expect(userOnKeyDown).toHaveBeenCalledTimes(1)
+      expect(onClick).toHaveBeenCalledTimes(1)
+    })
+
     it("respects consumer preventDefault and skips onClick activation", () => {
       const onClick: Mock<() => void> = vi.fn<() => void>()
       const userOnKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {

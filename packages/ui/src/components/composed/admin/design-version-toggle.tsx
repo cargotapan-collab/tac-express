@@ -54,20 +54,24 @@ function isDesignVersion(value: string): value is DesignVersion {
 function AdminDesignVersionToggle({ className }: AdminDesignVersionToggleProps) {
   const { isAdmin, isLoading } = useRBAC()
   const { version, setVersion } = useDesignVersion()
+  // Instance-scoped prefix so multiple toggles on the same page don't collide
+  // on `aria-labelledby` / `htmlFor` bindings (WCAG 2.1 AA).
+  const instanceId = React.useId()
+  const headingId = `${instanceId}-heading`
 
   if (isLoading || !isAdmin) return null
 
   return (
     <section
       data-slot="admin-design-version-toggle"
-      aria-labelledby="design-version-heading"
+      aria-labelledby={headingId}
       className={cn(
         "flex flex-col gap-3 border border-border bg-card p-card-pad text-card-foreground shadow-brutal-sm",
         className
       )}
     >
       <div className="flex flex-col gap-1">
-        <h3 id="design-version-heading" className="t-overline text-muted-foreground">
+        <h3 id={headingId} className="t-overline text-muted-foreground">
           Design version (admin)
         </h3>
         <p className="t-caption text-muted-foreground">
@@ -83,7 +87,7 @@ function AdminDesignVersionToggle({ className }: AdminDesignVersionToggleProps) 
         className="gap-3"
       >
         {OPTIONS.map((option) => {
-          const id = `design-version-${option.value}`
+          const id = `${instanceId}-${option.value}`
           return (
             <div key={option.value} className="flex items-start gap-3">
               <RadioGroupItem id={id} value={option.value} className="mt-0.5" />

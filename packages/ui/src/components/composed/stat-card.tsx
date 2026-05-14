@@ -179,7 +179,7 @@ function StatCardTrend({ value, direction, since, label }: TrendDescriptor) {
       )}
     >
       <Icon className="size-3.5" aria-hidden="true" />
-      <span className="font-mono tabular-nums">{formatted}</span>
+      <span className="t-mono">{formatted}</span>
       {since ? (
         <span className="text-muted-foreground font-sans">since {since}</span>
       ) : null}
