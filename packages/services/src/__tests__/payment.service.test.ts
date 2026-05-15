@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { SupabaseClient } from "@workspace/database/supabase.types"
 
+import type { PaymentMethod } from "../payment.service"
 import { registerSentry } from "../shared/sentry-tagger"
 import { SUPABASE_RPC_TAG_KEYS } from "../shared/with-rpc"
 
@@ -407,9 +408,15 @@ describe("recordPayment — RPC error branches", () => {
     expect(result.amount).toBe(200)
     // Sentry NOT emitted for the missing-RPC fallback (audit § 3.2 contract).
     expect(captureExceptionMock).not.toHaveBeenCalled()
-    // 3 .from calls in order: invoice_payments insert, invoices select, invoices update.
-    expect(db.from).toHaveBeenCalledWith("invoice_payments")
-    expect(db.from).toHaveBeenCalledWith("invoices")
+    // 3 .from calls in EXACT order: invoice_payments insert, invoices select,
+    // invoices update. CodeRabbit caught the weak prior assertion — pinning
+    // the call sequence + count catches regressions that skip the invoice
+    // update (which would leave advance_paid / balance / status stale on
+    // the invoice row even after a successful payment insert).
+    expect(db.from).toHaveBeenCalledTimes(3)
+    expect(db.from).toHaveBeenNthCalledWith(1, "invoice_payments")
+    expect(db.from).toHaveBeenNthCalledWith(2, "invoices")
+    expect(db.from).toHaveBeenNthCalledWith(3, "invoices")
   })
 
   it("throws raw insert error during fallback when INSERT fails", async () => {
@@ -464,13 +471,17 @@ describe("recordPayment — PaymentMethod enum sentinel", () => {
   // because a new enum value got added in TypeScript but the SQL CHECK
   // constraint wasn't updated. We can't test the SQL side here, but we
   // CAN pin: every PaymentMethod value the service exports MUST round-
-  // trip through recordPayment's RPC arg without transformation. If
-  // someone adds a new method, this test fails — forcing them to
-  // (a) add the method to this sentinel list AND (b) update the SQL
-  // CHECK constraint AND (c) update any per-method validation.
+  // trip through recordPayment's RPC arg without transformation.
   //
-  // The pedagogical pattern is the same as packages/auth/src/rbac.test.ts's
-  // UserRole sentinel.
+  // The pedagogical pattern parallels packages/auth/src/rbac.test.ts's
+  // UserRole sentinel, but PaymentMethod is a string-union type (no
+  // runtime representation, so `Object.values()` doesn't apply). We use
+  // the TypeScript-native equivalent: `satisfies readonly PaymentMethod[]`
+  // asserts every entry IS a PaymentMethod, and the `_Missing` type below
+  // is `never` if-and-only-if ALL_METHODS is exhaustive — so the
+  // declaration becomes a type error when a new method is added without
+  // an entry here. CodeRabbit caught the prior weaker hardcoded list
+  // (suggestion accepted on PR review).
   const ALL_METHODS = [
     "CASH",
     "UPI",
@@ -480,7 +491,16 @@ describe("recordPayment — PaymentMethod enum sentinel", () => {
     "NEFT_RTGS",
     "WALLET",
     "OTHER",
-  ] as const
+  ] as const satisfies readonly PaymentMethod[]
+
+  // Compile-time exhaustiveness sentinel. If a new method is added to
+  // PaymentMethod and NOT to ALL_METHODS above, _Missing becomes the
+  // missing union member instead of `never`, and the `true` literal
+  // can't be assigned to `never` — TypeScript flags it as an error.
+  // The variable is unused at runtime; the type check is the assertion.
+  type _Missing = Exclude<PaymentMethod, (typeof ALL_METHODS)[number]>
+  const _allPaymentMethodsCovered: _Missing extends never ? true : never = true
+  void _allPaymentMethodsCovered // reference to silence the unused-var rule; the type-check IS the assertion
 
   it.each(ALL_METHODS)("passes %s through to RPC p_method arg unchanged", async (method) => {
     const db = makeDb({
