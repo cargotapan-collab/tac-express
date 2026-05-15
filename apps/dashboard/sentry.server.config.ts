@@ -13,6 +13,8 @@
 
 import * as Sentry from "@sentry/nextjs"
 
+import { wireWorkspaceSentry } from "./sentry-wire"
+
 const dsn = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN
 
 if (dsn) {
@@ -24,4 +26,9 @@ if (dsn) {
     enableLogs: true,
     sendDefaultPii: false,
   })
+  // Inject Sentry as the workspace packages' tagged-event backend. Done
+  // only when DSN is set — without a DSN, Sentry.captureException is a
+  // no-op anyway, so packages stay unregistered (also no-op) and we
+  // avoid the cost of constructing scopes on every emit.
+  wireWorkspaceSentry()
 }

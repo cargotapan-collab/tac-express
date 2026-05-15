@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@workspace/database/supabase.types"
 
+import { captureSupabaseRpcError } from "./shared/with-rpc"
+
 /**
  * Thrown when the `record_invoice_payment` RPC returned `error = null` but
  * also `data = null/undefined`. The server-side mutation has already
@@ -222,6 +224,14 @@ export function createPaymentService(db: SupabaseClient) {
       // missing-relation case explicitly and re-throw everything else
       // (Macroscope High finding, PR #8 commit 9547758 follow-up).
       if (!isMissingInvoicePaymentsRelation(rpc.error)) {
+        // Emit BEFORE throwing — the rethrow path runs through every
+        // layer back to the route handler, where Sentry's request-error
+        // hook would also capture, but without the supabase.rpc_name +
+        // supabase.error_code tags this rule keys off. Selective emit
+        // here keeps the alert focused on real RPC failures and skips
+        // the "RPC not yet deployed" fallback above (which is normal
+        // business state during the issue #9 migration window).
+        captureSupabaseRpcError("record_invoice_payment", rpc.error)
         throw rpc.error
       }
 

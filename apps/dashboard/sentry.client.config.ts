@@ -20,6 +20,8 @@
 
 import * as Sentry from "@sentry/nextjs"
 
+import { wireWorkspaceSentry } from "./sentry-wire"
+
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN
 const isProd = process.env.NODE_ENV === "production"
 
@@ -69,4 +71,5 @@ if (dsn) {
       "Non-Error promise rejection captured",
     ],
   })
+  wireWorkspaceSentry()
 }
