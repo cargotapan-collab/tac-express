@@ -17,7 +17,15 @@ const redis =
 
 /**
  * Public-API rate limit: sliding window, 60 req / minute / identifier.
- * Used to gate /api/public/** and /track/[awb] from abuse.
+ *
+ * @bucket   `ratelimit:public`
+ * @scope    Per-IP for unauthenticated callers; per-user-id when a session is present
+ * @consumed by:
+ *   - GET /api/public/invoice-pdf  (signed-URL HMAC, IP-scoped)
+ *   - GET /track/[awb]             (public tracking, IP-scoped)
+ *
+ * If you add a new endpoint that uses this bucket, add it to this list
+ * to prevent silent collisions (per audit #101 / tracking #102).
  */
 export const publicApiRateLimit = redis
   ? new Ratelimit({
@@ -30,6 +38,13 @@ export const publicApiRateLimit = redis
 
 /**
  * Auth-flow rate limit: stricter to deter credential stuffing.
+ *
+ * @bucket   `ratelimit:auth`
+ * @scope    Per-email or per-IP (whichever the auth handler chooses)
+ * @consumed by:
+ *   - POST /api/diagnostics/sentry  (gated to MANAGER+ but still limited)
+ *   - GET  /api/whatsapp/test       (operator-config probe)
+ *
  * 10 attempts / minute / identifier.
  */
 export const authRateLimit = redis
@@ -45,6 +60,11 @@ export const authRateLimit = redis
  * WhatsApp / Lemin AI send-template rate limit. Each delivered message is
  * billed by Meta + WPBox, so the cap protects against runaway loops, hostile
  * scripts, and accidental abuse from a compromised or curious user.
+ *
+ * @bucket   `ratelimit:whatsapp`
+ * @scope    Per-authenticated-user-id (`user:${user.id}`)
+ * @consumed by:
+ *   - POST /api/whatsapp/send-invoice  (operator-triggered template send)
  *
  * 30 requests / minute / authenticated user identifier.
  */

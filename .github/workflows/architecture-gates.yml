@@ -120,6 +120,29 @@ jobs:
         if: always()
         run: supabase stop --no-backup || true
 
+  npm-audit:
+    name: npm audit (production deps)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Soft-fail mode while we triage the existing snapshot. The findings
+    # this surfaces are likely to be a mix of (a) real issues we want to
+    # fix and (b) transient registry-mirror noise. Once the snapshot is
+    # clean once, remove continue-on-error.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: pnpm audit (production-only)
+        # `--prod` excludes devDependencies. The dashboard runs the deps
+        # in production; devDeps surface in the dev workflow only and
+        # have a different threat model.
+        run: pnpm audit --prod --audit-level moderate
+
   bundle-size:
     name: Bundle size
     runs-on: ubuntu-latest
