@@ -73,7 +73,7 @@ Clean slate.
 | # | Title | Priority | Notes |
 |---|---|---|---|
 | [#94](https://github.com/cargotapan-collab/tac-express/issues/94) | Verify + wire Sentry alert-rule notification action | P2 | **One owner step from close.** Run the 7-step procedure in `docs/runbooks/sentry-alert-rules.md § 5.3`. ≤5 min. |
-| [#115](https://github.com/cargotapan-collab/tac-express/issues/115) | Observability follow-ups from PR #114 audit § 6 | P2 | Filed during this campaign. DEFERRED `detect_sla_breaches` decision + AMBIGUOUS `isAdminOrAbove` sub-gate. Both observability-completeness items. ~1 small PR. **Recommended lead task next session.** |
+| ~~[#115](https://github.com/cargotapan-collab/tac-express/issues/115)~~ | ~~Observability follow-ups from PR #114 audit § 6~~ | ~~P2~~ | **RESOLVED** in follow-up PR (silent-by-design decisions documented in runbook § 4.1; sentinel test pins the source markers). |
 | [#25](https://github.com/cargotapan-collab/tac-express/issues/25) | Audit + migrate dialogs/forms to react-hook-form + zod | — | Sprint-scale |
 | [#54](https://github.com/cargotapan-collab/tac-express/issues/54) | OpsManagementView role-select + Invite Staff actions | follow-up | Most addressed in #104 |
 | [#55–#58](https://github.com/cargotapan-collab/tac-express/issues/55) | Cosmetic follow-ups | follow-up | ~10min each; batchable |
@@ -171,33 +171,15 @@ This is the correct equivalent of `rbac.test.ts`'s `Object.values(UserRole)` sen
 
 ## 4. Your first task — recommended
 
-### Option A — Close #115 (the campaign's filed follow-up) (~30-60 min) RECOMMENDED warm-up
-
-Two small observability-completeness items from PR #114's audit § 6:
-
-1. **`dashboard.service.ts:228` — `detect_sla_breaches` DEFERRED marker.** Pick one of three options inline:
-   - (a) keep silent — accept the observability gap; document why in the runbook
-   - (b) emit at info level via a new `emitTaggedInfo` helper that doesn't fire rule 4
-   - (c) emit at error level — accept the alert noise, fix root cause
-
-2. **`apps/dashboard/app/api/whatsapp/send-invoice/route.ts:325` — AMBIGUOUS `isAdminOrAbove` sub-gate.** Decide: silent / sub-info / soft-denial.
-
-If you pick (b) or (c), one small new PR (~100-200 LoC) implements the helper + emission. If you pick (a), it's a documentation-only PR.
-
-Why this is the right warm-up:
-- Low-energy session start. Small surface. Clear options.
-- Closes the only follow-up filed during the prior campaign.
-- Demonstrates the pattern for handling DEFERRED markers — the next contributor will see this resolution as precedent.
-
-### Option B — `invoice.service.ts` unit-test floor (~1 focused session)
+### Option A — `invoice.service.ts` unit-test floor (~1 focused session) RECOMMENDED
 
 Mirror PR #118's pattern. `invoice.service.ts` is the next financial surface at 0 tests after `payment.service.ts` got coverage. Same mocked-Supabase pattern, same module-level state isolation via `vi.resetModules()`. ~400 LoC.
 
-### Option C — Owner runs the #94 procedure (5 min, owner-only)
+### Option B — Owner runs the #94 procedure (5 min, owner-only)
 
 Not an agent task — but flag it explicitly so the owner can knock it out. After this, #94 closes and the day's observability arc is fully done.
 
-### Option D — Phase 4c Manifest wizard (~1 focused session)
+### Option C — Phase 4c Manifest wizard (~1 focused session)
 
 Same template as Phase 4b. Use PR #82 as reference. Generalize `useShipmentDraft` to `useFormDraft<T>` first.
 

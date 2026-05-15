@@ -122,13 +122,55 @@ The `scripts/sentry/canonical-rules.mjs` linter (`alert-rule-lint` CI gate) enfo
 | `packages/services/src/booking.service.ts` — `convert_booking_to_shipment` RPC | ✅ Adopted (PR α, #112) | SELECTIVE — real-error branch only; issue-#19 fallback stays silent |
 | `packages/services/src/manifest.service.ts` — `add_shipment_to_manifest` RPC | ✅ Adopted (PR α, #112) | SELECTIVE — real-error branch only |
 | `packages/services/src/shipment.service.ts` — `bulk_create_shipments` RPC | ✅ Adopted (PR α, #112) | SELECTIVE — real-error branch only |
-| `packages/services/src/dashboard.service.ts` — `detect_sla_breaches` RPC | ⏸ Deferred (PR α, #112) | Marked `SENTRY-MIGRATION-DEFERRED` — wrapped in try/catch silent-degrade pattern; adopting would emit on every dashboard render during RPC-missing windows. See audit doc § 3.3. |
+| `packages/services/src/dashboard.service.ts` — `detect_sla_breaches` RPC | 🔕 Silent by design (decision #115) | See § 4.1 below for full rationale. Marker in source updated from `SENTRY-MIGRATION-DEFERRED` → `SENTRY-SILENT-BY-DESIGN`. |
 | `apps/dashboard/app/api/diagnostics/sentry/route.ts` — MANAGER gate | ✅ Adopted (PR α, #112) | BLOCK site — `captureRbacDenial` with surface=`/api/diagnostics/sentry` |
 | `apps/dashboard/app/api/whatsapp/send-invoice/route.ts` — MANAGER gate | ✅ Adopted (PR α, #112) | BLOCK site — surface=`/api/whatsapp/send-invoice` |
 | `apps/dashboard/app/api/whatsapp/test/route.ts` — MANAGER gate | ✅ Adopted (PR α, #112) | BLOCK site — surface=`/api/whatsapp/test` |
 | `packages/ui/*` — `canAccess` / `canAccessModule` GATE callers | 🚫 Not adopted (intentional) | UI conditional rendering — silent UX, not page-worthy. Adopting would saturate rule 5. See audit doc § 2.2. |
 
 Audit doc: [`docs/audits/2026-05-15-rbac-denial-audit.md`](../audits/2026-05-15-rbac-denial-audit.md).
+
+---
+
+## 4.1. Silent-by-design observability gaps (decision #115)
+
+Two call sites in the codebase intentionally do NOT emit to Sentry, even though they're surfaces that COULD be wrapped with `withRpc` or `captureRbacDenial`. Listing them here makes the decision auditable — an on-call engineer reading this knows BEFORE 2 AM that these surfaces are dark by intent, not by oversight.
+
+### `packages/services/src/dashboard.service.ts:getSLABreaches` — `detect_sla_breaches` RPC
+
+**Decision:** keep silent. Source marker: `SENTRY-SILENT-BY-DESIGN`.
+
+**Why:**
+- `detect_sla_breaches` powers a non-critical **dashboard widget** that already degrades gracefully (try/catch returns `[]`).
+- If the RPC is missing/slow, the SLA-breaches panel renders empty; the rest of the dashboard is unaffected.
+- Adopting `withRpc()` here would emit on every dashboard render during a migration window (or any slow-RPC condition). That's hundreds of emissions/hour at normal traffic.
+- Outcome of emitting: rule 4 (Supabase RPC failures) saturates → operators mute it → real RPC failures elsewhere lose their paging signal.
+
+**What detection actually happens for this surface:**
+- Operator-facing: a missing widget is visible during the user's session — the operator may notice + report.
+- KPI-driven: if downstream metrics (SLA-breach counts in management reports) deviate from expectation, that surfaces independently of the widget.
+- Sentry: deliberately none.
+
+**Revisit triggers:**
+- If we accumulate ≥3 RPC sites that want low-severity emission, build an `emitTaggedInfo` helper that emits at `level: 'info'` with a separate alert rule (or no rule). Then revisit this site.
+- If a customer-facing impact is ever traced back to a silent `detect_sla_breaches` failure, escalate to option (c) (emit at error) and accept the alert noise.
+
+### `apps/dashboard/app/api/whatsapp/send-invoice/route.ts:325` — `isAdminOrAbove` sub-gate
+
+**Decision:** leave un-instrumented. Source marker: `RBAC-EMISSION SILENT-BY-DESIGN`.
+
+**Why:**
+- This is NOT a canonical RBAC denial — it's part of a **compound condition**: `(phone-mismatch && (!override || !admin))` returns 403.
+- A non-admin caller who DOES set `overridePhone: true` still gets denied (lack of ADMIN role). An admin who DOESN'T set `overridePhone: true` also gets denied (missing explicit override flag).
+- Emitting `captureRbacDenial` here would mis-attribute non-role denials (admin without override flag) as RBAC events. That's worse than no signal — it's wrong signal.
+- The MANAGER block-gate at line 189 is the canonical RBAC adoption site for this route. That's the single source of RBAC truth for `/api/whatsapp/send-invoice`.
+
+**What detection actually happens for this surface:**
+- The 403 response itself is the operator-visible signal. If a legitimate caller hits the compound condition repeatedly, the API consumer reports it.
+- The MANAGER gate at line 189 covers role-only RBAC.
+
+**Revisit triggers:**
+- If we ever want sub-role observability (a separate signal for "admin features were attempted by non-admins"), build a distinct tag (e.g. `rbac.sub_gate` instead of `rbac.denial`) and a separate alert rule. Don't fold sub-gates into rule 5.
 
 ---
 

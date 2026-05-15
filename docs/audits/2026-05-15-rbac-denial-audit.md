@@ -102,13 +102,15 @@ Note: `captureRbacDenial` returns the constructed `RbacDeniedError` but does NOT
 
 **Rule of thumb:** if the false branch produces silent UX, it's a GATE. If the false branch produces 401/403/redirect, it's a BLOCK.
 
-### 2.3. AMBIGUOUS (1 site — leave un-adopted, follow-up)
+### 2.3. AMBIGUOUS (1 site — RESOLVED #115 → silent by design)
 
 | # | File | Line | Predicate | Why ambiguous |
 |---|---|---|---|---|
-| 1 | [`apps/dashboard/app/api/whatsapp/send-invoice/route.ts`](../../apps/dashboard/app/api/whatsapp/send-invoice/route.ts) | 325 | `const isAdmin = isAdminOrAbove(role)` | Used as a feature-flag for admin-only fields/responses, not a denial gate. The route has already passed the MANAGER gate at line 189; this `isAdmin` further filters what the response contains. False → user gets a "standard" response, not an error. |
+| 1 | [`apps/dashboard/app/api/whatsapp/send-invoice/route.ts`](../../apps/dashboard/app/api/whatsapp/send-invoice/route.ts) | 335 | `const isAdmin = isAdminOrAbove(role)` | Used inside a COMPOUND denial condition: `(phone-mismatch && (!override || !admin))` returns 403. Role is one of multiple factors, not the sole gate. False-from-role + false-from-override-flag both produce 403. |
 
-**Decision:** treat as GATE-equivalent (false branch is not a denial). Do NOT adopt. File a follow-up to clarify intent + decide whether sub-role gating deserves a separate observability surface.
+**RESOLUTION (#115):** RBAC-EMISSION SILENT-BY-DESIGN. The site is NOT a canonical RBAC denial — emitting `captureRbacDenial` would mis-attribute non-role denials (admin without override flag) as RBAC events. The MANAGER block-gate at line 189 is the canonical RBAC adoption site for this route. Source comment refreshed in commit landing this resolution. Full rationale + revisit triggers in [`docs/runbooks/sentry-alert-rules.md § 4.1`](../runbooks/sentry-alert-rules.md).
+
+> Note: line reference updated from `:325` (the audit's initial approximation) to `:335` (the actual line of the `isAdminOrAbove` call). The behavior described is unchanged.
 
 ---
 
@@ -157,28 +159,28 @@ if (rpc.error && !isMissingRpcOrRelation(rpc.error)) {
 
 **Why not `withRpc` here:** `withRpc` emits on ANY error. The "RPC not yet deployed" fallback is normal business state during issue #19 / #9 migration windows; emitting on it would create alert noise that gets rule 4 muted.
 
-### 3.3. DEFERRED (1 site — comment + follow-up)
+### 3.3. DEFERRED (1 site — RESOLVED #115 → silent by design)
 
-| # | File | Line | RPC name | Reason |
+| # | File | Line | RPC name | Resolution |
 |---|---|---|---|---|
-| 1 | [`packages/services/src/dashboard.service.ts`](../../packages/services/src/dashboard.service.ts) | 228 | `detect_sla_breaches` | Wrapped in `try { ... } catch { return [] }`. The catch swallows ALL errors — adopting `withRpc` would emit on every dashboard render where the RPC is missing/slow, which is the precise reason the catch exists. Decision needed: is this RPC's failure a real signal worth observability, or is it acceptable silent degradation of a non-critical dashboard widget? Defer to follow-up. |
+| 1 | [`packages/services/src/dashboard.service.ts`](../../packages/services/src/dashboard.service.ts) | 228 | `detect_sla_breaches` | Silent-by-design. Option (a) chosen: keep silent, document explicitly. |
 
-**Marker pattern:**
+**RESOLUTION (#115):** SENTRY-SILENT-BY-DESIGN. The widget powered by this RPC degrades gracefully — silent failure is the contract, not the bug. Adopting `withRpc()` would saturate rule 4 during migration windows and operator-mute that rule → real RPC failures elsewhere lose their paging signal. Full rationale + revisit triggers in [`docs/runbooks/sentry-alert-rules.md § 4.1`](../runbooks/sentry-alert-rules.md).
+
+**Updated marker pattern (in source after the resolution):**
 
 ```ts
 async getSLABreaches(limit = 10): Promise<SLABreach[]> {
   try {
-    // SENTRY-MIGRATION-DEFERRED: this RPC's failure is currently silent
-    // by design (dashboard widget degrades gracefully). Adopting withRpc
-    // would surface every failure as an alert event. Decide:
-    //   (a) keep silent — accept the observability gap; document why
-    //   (b) emit at info level (custom helper) — visible in Sentry without
-    //       triggering rule 4
-    //   (c) emit at error level — accept the alert noise, fix root cause
-    // Follow-up: [issue number to be filed].
+    // SENTRY-SILENT-BY-DESIGN (decision recorded #115, runbook § 4.1):
+    // [full rationale + revisit triggers — see source]
     const { data, error } = await db.rpc("detect_sla_breaches" as never)
     // ...
 ```
+
+**Revisit triggers (also documented at source):**
+- If we accumulate ≥3 RPC sites that want low-severity emission, build an `emitTaggedInfo` helper and revisit.
+- If a customer-facing impact is ever traced back to a silent `detect_sla_breaches` failure, escalate.
 
 ---
 
@@ -221,9 +223,9 @@ Well under the §7a 1500-LoC cap. No bailout activation required.
 
 ## 6. Follow-up scope (filed alongside PR α)
 
-1. **Dashboard SLA-breaches RPC (DEFERRED):** decide silent-vs-info-vs-error semantics for `dashboard.service.ts:228`. May require a new helper (`emitTaggedInfo` for low-severity emission).
-2. **AMBIGUOUS site:** clarify whether `isAdminOrAbove` at `send-invoice/route.ts:325` deserves a sub-role observability surface.
-3. **`canAccessModule` traffic at GATE sites:** investigate whether a sampled emission (1% of GATE traffic) would surface UX patterns useful for product without saturating rule 5.
+1. ~~**Dashboard SLA-breaches RPC (DEFERRED):** decide silent-vs-info-vs-error semantics for `dashboard.service.ts:228`. May require a new helper (`emitTaggedInfo` for low-severity emission).~~ **RESOLVED #115** → silent by design + documented (§ 3.3 above; runbook § 4.1).
+2. ~~**AMBIGUOUS site:** clarify whether `isAdminOrAbove` at `send-invoice/route.ts:325` deserves a sub-role observability surface.~~ **RESOLVED #115** → silent by design (compound-condition denial, not canonical RBAC; § 2.3 above; runbook § 4.1).
+3. **`canAccessModule` traffic at GATE sites (still open):** investigate whether a sampled emission (1% of GATE traffic) would surface UX patterns useful for product without saturating rule 5. Tracker: not yet filed; revisit if a product use case emerges.
 
 ---
 

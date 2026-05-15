@@ -332,6 +332,15 @@ export async function POST(req: NextRequest) {
       // The supplied phone is unrelated to any phone tied to this invoice.
       // Admins (ADMIN+ role) get implicit override — UI can submit without
       // explicitly setting `overridePhone: true`. Lower roles must opt in.
+      //
+      // RBAC-EMISSION SILENT-BY-DESIGN (decision #115, audit § 2.3, runbook § 4.1):
+      // This is NOT a captureRbacDenial site. The 403 below fires on a
+      // COMPOUND condition (phone-mismatch AND (!override OR !admin)) —
+      // role is one of multiple factors, not the canonical denial. Emitting
+      // captureRbacDenial here would mis-attribute non-role denials (e.g.
+      // admin without override flag) as RBAC events, saturating rule 5
+      // with noise. The MANAGER block-gate at line 189 is the canonical
+      // RBAC adoption site for this route.
       const isAdmin = isAdminOrAbove(role)
       if (!parsed.overridePhone && !isAdmin) {
         return NextResponse.json(
