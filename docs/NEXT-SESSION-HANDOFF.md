@@ -1,10 +1,22 @@
 # Next-Session Handoff — Start Here
 
-> **You are picking up TAC Express after the invoice.service.ts test-floor session (PR landing this handoff).** Read this top-to-bottom before opening any other file. Designed to take 5 minutes and get you productive.
+> **You are picking up TAC Express after the pre-Sprint-2 consolidation session.** Read this top-to-bottom before opening any other file. Designed to take 5 minutes and get you productive.
 
-**Last commit on `main`:** `<post-PR landing this handoff>` — `test(services): invoice.service.ts unit-test floor`
-**Date this doc was written:** 2026-05-16
+**Last commit on `main`:** `<post-PR β>` — `docs: CodeRabbit catalog + two-day arc chapter retro consolidation`
+**Date this doc was written:** 2026-05-16 (consolidation session — PRs #124 + this PR)
 **Author of last session:** Claude Code (Opus 4.7) in PM-mode + Senior FSE + Big-Tech CTO simultaneously
+
+---
+
+## 0. REQUIRED PRE-READING (added by the consolidation session)
+
+Before writing ANY code in a session, load these two artifacts:
+
+1. **[`docs/patterns/coderabbit-catalog.md`](patterns/coderabbit-catalog.md)** — 9 entries × 4 categories. The accumulated test-pattern discipline from PRs #114/#117/#118/#120/#121/#123. Several are CodeRabbit long-term-memory learnings — writing the pattern correctly first time saves the round-trip.
+
+2. **[`docs/retros/2026-05-15-2026-05-16-two-day-arc.md`](retros/2026-05-15-2026-05-16-two-day-arc.md)** — chapter-level retro covering the 16-PR arc. § 1 (what survived), § 5 (cadence shift), § 8 (honest read) are the load-bearing sections.
+
+Plus this file's § 1 (cadence pre-commit) below.
 
 ---
 
@@ -57,7 +69,7 @@ git checkout main && git pull origin main
 
 # 2. Confirm quality gates pass on a clean main
 pnpm typecheck && pnpm lint && pnpm test
-# Expected: all green; 454 tests passing (post-invoice-service-floor)
+# Expected: all green; 465 tests passing (post-#124 ci-watch fix)
 
 # 3. Confirm the load-bearing audit gate is clean
 pnpm audit --prod --audit-level moderate
