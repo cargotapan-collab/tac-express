@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "node:fs"
+import { readFileSync, existsSync, statSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 
@@ -159,12 +159,21 @@ const AUDIT_ROUTE_REFERENCES: ReadonlyArray<{
 describe("audit doc references (2026-05-15-rbac-denial-audit.md)", () => {
   describe("file-existence — every markdown link target resolves", () => {
     for (const target of LINK_PATHS_UNIQUE) {
-      it(`${target} (resolved from audit doc dir) exists`, () => {
+      it(`${target} (resolved from audit doc dir) resolves to a file`, () => {
         // Resolve against the audit doc's own directory, NOT REPO_ROOT.
         // Catches a wider class of valid relative links (./, ../, deeper)
         // AND stays correct if the audit doc is ever moved to a different
         // depth (CodeRabbit caught the prior repo-root assumption).
-        expect(existsSync(resolve(AUDIT_DOC_DIR, target))).toBe(true)
+        //
+        // Assert .isFile() not just existsSync — existsSync returns true
+        // for directories too, and the audit doc's contract is that every
+        // link target is a file (a markdown link to a directory is almost
+        // certainly an editorial error). statSync throws if the path is
+        // missing; let it throw so the failure surfaces clearly rather
+        // than being masked by an `existsSync ? statSync : skip` guard.
+        const resolved = resolve(AUDIT_DOC_DIR, target)
+        expect(existsSync(resolved)).toBe(true)
+        expect(statSync(resolved).isFile()).toBe(true)
       })
     }
 
