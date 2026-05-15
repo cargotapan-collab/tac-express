@@ -193,21 +193,34 @@ describe("getInvoices", () => {
   })
 
   it("defaults pageSize to 50 when caller omits it", async () => {
-    // The .limit() call receives filters.pageSize ?? 50. The mock's
-    // .limit method records the value via vi.mocked inspection; we verify
-    // the .limit invocation happened (the actual chained value is opaque
-    // to the test but the call existence is the contract).
+    // Capture the .limit() arg directly — the previous version of this
+    // test only asserted .from("invoices") was called, which would pass
+    // if the default were 100, 25, or any other value. CodeRabbit caught
+    // that the contract is about the VALUE (50), not just call existence.
+    let observedLimit: unknown
     const db = makeDb({
       fromResults: { invoices: { data: [], error: null } },
     })
+    vi.mocked(db.from).mockImplementation((table: string) => {
+      const result = { data: [], error: null }
+      const builder: Record<string, unknown> = {}
+      for (const m of [
+        "select", "insert", "update", "upsert", "delete",
+        "eq", "in", "or", "gte", "lte", "order", "limit",
+        "single", "maybeSingle",
+      ]) {
+        builder[m] = vi.fn((arg?: unknown) => {
+          if (m === "limit" && table === "invoices") observedLimit = arg
+          return builder
+        })
+      }
+      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
+        Promise.resolve(result).then(resolve)
+      return builder as unknown as never
+    })
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).getInvoices()
-    // db.from returns a builder whose .limit is a vi.fn — but the builder
-    // is constructed lazily per .from() call. Re-fetching the builder
-    // would create a fresh one; instead, assert via .from being called
-    // exactly once on "invoices".
-    expect(db.from).toHaveBeenCalledTimes(1)
-    expect(db.from).toHaveBeenCalledWith("invoices")
+    expect(observedLimit).toBe(50)
   })
 })
 
@@ -582,19 +595,40 @@ describe("markPaid", () => {
   })
 
   it("defaults paidAt to now-ish ISO when caller omits it", async () => {
+    // Capture the .update() arg's paid_at field directly — the previous
+    // version of this test asserted only wall-clock progression, which
+    // would pass even if the service sent `paid_at: undefined` or a
+    // hardcoded epoch timestamp. CodeRabbit caught that the contract is
+    // about the VALUE in the update payload, not the wall clock.
     const before = new Date().toISOString()
-    const db = makeDb({
-      fromResults: { invoices: { data: null, error: null } },
+    let paidAtArg: unknown
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation((table: string) => {
+      const result = { data: null, error: null }
+      const builder: Record<string, unknown> = {}
+      for (const m of [
+        "select", "insert", "update", "upsert", "delete",
+        "eq", "in", "or", "gte", "lte", "order", "limit",
+        "single", "maybeSingle",
+      ]) {
+        builder[m] = vi.fn((arg?: unknown) => {
+          if (m === "update" && table === "invoices") {
+            paidAtArg = (arg as { paid_at?: unknown })?.paid_at
+          }
+          return builder
+        })
+      }
+      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
+        Promise.resolve(result).then(resolve)
+      return builder as unknown as never
     })
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).markPaid("inv-1")
     const after = new Date().toISOString()
-    // Indirectly verified: the call completed without an explicit paidAt
-    // and the service constructed a default. The mock doesn't expose the
-    // exact .update argument cleanly (the builder is reset per call), but
-    // the non-throw behavior + the wall-clock bracketing prove the default
-    // path executed.
-    expect(after >= before).toBe(true)
+    expect(typeof paidAtArg).toBe("string")
+    expect(
+      (paidAtArg as string) >= before && (paidAtArg as string) <= after,
+    ).toBe(true)
   })
 
   it("rethrows on DB error", async () => {
