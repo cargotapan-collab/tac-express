@@ -6,6 +6,9 @@ import { getServerAuth } from "@workspace/auth/server"
 import { captureRbacDenial } from "@workspace/auth"
 import { isAdminOrAbove, isManagerOrAbove } from "@workspace/auth/rbac"
 import { UserRole } from "@workspace/types"
+import { logger } from "@/lib/logger"
+
+const log = logger.child({ route: "/api/whatsapp/send-invoice" })
 import {
   createAdminServerService,
   createCustomerServerService,
@@ -429,31 +432,37 @@ export async function POST(req: NextRequest) {
         resolvedMediaUrl = buildSignedInvoicePdfUrl({ origin, data: pdfData })
         resolvedMediaKind = "document"
         resolvedMediaFilename = `TAC-Invoice-${invoice.invoiceNumber}.pdf`
-        if (process.env.NODE_ENV !== "production") {
-          console.log(
-            `[whatsapp] auto-generated signed PDF URL for ${invoice.invoiceNumber} ` +
-              `(${resolvedMediaUrl.length} chars, tracking ${trackingUrl})`,
-          )
-        }
+        log.debug(
+          {
+            invoiceNumber: invoice.invoiceNumber,
+            mediaUrlLength: resolvedMediaUrl.length,
+            hasTrackingUrl: Boolean(trackingUrl),
+          },
+          "auto-generated signed PDF URL",
+        )
       } catch (err) {
-        console.warn(
-          `[whatsapp] could not auto-generate signed PDF URL: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
+        log.warn(
+          { err: err instanceof Error ? { message: err.message, name: err.name } : { value: String(err) } },
+          "could not auto-generate signed PDF URL",
         )
       }
     }
   }
 
   /* ─── 6. Dispatch — direct or template ─── */
-  if (process.env.NODE_ENV !== "production") {
-    console.log(
-      `[whatsapp] sending invoice ${invoice.invoiceNumber} → ${phone} ` +
-        `(mode=${mode}, by=${user.id}` +
-        `${usingOverride ? ", OVERRIDE_PHONE" : ""}` +
-        `${isDuplicateContact ? ", DUPLICATE_CONTACT_FAST_PATH" : ""})`,
-    )
-  }
+  // user.id is logged in the operator-facing context only (debug level,
+  // not production) so we can correlate with audit logs during local
+  // debugging. Not included in error/warn logs that ship to ops dashboards.
+  log.debug(
+    {
+      invoiceNumber: invoice.invoiceNumber,
+      mode,
+      userId: user.id,
+      usingOverride,
+      isDuplicateContact,
+    },
+    "sending invoice via WhatsApp",
+  )
 
   const result =
     parsed.mode === "template"
@@ -477,17 +486,19 @@ export async function POST(req: NextRequest) {
         })
 
   if (!result.ok) {
-    if (process.env.NODE_ENV !== "production") {
-      console.error(
-        `[whatsapp] send failed for ${invoice.invoiceNumber} → ${phone} (mode=${mode}):`,
-        {
-          error: result.error,
-          status: result.status,
-          attempted: result.attemptedFormats,
-          rawResponse: result.rawResponse?.slice(0, 200),
-        },
-      )
-    }
+    log.error(
+      {
+        invoiceNumber: invoice.invoiceNumber,
+        mode,
+        status: result.status,
+        attempted: result.attemptedFormats,
+        // Truncate raw response — vendor responses can carry payloads
+        // we'd rather not retain in logs at full size.
+        rawResponseHead: result.rawResponse?.slice(0, 200),
+        errorMsg: result.error,
+      },
+      "WhatsApp send failed",
+    )
     return NextResponse.json(
       {
         error: result.error,
@@ -510,12 +521,19 @@ export async function POST(req: NextRequest) {
    */
   const wamid = extractWamid(result.data)
   if (!wamid) {
-    if (process.env.NODE_ENV !== "production") {
-      console.error(
-        `[whatsapp] send returned no WAMID for ${invoice.invoiceNumber} → ${phone} (mode=${mode}) — treating as silent rejection`,
-        { data: result.data },
-      )
-    }
+    log.error(
+      {
+        invoiceNumber: invoice.invoiceNumber,
+        mode,
+        // result.data may carry vendor metadata — stringify-and-truncate
+        // to avoid retaining unbounded vendor blobs in logs.
+        dataHead:
+          typeof result.data === "string"
+            ? result.data.slice(0, 200)
+            : JSON.stringify(result.data ?? null).slice(0, 200),
+      },
+      "WhatsApp send returned no WAMID — treating as silent rejection",
+    )
     return NextResponse.json(
       {
         error:
@@ -534,12 +552,10 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    console.log(
-      `[whatsapp] send OK for ${invoice.invoiceNumber} → ${phone} (mode=${mode})`,
-      { wamid },
-    )
-  }
+  log.info(
+    { invoiceNumber: invoice.invoiceNumber, mode, wamid },
+    "WhatsApp send OK",
+  )
 
   return NextResponse.json({
     ok: true,
