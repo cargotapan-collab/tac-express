@@ -8,7 +8,7 @@
 
 ---
 
-## 0. READ THIS FIRST — three things you must NOT do
+## 0. READ THIS FIRST — four things you must NOT do
 
 1. **Do NOT skip [`tac-express-onboarding`](.claude/skills/tac-express-onboarding/SKILL.md).** Mandatory per `CLAUDE.md § 0.5` (the GBrain four-step gate). Load it as your literal first action of every session.
 
