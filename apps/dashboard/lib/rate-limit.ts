@@ -69,12 +69,11 @@ export const authRateLimit = redis
  * @bucket   `ratelimit:whatsapp`
  * @scope    Per-authenticated-user-id (`user:${user.id}`)
  * @consumed by:
- *   - `POST /api/whatsapp/send-invoice` — operator-triggered template send
- *     (`route.ts:200`).
- *   - `GET  /api/whatsapp/test` — operator-config probe (`route.ts:62`).
- *     Note: this is NOT in `ratelimit:auth` despite being an operator-
- *     diagnostic endpoint — the per-user `user:${user.id}` scope and the
- *     30/min budget match WhatsApp's billing-protection threat model.
+ *   - `POST /api/whatsapp/send-invoice` — operator-triggered template send.
+ *   - `GET  /api/whatsapp/test` — operator-config probe. NOT in
+ *     `ratelimit:auth` despite being an operator-diagnostic endpoint —
+ *     the per-user `user:${user.id}` scope and the 30/min budget match
+ *     WhatsApp's billing-protection threat model.
  *
  * 30 requests / minute / authenticated user identifier.
  */
