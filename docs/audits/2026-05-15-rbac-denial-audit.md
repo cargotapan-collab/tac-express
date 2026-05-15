@@ -225,7 +225,17 @@ Well under the §7a 1500-LoC cap. No bailout activation required.
 
 1. ~~**Dashboard SLA-breaches RPC (DEFERRED):** decide silent-vs-info-vs-error semantics for `dashboard.service.ts:228`. May require a new helper (`emitTaggedInfo` for low-severity emission).~~ **RESOLVED #115** → silent by design + documented (§ 3.3 above; runbook § 4.1).
 2. ~~**AMBIGUOUS site:** clarify whether `isAdminOrAbove` at `send-invoice/route.ts:325` deserves a sub-role observability surface.~~ **RESOLVED #115** → silent by design (compound-condition denial, not canonical RBAC; § 2.3 above; runbook § 4.1).
-3. **`canAccessModule` traffic at GATE sites (still open):** investigate whether a sampled emission (1% of GATE traffic) would surface UX patterns useful for product without saturating rule 5. Tracker: not yet filed; revisit if a product use case emerges.
+3. **`canAccessModule` traffic at GATE sites — STATUS: WONTFIX-UNLESS-TRIGGERED.**
+   Investigate whether a sampled emission (1% of GATE traffic) would surface UX patterns useful for product without saturating rule 5.
+
+   **Trigger conditions for re-opening (revisit on any of these):**
+   - Product or UX requests "where do non-admin users hit gated features" / "which features are non-admin users attempting" → file tracker + scope.
+   - A real incident traces back to undetected GATE-site abuse (e.g. probing, automated scraping) → file tracker + escalate scope.
+   - Sentry rule 5 (RBAC denial spike) accumulates ≥3 alert-fatigue mutes traceable to GATE-traffic noise → revisit *adoption* boundary, not new emission.
+
+   **Why not file a tracker now:** the use case is speculative; building sampled-emission infrastructure for a "maybe" surface is premature optimization. The grep handle for future discovery is `WONTFIX-UNLESS-TRIGGERED` in this file — `grep -r WONTFIX-UNLESS-TRIGGERED docs/audits/` lands the next contributor here without needing to know item 3 exists.
+
+   *Last reviewed: 2026-05-16. If still un-triggered at 2026-08-16, re-evaluate the wontfix call.*
 
 ---
 
