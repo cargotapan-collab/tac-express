@@ -95,6 +95,8 @@ node scripts/ci-watch-pr.mjs <pr-number>
 # new HEAD automatically. No state-keeping required at the agent layer.
 ```
 
+**Pipeline gotcha:** `node scripts/ci-watch-pr.mjs 124 | tail -20` MASKS the script's exit code — `tail`'s exit 0 wins and the agent's harness sees "exit code 0" even when the script actually exited 2 (stale). Caught on this script's very first dogfooding (PR #124's own watch). Either invoke without a pipe, or run with `set -o pipefail` if a pipe is genuinely needed for output truncation. The stderr message (`✗ STALE: PR HEAD drifted…`) still appears in the captured output regardless, so the agent can grep for `STALE` as a fallback signal when piped.
+
 Sentinel: `apps/dashboard/__tests__/ci-watch-script.test.ts` pins the script's load-bearing behavior (initial sha anchor, per-poll drift check, exit-code 2 contract). A future refactor that strips the drift detection fails this test.
 
 ---
