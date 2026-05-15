@@ -1,3 +1,20 @@
+// Sentry instrumentation surface (issue #110). Two exports:
+//   - registerSentry(emitter) — apps wire this at startup
+//   - withRpc / captureSupabaseRpcError — RPC-failure capture helpers
+export {
+  registerSentry,
+  getRegisteredEmitter,
+  type TaggedEmitter,
+  type TagMap,
+} from "./shared/sentry-tagger"
+export {
+  withRpc,
+  captureSupabaseRpcError,
+  SupabaseRpcError,
+  SUPABASE_RPC_TAG_KEYS,
+  RPC_UNKNOWN_ERROR_CODE,
+} from "./shared/with-rpc"
+
 export * from "./query-client"
 export * from "./stores/ui.store"
 export * from "./stores/hub.store"
