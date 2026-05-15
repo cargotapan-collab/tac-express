@@ -38,6 +38,15 @@ interface SilentByDesignSite {
   filePath: string
   expectedMarker: string
   runbookSection: string
+  /**
+   * A stable code anchor near the silent-by-design site. The sentinel
+   * extracts a ±800-char window around this anchor and runs marker /
+   * reference assertions against that LOCAL context only — not the
+   * whole file. This catches the spoofing case where the marker is
+   * deleted from the target block and reintroduced as a stray comment
+   * elsewhere in the same file (CodeRabbit finding 3250055937).
+   */
+  anchor: string
 }
 
 const SILENT_BY_DESIGN_SITES: SilentByDesignSite[] = [
@@ -46,6 +55,12 @@ const SILENT_BY_DESIGN_SITES: SilentByDesignSite[] = [
     filePath: join(REPO_ROOT, "packages/services/src/dashboard.service.ts"),
     expectedMarker: "SENTRY-SILENT-BY-DESIGN",
     runbookSection: "§ 4.1",
+    // Anchor on the method signature ABOVE the rationale comment so a
+    // ±800-char window covers both the marker (top of the comment) and
+    // the RPC call (bottom). The comment block is ~22 lines and exceeds
+    // 800 chars on its own — anchoring on the RPC call alone leaves
+    // the marker outside the window.
+    anchor: "async getSLABreaches(",
   },
   {
     description:
@@ -56,32 +71,56 @@ const SILENT_BY_DESIGN_SITES: SilentByDesignSite[] = [
     ),
     expectedMarker: "RBAC-EMISSION SILENT-BY-DESIGN",
     runbookSection: "§ 4.1",
+    anchor: "if (!parsed.overridePhone && !isAdmin)",
   },
 ]
+
+/**
+ * Extract a window of source around the given anchor. Returns "" if
+ * the anchor is missing — callers should assert anchor presence first.
+ */
+function localContext(source: string, anchor: string, radius = 800): string {
+  const idx = source.indexOf(anchor)
+  if (idx < 0) return ""
+  return source.slice(Math.max(0, idx - radius), idx + anchor.length + radius)
+}
 
 describe("silent-by-design observability decisions (#115)", () => {
   for (const site of SILENT_BY_DESIGN_SITES) {
     describe(site.description, () => {
       const source = readFileSync(site.filePath, "utf8")
+      const context = localContext(source, site.anchor)
 
-      it(`contains the SILENT-BY-DESIGN marker "${site.expectedMarker}"`, () => {
-        expect(source).toContain(site.expectedMarker)
+      it(`contains the anchor "${site.anchor}" (a stable code reference)`, () => {
+        // If this fails, the anchor needs updating BEFORE trusting the
+        // subsequent assertions. The subsequent assertions run against
+        // the local context; if the anchor moved, the context is empty
+        // and the marker assertions would falsely fail OR (if
+        // expectedMarker is empty-substring) falsely pass. Fail loud here.
+        expect(source).toContain(site.anchor)
       })
 
-      it("does NOT contain the legacy SENTRY-MIGRATION-DEFERRED marker", () => {
+      it(`contains the SILENT-BY-DESIGN marker "${site.expectedMarker}" near the anchor`, () => {
+        // Scope to ±800 chars around the anchor — catches the spoofing
+        // case where the marker is removed from the target block and
+        // reintroduced elsewhere in the same file (CodeRabbit finding).
+        expect(context).toContain(site.expectedMarker)
+      })
+
+      it("does NOT contain the legacy SENTRY-MIGRATION-DEFERRED marker (file-level regression guard)", () => {
         // The old marker meant "decision pending." #115 resolved the
-        // decisions; the new marker is SILENT-BY-DESIGN. If a future
-        // contributor restores the legacy marker, that signals a
-        // regression of the resolution — fail loudly.
+        // decisions; the new marker is SILENT-BY-DESIGN. File-level
+        // scope here is intentional — the legacy marker should not
+        // appear ANYWHERE in the file, not just near the anchor.
         expect(source).not.toContain("SENTRY-MIGRATION-DEFERRED")
       })
 
-      it("references the decision (#115) in the comment", () => {
-        expect(source).toMatch(/#115/)
+      it("references the decision (#115) near the anchor", () => {
+        expect(context).toMatch(/#115/)
       })
 
-      it(`references the runbook section ${site.runbookSection}`, () => {
-        expect(source).toContain(site.runbookSection)
+      it(`references the runbook section ${site.runbookSection} near the anchor`, () => {
+        expect(context).toContain(site.runbookSection)
       })
     })
   }

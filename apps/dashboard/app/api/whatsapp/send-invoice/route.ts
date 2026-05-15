@@ -339,8 +339,10 @@ export async function POST(req: NextRequest) {
       // role is one of multiple factors, not the canonical denial. Emitting
       // captureRbacDenial here would mis-attribute non-role denials (e.g.
       // admin without override flag) as RBAC events, saturating rule 5
-      // with noise. The MANAGER block-gate at line 189 is the canonical
-      // RBAC adoption site for this route.
+      // with noise. The MANAGER block-gate above (the
+      // `!role || !isManagerOrAbove(role)` check that returns 403 before
+      // we reach this branch) is the canonical RBAC adoption site for
+      // this route — see captureRbacDenial invocation there.
       const isAdmin = isAdminOrAbove(role)
       if (!parsed.overridePhone && !isAdmin) {
         return NextResponse.json(
