@@ -47,8 +47,24 @@ if (!PR_NUMBER || !/^\d+$/.test(PR_NUMBER)) {
   process.exit(1)
 }
 
-const POLL_INTERVAL_MS = Number(process.env.WATCH_POLL_INTERVAL_MS ?? 30_000)
-const TIMEOUT_MS = Number(process.env.WATCH_TIMEOUT_MS ?? 15 * 60 * 1000)
+/**
+ * Parse a positive-integer env var with a safe fallback. Guards against:
+ *   - non-numeric strings (Number("invalid") → NaN → loop never runs)
+ *   - negative values (would make deadline = past → instant fall-through)
+ *   - zero (would make sleep() return immediately → tight loop)
+ * Macroscope finding 3251426873 caught the NaN-propagation case for
+ * TIMEOUT_MS; applied symmetrically to POLL_INTERVAL_MS so the same
+ * bug shape doesn't recur if a future contributor sets either env var.
+ */
+function parsePositiveIntEnv(envValue, fallback) {
+  if (envValue == null) return fallback
+  const parsed = Number(envValue)
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+  return parsed
+}
+
+const POLL_INTERVAL_MS = parsePositiveIntEnv(process.env.WATCH_POLL_INTERVAL_MS, 30_000)
+const TIMEOUT_MS = parsePositiveIntEnv(process.env.WATCH_TIMEOUT_MS, 15 * 60 * 1000)
 
 /**
  * Synchronous `gh` invocation. Returns parsed JSON on success, throws

@@ -128,4 +128,23 @@ describe("ci-watch-pr.mjs (closes #122 — stale-sha auto-detection)", () => {
       expect(source).not.toMatch(/shell:\s*true/)
     })
   })
+
+  describe("env-var parsing safety (Macroscope finding 3251426873)", () => {
+    const source = readFileSync(SCRIPT_PATH, "utf8")
+
+    it("guards env-var Number() conversions against NaN / negative / zero", () => {
+      // Macroscope caught: Number("invalid") → NaN → Date.now() < NaN
+      // is false → loop never runs → misleading "timed out" error.
+      // The fix is a parsePositiveIntEnv helper that validates Number.isFinite
+      // AND value > 0, falling back to the safe default on invalid input.
+      // Pinning the guard's existence prevents a future refactor from
+      // inlining `Number(process.env.X ?? DEFAULT)` and reintroducing the
+      // NaN-propagation bug.
+      expect(source).toMatch(/parsePositiveIntEnv|Number\.isFinite/)
+      // No bare Number(process.env.X) without a guard at the assignment sites.
+      // Allow Number(process.env.X) inside the helper itself (it does the validation).
+      const bareNumberEnv = source.match(/Number\(process\.env\.[A-Z_]+\s*\?\?/g) ?? []
+      expect(bareNumberEnv).toHaveLength(0)
+    })
+  })
 })
