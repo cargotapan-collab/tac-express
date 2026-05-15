@@ -88,22 +88,37 @@ Validation runs locally before any POST — a malformed `canonical-rules.mjs` is
 
 ## 4. The rule set (current state)
 
-| # | Name | Trigger | Action |
+| # | Name | Trigger | Tag filter | Action |
+|---|---|---|---|---|
+| 1 | Production errors — javascript-nextjs | first-seen / regression, level ≥ error, throttled 30min | (none — level filter only) | IssueOwners email |
+| 2 | Payment-response-lost — javascript-nextjs | first-seen / regression / reappeared | `kind:payment_response_lost` | IssueOwners email |
+| 3 | Production error volume spike — javascript-nextjs | event-frequency >5 in 1m, level ≥ error, throttled 5min | (none — level filter only) | IssueOwners email |
+| 4 | Supabase RPC failures — javascript-nextjs | first-seen / regression, level ≥ error, throttled 10min | `supabase.rpc:true` | IssueOwners email |
+| 5 | RBAC denial spike — javascript-nextjs | event-frequency >20 in 1m, throttled 5min | `rbac.denial:true` | IssueOwners email |
+
+Rule 3 closes issue #22 acceptance criterion (a). Rules 4 and 5 close (b) and (c) respectively, and are the deliverables of issue #110.
+
+### Tag-emission contract
+
+Rules 4 + 5 fire only when the codebase actively emits the tags they filter on. The emission lives in:
+
+| Rule | Emitting module | Helper | Tag-key constant |
 |---|---|---|---|
-| 1 | Production errors — javascript-nextjs | first-seen / regression, level ≥ error, throttled 30min | IssueOwners email |
-| 2 | Payment-response-lost — javascript-nextjs | first-seen / regression / reappeared, `kind:payment_response_lost` | IssueOwners email |
-| 3 | Production error volume spike — javascript-nextjs | event-frequency >5 in 1m, level ≥ error, throttled 5min | IssueOwners email |
+| 2 (`kind:payment_response_lost`) | `apps/dashboard/app/(dashboard)/finance/[id]/invoice-detail-client.tsx` | direct `Sentry.captureException` | (inlined) |
+| 4 (`supabase.rpc:true`) | `packages/services/src/shared/with-rpc.ts` | `captureSupabaseRpcError(rpcName, err)` or `withRpc(rpcName, exec)` | `SUPABASE_RPC_TAG_KEYS` |
+| 5 (`rbac.denial:true`) | `packages/auth/src/rbac-instrumentation.ts` | `captureRbacDenial(input)` | `RBAC_DENIAL_TAG_KEYS` |
 
-Rule 3 closes issue #22's acceptance criterion (a) — "unhandled exceptions in apps/dashboard with >5 events/min".
+The `scripts/sentry/canonical-rules.mjs` linter (`alert-rule-lint` CI gate) enforces that every `TaggedEventFilter.key` in `CANONICAL_RULES` appears in `EMITTED_TAG_KEYS`. A cross-package vitest sentinel (`apps/dashboard/__tests__/canonical-rules-tag-contract.test.ts`) enforces that those keys match the package's exported tag-key constants. So the three artifacts — package emits, canonical rule, EMITTED_TAG_KEYS — cannot silently drift.
 
-### Not yet shipped (tracked separately)
+### Adoption status (call-site coverage)
 
-| # | Name (planned) | Required source code | Tracker |
-|---|---|---|---|
-| 4 | Supabase RPC failures — javascript-nextjs | `packages/services` must `setTag('source', 'supabase_rpc')` on `captureException` for RPC errors | follow-up issue |
-| 5 | Auth/RBAC denial spike — javascript-nextjs | `packages/auth` must call `captureException` with `kind: 'rbac_denial'` tag from the role-gate failure path | follow-up issue |
+| Surface | Adoption | Notes |
+|---|---|---|
+| `packages/services/src/payment.service.ts` — `record_invoice_payment` RPC | ✅ Adopted | First canonical call site; emits on real RPC failure, NOT on the issue-#9 "RPC missing" fallback (expected business state). |
+| `packages/services/src/{manifest,shipment,booking,rate-card,exception,dashboard}.service.ts` | ⏳ Pending | 6 service files with `.rpc(` calls remain. Migrating to `withRpc()` tracked as follow-up issue (filed alongside this PR). |
+| `packages/auth/src/rbac-instrumentation.ts` — `captureRbacDenial` helper | ✅ Available | Helper ships, but no call site yet adopts it. The 15 callers of `canAccess`/`canDo` need surgical migration to emit on denial. Follow-up. |
 
-Both depend on adding Sentry instrumentation to the relevant package. Provisioning the alert rule before the instrumentation ships would create a rule that never fires — visible as a "stale config" smell in the Sentry UI. The follow-up PR ships the instrumentation + appends the rules to `canonical-rules.mjs` in the same change.
+The "available helper / not yet adopted at call sites" state is intentional for this PR — adopting at every call site would have ballooned the PR past the §7a 1500-LoC cap and forced the bailout. See PR description for the follow-up scope.
 
 ---
 
@@ -132,6 +147,40 @@ If steps 1–3 succeed but step 4 doesn't:
 - Check the rule's `actions[]` in the Sentry UI is targeting a real notification address.
 - Check the org-level email/Slack/PagerDuty integration is configured.
 - The script ships the rules with `targetType: "IssueOwners"` by default; if no one is assigned to the issue and no project members opted in to default notifications, the email goes nowhere. See § 8 for switching to a fixed channel.
+
+### 5.1. Verifying rule 4 (Supabase RPC failures)
+
+The wrapper at `packages/services/src/shared/with-rpc.ts` emits on the `record_invoice_payment` adoption site whenever the RPC returns a non-fallback error. In a dev env with a valid DSN, force a real RPC failure via the payment form by triggering a constraint-violating payment (e.g. duplicate UUID), or run the script-side dry-fire:
+
+```bash
+# Node REPL — quickest path to a real emit (requires a running Sentry-wired dashboard):
+node --input-type=module -e "
+  import { registerSentry, captureSupabaseRpcError } from '@workspace/services';
+  registerSentry({ captureException: (e, tags) => console.log('emitted', { tags, code: (e as any).code }) });
+  captureSupabaseRpcError('record_invoice_payment', { code: '23505', message: 'synthetic test' });
+"
+# Expected: { tags: { 'supabase.rpc': 'true', 'supabase.rpc_name': 'record_invoice_payment', 'supabase.error_code': '23505' }, code: 'SUPABASE_RPC_FAILED' }
+```
+
+In prod, rule 4 fires the first time any RPC error occurs. To pre-validate the rule before a real failure, the owner can temporarily set up a deliberately-broken RPC call in a deploy preview, then revert.
+
+### 5.2. Verifying rule 5 (RBAC denial spike)
+
+Rule 5 is frequency-based — single denials don't fire it. To synthesize a spike, hit a role-gated endpoint with an under-privileged session 21+ times in 60 seconds:
+
+```bash
+# Owner runs in a deploy preview with a low-role test account's JWT:
+for i in $(seq 1 25); do
+  curl -X POST -H "Cookie: <under-privileged-session-cookie>" \
+    https://<preview-host>/api/whatsapp/send-invoice \
+    -d '{"invoiceId": "synthetic-test"}'
+  sleep 2
+done
+```
+
+After ~60s, rule 5 should fire. Verify the issue contains all four `rbac.*` tags. If only some appear, the call site invoked `captureRbacDenial` with incomplete input — fix at the call site, not in the helper.
+
+> NB: as of this PR's merge, no production call site adopts `captureRbacDenial` yet (the helper is shipped; adoption is the follow-up). Until that lands, rule 5 will never fire even when probed. This is INTENTIONAL — see § 4 "Adoption status".
 
 ---
 
@@ -224,3 +273,4 @@ The default ships email-to-issue-owners. To switch to Slack or PagerDuty:
 - [#22](https://github.com/cargotapan-collab/tac-express/issues/22) — original verification umbrella (closed)
 - [#94](https://github.com/cargotapan-collab/tac-express/issues/94) — alert-rule notification action (open; this runbook closes the script-side, owner-run closes the live-side)
 - [#102](https://github.com/cargotapan-collab/tac-express/issues/102) — production-readiness backlog (Observability section)
+- [#110](https://github.com/cargotapan-collab/tac-express/issues/110) — Sentry instrumentation for Supabase RPC + RBAC denial tags (this PR closes the helper-side; per-call-site adoption tracked as the follow-up filed alongside this PR)
