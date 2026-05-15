@@ -110,8 +110,8 @@ EWAYBILL_PASSWORD=
 ### D. Observability
 
 - [ ] **Sentry Next.js project created** in `tapan-cargo-az` org (audited 2026-05-08: only `react-native` exists — wrong runtime; create a separate `tac-express-dashboard` project before relying on captures)
-- [ ] **`SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` set in production env** — without these, every `Sentry.captureException()` call (including the `payment_response_lost` capture in `apps/dashboard/app/(dashboard)/finance/[id]/invoice-detail-client.tsx`) is a SILENT NO-OP
-- [ ] **Alert rule configured**: filter `tags[kind]:payment_response_lost` → notify ops within 5 min. This is the trigger condition the route handler tags for; without it, lost-payment-confirmation events land in Sentry but nobody sees them
+- [x] **`SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` set in production env** — verified 2026-05-15 via `mcp__sentry__search_issues` (real production events flowing)
+- [ ] **Alert rule configured** — Sentry events arrive but no notification rule yet. Tracked in #94. Filter on `tags[kind]:payment_response_lost` → notify ops within 5 min once configured.
 - [ ] Sentry alert rules: any error in production tagged `level: error`
 - [ ] Sentry source maps uploaded per release (`SENTRY_RELEASE` env var on every deploy)
 - [ ] Sentry replay budget set — see `sentry.client.config.ts` (5% session sample, 100% on error)
@@ -190,77 +190,81 @@ EWAYBILL_PASSWORD=
 3. If stuck: clear failed items from the scan queue UI on `/scanning`, ask driver to re-capture.
 4. Storage bucket `shipment-docs/pod/` quota — confirm available space.
 
-### Payment recording broken in production (known, tracked: #9)
+### Payment recording (RESOLVED 2026-05-15)
 
-**Symptom:** Operator clicks "Record Payment" on an invoice → sees red toast: "Payment recording is unavailable: the `invoice_payments` table has not been deployed yet. Apply migration 20260501000002."
+> Historical entry preserved for audit trail. Originally tracked as #9 + the `invoice_payments` migration backlog.
 
-**State as of PR #8 merge (2026-05-08):**
-- The `invoice_payments` table does NOT exist in the deployed schema.
-- The `record_invoice_payment` RPC does NOT exist in the deployed schema.
-- Payments cannot be recorded. The error message is clear, not silent — `recordPayment()` throws on every call.
-- `usePaymentsForInvoice()` returns `[]` silently (the UI shows "no payments" which is correct since none can exist).
-- No `ALLOW_PAYMENT_FALLBACK` env var should be set in production. The gate code that read that variable was reverted; the var is now meaningless. If you find it set, remove it.
+**State (current):** ✅ Live in production via the Path A baseline (#96) + #97 + #100.
+- `public.invoice_payments` table exists with RLS policies
+- `public.record_invoice_payment(...)` RPC exists, granted to `authenticated`
+- Authorized roles: `SUPER_ADMIN, ADMIN, MANAGER, INVOICE, FINANCE_STAFF` (the `OPERATOR` typo bug discovered in the 2026-05-15 audit was fixed in #97)
+- `function_search_path_mutable` advisor warning closed (#98)
+- `EXECUTE` privilege correctly REVOKEd from `PUBLIC` and re-granted to `authenticated` only (#100)
 
-**Resolution:** Issue **#9** — single small PR that adds:
-1. `supabase/migrations/20260501000001_add_invoice_payments_table.sql` — table + indexes + RLS policies
-2. `supabase/migrations/20260501000002_add_record_invoice_payment_rpc.sql` — RPC body with `SELECT ... FOR UPDATE` inside a transaction (`SECURITY DEFINER`)
+**If a user reports "payment recording fails":**
+1. Check `mcp__supabase__get_advisors` — should show ≤ 13 warnings
+2. Check `has_function_privilege('authenticated', 'public.record_invoice_payment'::regprocedure, 'EXECUTE')` — should be `true`
+3. Check the user's `profiles.role` — must be in `(SUPER_ADMIN, ADMIN, MANAGER, INVOICE, FINANCE_STAFF)`
+4. Check Sentry for the actual error (DSN is wired and verified)
 
-Both must land in one deploy. Once verified live for ≥ 7 days, a follow-up ≤50 LoC PR deletes the JS-layer fallback (which carries the documented two-step race) so the only remaining path is the atomic RPC.
+### Sentry telemetry — wiring + prod env verified (issue #22 closed 2026-05-15)
 
-**Priority:** P1 — feature is non-functional. Owner + ETA owed in #9 before merging PR #8 into main, or as the very next change after.
-
-**Operator workaround until #9 lands:** record payments via the Supabase SQL editor manually. No UI path exists.
-
-### Sentry telemetry — wiring landed, prod-env vars + alert rule still pending (tracked: #22)
-
-**State as of 2026-05-08 (PR #33 merged):**
+**State (current, verified 2026-05-15):**
 - ✅ Sentry project exists: `tapan-cargo-az/javascript-nextjs` on `de.sentry.io`
-- ✅ Code wiring complete — all four hooks active when DSN is set:
+- ✅ Code wiring complete — all four hooks active:
   - `apps/dashboard/sentry.{client,server,edge}.config.ts` — runtime init with logs + release support
   - `apps/dashboard/instrumentation.ts` — exports `onRequestError = Sentry.captureRequestError` for App Router server-component coverage
   - `apps/dashboard/app/global-error.tsx` — captures React render-time errors
   - `apps/dashboard/next.config.mjs` — wrapped with `withSentryConfig` for source map uploads + ad-blocker tunnel via `/sentry-tunnel`
-- ✅ Local dev DSN set in `apps/dashboard/.env.local`
-- ❌ **Production env vars NOT YET set** — `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` need to be configured in Vercel (or wherever the dashboard deploys). Until then, prod captures remain silent.
-- ❌ **Alert rule for `tags[kind]:payment_response_lost` NOT YET configured** — without it, lost-payment-confirmation events land in Sentry but nobody gets paged.
+- ✅ Production DSN is set — Sentry receives events end-to-end (verified via `mcp__sentry__search_issues`, 9 unresolved issues from real production traffic in last 30d as of 2026-05-15)
+- ⚠️ **Alert rule still pending** — events arrive in Sentry but no rule fires a notification when a new error appears. Tracked in **#94**.
 
-**To fully close #22 (manual UI steps):**
+**Remaining work — alert-rule wiring (tracked in #94):**
 
-1. **Set production env vars** in deploy platform (Vercel):
+Production env vars are set; events flow end-to-end (verified 2026-05-15). The
+remaining gap is a notification rule: errors land in Sentry but no one gets
+paged. To close #94:
+
+1. **For reference, the env vars that must be set** (already configured in
+   production; values stored in the deploy platform's secret store, NOT here):
+
    ```
-   SENTRY_DSN=https://36081208c160813b4df2bbd36f19fcca@o4510226292932608.ingest.de.sentry.io/4511352032067664
-   NEXT_PUBLIC_SENTRY_DSN=https://36081208c160813b4df2bbd36f19fcca@o4510226292932608.ingest.de.sentry.io/4511352032067664
+   SENTRY_DSN=<DSN from Sentry → Settings → Client Keys (DSN)>
+   NEXT_PUBLIC_SENTRY_DSN=<same value as SENTRY_DSN — public by design>
    SENTRY_ENV=production
    NEXT_PUBLIC_SENTRY_ENV=production
-   SENTRY_AUTH_TOKEN=<generate at Settings → Account → API → Auth Tokens, scope: project:releases>
+   # NEVER paste a real SENTRY_AUTH_TOKEN value into this file. Generate at
+   # Settings → Account → API → Auth Tokens (scope: project:releases) and set
+   # in the deploy platform's secret store only.
+   SENTRY_AUTH_TOKEN=<generated, never committed>
    ```
 
-2. **Configure alert rule** at https://tapan-cargo-az.sentry.io/alerts:
+2. **Configure the alert rule** at https://tapan-cargo-az.sentry.io/alerts:
    - Type: Issue Alert
    - Filter: `tags[kind]:payment_response_lost`
    - Threshold: any event matching, last 1 minute
    - Action: notify ops via Slack / email / PagerDuty
    - Save
 
-3. **Verify wiring** via the in-app diagnostic endpoint (added 2026-05-12 per issue #22):
+3. **Verify the rule fires** via the in-app diagnostic endpoint (added per
+   issue #22):
 
    ```bash
    # Sign in as MANAGER+ in a browser, copy the session cookie, then:
 
    # (a) Report-only: does Sentry think it's initialized?
    curl -H "Cookie: <session-cookie>" https://<deployed-host>/api/diagnostics/sentry
-   # → { enabled: true, dsnHost: "o4510226292932608.ingest.de.sentry.io", ... }
+   # → { enabled: true, dsnHost: "...", ... }
 
    # (b) Fire a tagged smoke-test event:
    curl -X POST -H "Cookie: <session-cookie>" https://<deployed-host>/api/diagnostics/sentry
    # → { ok: true, eventId: "...", searchQuery: "tags.kind:sentry_smoke_test correlation_id:smoke-..." }
    ```
 
-   Then in Sentry: paste the returned `searchQuery` into the issue stream. The event should appear within 60 seconds. If `enabled: false`, the DSN env vars from step 1 didn't reach the runtime — re-check Vercel project settings + redeploy.
-
-4. **Configure alert rule** (same Sentry UI, separate step from wiring verification): an issue alert with filter `tags[kind]:payment_response_lost` → notify ops via Slack / PagerDuty. The smoke-test event from step 3 uses `tags.kind:sentry_smoke_test` so it WON'T trigger this alert — by design.
-
-**Until step 1 lands**, `Sentry.captureException()` in production is still a no-op. Lost-payment events still surface to the user via toast (correct UX), but ops has no telemetry. Pair with #9 — close this BEFORE deploying the payment migration so you can measure whether the fix is working.
+   The smoke-test event uses `tags.kind:sentry_smoke_test` so it does NOT
+   trigger the `payment_response_lost` alert — by design. To verify that
+   alert specifically, manually post a test event with the
+   `payment_response_lost` tag (or wait for an organic one).
 
 ### Migration rollback
 
