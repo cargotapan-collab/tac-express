@@ -23,6 +23,8 @@
                                            "NODE_ENV",
                                            "NEXT_RUNTIME",
                                            "CI",
+                                           "LOG_LEVEL",
+                                           "SENTRY_ALERT_NOTIFICATION_ACTION",
                                            "SENTRY_DSN",
                                            "SENTRY_ENV",
                                            "SENTRY_RELEASE",

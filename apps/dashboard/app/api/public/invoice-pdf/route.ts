@@ -9,6 +9,9 @@ import {
 } from "@workspace/services/pdf/invoice-pdf"
 import { verifyInvoicePdfToken } from "@workspace/services/pdf/invoice-pdf-token"
 import { generateQrPng } from "@workspace/services/pdf/qr"
+import { logger } from "@/lib/logger"
+
+const log = logger.child({ route: "/api/public/invoice-pdf" })
 
 /**
  * GET /api/public/invoice-pdf?p=<base64>&s=<base64>
@@ -52,8 +55,9 @@ async function loadHeaderImage(): Promise<Buffer | null> {
     return buf
   } catch (err) {
     cachedHeaderImageError = err instanceof Error ? err.message : String(err)
-    console.warn(
-      `[invoice-pdf] header image not found — rendering without banner. ${cachedHeaderImageError}`
+    log.warn(
+      { err: { message: cachedHeaderImageError } },
+      "header image not found — rendering without banner",
     )
     return null
   }
@@ -73,7 +77,10 @@ export async function GET(req: NextRequest) {
   try {
     assertCompanyConfig()
   } catch (err) {
-    console.error("[invoice-pdf] company/bank config invalid:", err)
+    log.error(
+      { err: err instanceof Error ? { message: err.message, name: err.name } : { value: String(err) } },
+      "company/bank config invalid",
+    )
     return new Response(
       JSON.stringify({
         error: "Invoice PDF cannot render",
@@ -120,7 +127,13 @@ export async function GET(req: NextRequest) {
       trackingUrl,
     })
   } catch (err) {
-    console.error("[invoice-pdf] render failed:", err)
+    log.error(
+      {
+        err: err instanceof Error ? { message: err.message, name: err.name } : { value: String(err) },
+        invoiceNumber: result.payload.data.invoiceNumber,
+      },
+      "PDF render failed",
+    )
     return new Response(
       JSON.stringify({
         error: "PDF render failed",

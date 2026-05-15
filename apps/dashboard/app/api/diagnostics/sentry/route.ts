@@ -40,7 +40,10 @@ import { captureRbacDenial } from "@workspace/auth"
 import { isManagerOrAbove } from "@workspace/auth/rbac"
 import { UserRole } from "@workspace/types"
 import { createAdminServerService } from "@workspace/services/server"
+import { logger } from "@/lib/logger"
 import { checkAuth } from "@/lib/rate-limit"
+
+const log = logger.child({ route: "/api/diagnostics/sentry" })
 
 export const dynamic = "force-dynamic"
 
@@ -56,16 +59,22 @@ async function requireManager(): Promise<GateResult> {
   // hiccup doesn't masquerade as 401 in observability. We still return
   // null (and 401 below) so the response shape doesn't depend on
   // upstream availability — but ops gets a paper trail.
-  const user = await auth.getUser().catch((err) => {
-    console.warn("[sentry-diag] auth.getUser failed", err)
+  const user = await auth.getUser().catch((err: unknown) => {
+    log.warn(
+      { err: err instanceof Error ? { message: err.message, name: err.name } : { value: String(err) } },
+      "auth.getUser failed",
+    )
     return null
   })
   if (!user) {
     return { allowed: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) }
   }
   const adminService = createAdminServerService(cookieStore)
-  const profile = await adminService.getProfileById(user.id).catch((err) => {
-    console.warn("[sentry-diag] adminService.getProfileById failed", err)
+  const profile = await adminService.getProfileById(user.id).catch((err: unknown) => {
+    log.warn(
+      { err: err instanceof Error ? { message: err.message, name: err.name } : { value: String(err) } },
+      "adminService.getProfileById failed",
+    )
     return null
   })
 
