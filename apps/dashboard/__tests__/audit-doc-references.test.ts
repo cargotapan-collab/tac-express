@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join, resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 
 /**
@@ -45,25 +45,37 @@ const AUDIT_DOC_PATH = join(
   REPO_ROOT,
   "docs/audits/2026-05-15-rbac-denial-audit.md",
 )
+const AUDIT_DOC_DIR = dirname(AUDIT_DOC_PATH)
 
 const audit = readFileSync(AUDIT_DOC_PATH, "utf8")
 
 // ─── 1. File-existence: parse audit doc for relative links ───────────────────
 
 /**
- * Every `../../path/to/file` markdown link target in the audit doc.
- * Auto-extracted via regex; matches the convention `[label](../../...)`.
- * Adding a new file reference to the audit doc auto-includes it here
- * (no test update needed for new files).
+ * Every relative markdown link target in the audit doc.
+ *
+ * Pattern matches `[label](target)` where `target` starts with `./` or
+ * `../` (any depth), with optional `#fragment` and optional title
+ * attribute. Captures the path portion only. Resolves against the
+ * audit doc's directory (NOT repo-root) so the test stays correct if
+ * the audit doc ever moves to a different depth — CodeRabbit caught
+ * the prior version's repo-root assumption as a brittleness.
+ *
+ * Adding a new relative-link reference to the audit doc auto-includes
+ * it here (no test update needed for new files). Sentinel-of-the-
+ * sentinel below asserts ≥1 match so a convention switch can't
+ * silently zero the coverage.
  */
 const LINK_TARGETS = Array.from(
-  audit.matchAll(/\]\(\.\.\/\.\.\/([^)]+)\)/g),
+  audit.matchAll(
+    /\[[^\]]+\]\(((?:\.{1,2}\/)[^)#\s]+)(?:#[^) \t]+)?(?:\s+"[^"]*")?\)/g,
+  ),
   (m) => m[1]!,
 )
 
 // Strip optional `:line` suffixes that may appear in some doc styles
 // (defensive — current convention is line numbers in prose, not in
-// the link target, but cover both).
+// the link target, but cover both). Then de-dupe.
 const LINK_PATHS_UNIQUE = Array.from(
   new Set(LINK_TARGETS.map((t) => t.split(":")[0]!)),
 )
@@ -147,8 +159,12 @@ const AUDIT_ROUTE_REFERENCES: ReadonlyArray<{
 describe("audit doc references (2026-05-15-rbac-denial-audit.md)", () => {
   describe("file-existence — every markdown link target resolves", () => {
     for (const target of LINK_PATHS_UNIQUE) {
-      it(`${target} exists`, () => {
-        expect(existsSync(join(REPO_ROOT, target))).toBe(true)
+      it(`${target} (resolved from audit doc dir) exists`, () => {
+        // Resolve against the audit doc's own directory, NOT REPO_ROOT.
+        // Catches a wider class of valid relative links (./, ../, deeper)
+        // AND stays correct if the audit doc is ever moved to a different
+        // depth (CodeRabbit caught the prior repo-root assumption).
+        expect(existsSync(resolve(AUDIT_DOC_DIR, target))).toBe(true)
       })
     }
 
