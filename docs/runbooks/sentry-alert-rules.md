@@ -190,7 +190,96 @@ done
 
 After ~60s, rule 5 should fire. Verify the issue contains all four `rbac.*` tags. If only some appear, the call site invoked `captureRbacDenial` with incomplete input — fix at the call site, not in the helper.
 
-> NB: as of this PR's merge, no production call site adopts `captureRbacDenial` yet (the helper is shipped; adoption is the follow-up). Until that lands, rule 5 will never fire even when probed. This is INTENTIONAL — see § 4 "Adoption status".
+> NB: as of PR #113's merge, no production call site adopted `captureRbacDenial`. **PR #114 closed that gap** — three BLOCK sites now invoke the helper. Rule 5 fires when those gates are hit at spike volume.
+
+---
+
+## 5.3. Owner one-time provisioning — #94 closure procedure
+
+This is the 7-step path to close [#94](https://github.com/cargotapan-collab/tac-express/issues/94). Designed to take ≤5 minutes once the channel choice (§ Step 1) is made. The substantive work was shipped in PRs #113, #114, #N (this PR adding rule 6 + the parameterized notification action) — the owner runs the remaining steps in their local env.
+
+### Step 1 — Decide the notification channel
+
+Pick ONE of three options. Document the choice in the PR body or as a follow-up comment on [#94](https://github.com/cargotapan-collab/tac-express/issues/94) so the next responder knows where alerts go:
+
+- **Email to a specific Sentry org member** — fastest path. Requires the member's numeric Sentry id from `https://tapan-cargo-az.sentry.io/settings/members/` (click the member, the URL contains the id).
+- **Slack channel** — recommended for team operations. Requires the Slack integration installed at `https://tapan-cargo-az.sentry.io/settings/integrations/slack/`. Capture the workspace id (numeric) and the channel id from Slack's UI (Channel → ⓘ → Channel Details, scroll to bottom).
+- **PagerDuty service** — recommended for true on-call rotations. Requires the PagerDuty integration installed. Capture the numeric account id and the alphanumeric service id.
+
+### Step 2 — Export env vars locally
+
+In a terminal at the repo root (or as one line if pasting):
+
+```bash
+# Source the persistent token from apps/dashboard/.env.local:
+export $(grep SENTRY_AUTH_TOKEN apps/dashboard/.env.local | xargs)
+
+# Channel choice (replace the JSON with the shape matching your Step 1 pick):
+export SENTRY_ALERT_NOTIFICATION_ACTION='{"id":"sentry.mail.actions.NotifyEmailAction","targetType":"Member","targetIdentifier":"<your-member-id>","fallthroughType":"ActiveMembers"}'
+
+# Or Slack:
+# export SENTRY_ALERT_NOTIFICATION_ACTION='{"id":"sentry.integrations.slack.notify_action.SlackNotifyServiceAction","workspace":"<workspace-id>","channel":"#tac-incidents","channel_id":"<channel-id>","tags":"environment,level,kind"}'
+
+# Or PagerDuty:
+# export SENTRY_ALERT_NOTIFICATION_ACTION='{"id":"sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction","account":"<account-id>","service":"<service-id>"}'
+```
+
+NEVER export these into a shell rc file or commit them anywhere. They live only in the owner's current terminal session.
+
+### Step 3 — Dry-run + inspect
+
+```bash
+node scripts/sentry/create-alert-rules.mjs --dry-run
+```
+
+Expected output: 5 already-exist + 1 would-create (rule 6 "Production errors (owner-targeted)"). If rule 6 shows as "skipped (needs SENTRY_ALERT_NOTIFICATION_ACTION)", the env var isn't being read — re-check Step 2.
+
+If JSON parse fails: the runner aborts with the malformed JSON's first 80 chars and a pointer back to this runbook. Fix the JSON shape, re-run dry-run.
+
+### Step 4 — Apply live
+
+```bash
+node scripts/sentry/create-alert-rules.mjs
+```
+
+Expected: `1 created, 5 skipped (already existed)`. The created rule prints its Sentry-side id (e.g. `id=12345`). Capture that id for the rollback path in § 6.
+
+### Step 5 — Synthetic event
+
+Fire a real error from the dashboard to trigger rule 6:
+
+```bash
+# In a deploy preview or production (curl needs a Manager+ session cookie):
+curl -X POST -H "Cookie: <session-cookie>" https://<dashboard-host>/api/diagnostics/sentry
+```
+
+The `/api/diagnostics/sentry` route deliberately throws a tagged exception. Expected:
+- New issue at `https://tapan-cargo-az.sentry.io/issues/?project=javascript-nextjs` within ~30s.
+- Rule 6 fires (first-seen condition matches the new issue).
+
+### Step 6 — Confirm notification
+
+Within ~60s of Step 5, the notification arrives at the Step 1 channel:
+- **Email:** check the chosen member's inbox.
+- **Slack:** check the chosen channel for a Sentry-branded message.
+- **PagerDuty:** check the chosen service for a new incident.
+
+If the issue appears in Sentry but no notification arrives:
+- Verify the action JSON at `https://tapan-cargo-az.sentry.io/alerts/rules/javascript-nextjs/` (click the rule → look at the "Then" config).
+- Verify the integration is installed AND active (Slack tokens can expire).
+- Verify the channel/email exists and the integration has permission to post.
+
+### Step 7 — Close #94
+
+Comment on [#94](https://github.com/cargotapan-collab/tac-express/issues/94):
+
+```
+alert rule live, target=<email|#slack-channel|PagerDuty-service>
+Synthetic event verified: <Sentry issue URL>
+Rule 6 id: <id from Step 4>
+```
+
+Close the issue.
 
 ---
 
