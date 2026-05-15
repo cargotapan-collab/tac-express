@@ -1,10 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { SupabaseClient } from "@workspace/database/supabase.types"
-
 import type { PaymentMethod } from "../payment.service"
 import { registerSentry } from "../shared/sentry-tagger"
 import { SUPABASE_RPC_TAG_KEYS } from "../shared/with-rpc"
+import { makeDb } from "./helpers/make-db"
 
 /**
  * Test floor for payment.service.ts — ticks the #102 Sprint 1 Testing
@@ -57,51 +56,6 @@ beforeEach(() => {
 afterEach(() => {
   registerSentry(null)
 })
-
-/**
- * Build a thin SupabaseClient mock with configurable .rpc() + .from()
- * results. The .from() chain returns a thenable that resolves to the
- * configured result; insert + select + single + update + eq all chain
- * fluently and resolve to the same result for simplicity (tests
- * provide a result that satisfies whichever terminal method the
- * service-under-test calls).
- */
-function makeDb(config: {
-  rpcResult?: { data: unknown; error: unknown }
-  fromResults?: Record<string, { data: unknown; error: unknown }>
-  // Tracks .from() table names called — useful for asserting service
-  // hit the right tables in the right order.
-  tableCalls?: string[]
-}): SupabaseClient {
-  const rpc = vi.fn(() =>
-    Promise.resolve(config.rpcResult ?? { data: null, error: null }),
-  )
-  const tableCalls = config.tableCalls ?? []
-  const from = vi.fn((table: string) => {
-    tableCalls.push(table)
-    const result = config.fromResults?.[table] ?? { data: null, error: null }
-    const builder: Record<string, unknown> = {}
-    for (const m of [
-      "select",
-      "insert",
-      "update",
-      "upsert",
-      "delete",
-      "eq",
-      "in",
-      "order",
-      "limit",
-      "single",
-      "maybeSingle",
-    ]) {
-      builder[m] = vi.fn(() => builder)
-    }
-    ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-      Promise.resolve(result).then(resolve)
-    return builder
-  })
-  return { rpc, from } as unknown as SupabaseClient
-}
 
 /**
  * Import payment.service.ts FRESH each call. Resets the module-level
