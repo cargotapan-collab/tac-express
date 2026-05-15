@@ -1,5 +1,18 @@
 "use client"
 
+// NOTE FOR FUTURE READERS:
+// The PRODUCTION ops-console management route at /ops-console/management is
+// rendered by apps/dashboard/app/ops-console/management/management-client.tsx,
+// which uses a different component composition (StaffTable + InviteStaffDialog
+// + full @workspace/services hooks). That route is fully wired and live.
+//
+// This OpsManagementView component is a parallel paper-style design variant
+// kept in @workspace/ui for design-system reference and potential future use.
+// Issue #54 asked for the callbacks below to be wired so this component is
+// not a footgun if someone adopts it. The wiring matches the parent
+// callback shape used by management-client.tsx (onRoleChange(email, role)
+// + onInvite()) so adoption would be straightforward.
+
 import * as React from "react"
 
 import { RiUserAddLine } from "@workspace/ui/icons"
@@ -33,6 +46,20 @@ interface OpsManagementViewProps {
   inactive: number
   hubsCovered: number
   staff: StaffRow[]
+  /**
+   * Fires when the operator picks a different role for a staff row.
+   * Receives the row's email (stable identifier in this view) and the
+   * newly-selected role string. The string is narrowed to the StaffRow
+   * `role` union by the consumer.
+   */
+  onRoleChange?: (email: string, role: StaffRow["role"]) => void
+  /**
+   * Fires when the operator clicks "Invite Staff" in the page header.
+   * The consumer typically opens a modal/sheet collecting email + role + hub.
+   * If omitted, the button is rendered disabled with a tooltip explaining
+   * the action is not yet wired (per #54 acceptance criteria).
+   */
+  onInvite?: () => void
 }
 
 const TABS = ["Staff", "Hubs", "Tariffs", "Permissions"] as const
@@ -43,6 +70,8 @@ function OpsManagementView({
   inactive,
   hubsCovered,
   staff,
+  onRoleChange,
+  onInvite,
 }: OpsManagementViewProps) {
   const [tab, setTab] = React.useState<string>("Staff")
   const stats: Array<[label: string, value: number]> = [
@@ -59,7 +88,14 @@ function OpsManagementView({
         title="Operations & Access"
         sub="Staff, hubs, tariffs, and role-based permissions in one place."
         actions={
-          <OpsButton variant="primary">
+          <OpsButton
+            variant="primary"
+            type="button"
+            onClick={onInvite}
+            disabled={!onInvite}
+            title={onInvite ? undefined : "Invite flow not wired by parent"}
+            aria-label="Invite Staff"
+          >
             <RiUserAddLine aria-hidden className="size-3" />
             Invite Staff
           </OpsButton>
@@ -95,7 +131,10 @@ function OpsManagementView({
               <OpsTableCell mono>{s.email}</OpsTableCell>
               <OpsTableCell>
                 <OpsFieldSelect
-                  defaultValue={s.role}
+                  value={s.role}
+                  onChange={(e) =>
+                    onRoleChange?.(s.email, e.target.value as StaffRow["role"])
+                  }
                   aria-label={`Role for ${s.name}`}
                   className="w-40 py-1.5 px-2.5"
                 >
