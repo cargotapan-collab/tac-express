@@ -55,13 +55,18 @@ function fromBase64Url(s: string): Buffer {
 
 function getSecret(): string {
   const secret = process.env.INVOICE_PDF_SIGNING_SECRET
-  // Require ≥ 32 bytes of entropy. The recommended generation command
-  // emits 32 random bytes as 64 hex chars — measure that as the floor.
-  // This HMAC is the ONLY auth on the public PDF route, so the threat
-  // model demands more than the previous 16-char placeholder.
-  if (!secret || secret.length < 64) {
+  // Require ≥ 32 bytes of entropy as 64 hex chars. The recommended
+  // generation command emits exactly that. This HMAC is the ONLY auth
+  // on the public PDF route, so the threat model demands more than the
+  // previous 16-char placeholder.
+  //
+  // Validation pattern (per audit #101 / tracking #102):
+  // length-only check accepted any 64-char string including weak
+  // patterns like "aaaaaaaa…" (~26 bits of entropy). Hex-format check
+  // ensures the secret was generated from a CSPRNG.
+  if (!secret || !/^[0-9a-f]{64}$/i.test(secret)) {
     throw new Error(
-      "INVOICE_PDF_SIGNING_SECRET is not set or is too short (min 32 bytes / 64 hex chars). " +
+      "INVOICE_PDF_SIGNING_SECRET is not set or is not 64 hex chars (32 bytes of entropy). " +
         "Add to apps/dashboard/.env.local — generate with: " +
         "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
     )

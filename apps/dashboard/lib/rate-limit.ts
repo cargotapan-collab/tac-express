@@ -17,7 +17,17 @@ const redis =
 
 /**
  * Public-API rate limit: sliding window, 60 req / minute / identifier.
- * Used to gate /api/public/** and /track/[awb] from abuse.
+ *
+ * @bucket   `ratelimit:public`
+ * @scope    Per-IP (`x-forwarded-for` → `x-real-ip` → fallback "anon")
+ * @consumed by:
+ *   - Middleware `apps/dashboard/proxy.ts` — every request whose path
+ *     starts with `/api/public` or `/track` (see `RATE_LIMITED_PUBLIC`).
+ *     The check happens in the proxy *before* the route handler runs;
+ *     route files do NOT call `checkPublicApi()` directly.
+ *
+ * If you add a new prefix to `RATE_LIMITED_PUBLIC` in proxy.ts, update
+ * this list to prevent silent collisions (per audit #101 / tracking #102).
  */
 export const publicApiRateLimit = redis
   ? new Ratelimit({
@@ -30,6 +40,16 @@ export const publicApiRateLimit = redis
 
 /**
  * Auth-flow rate limit: stricter to deter credential stuffing.
+ *
+ * @bucket   `ratelimit:auth`
+ * @scope    Per-IP for sign-in flow; per-user-id for diagnostics
+ * @consumed by:
+ *   - Middleware `apps/dashboard/proxy.ts` — every request whose path
+ *     starts with `/sign-in`, `/auth/sign-in`, or `/auth/callback`
+ *     (see `RATE_LIMITED_AUTH`). IP-scoped.
+ *   - `POST /api/diagnostics/sentry` — direct call with key
+ *     `sentry-diag:${user.id}` (MANAGER+ gated, user-scoped).
+ *
  * 10 attempts / minute / identifier.
  */
 export const authRateLimit = redis
@@ -45,6 +65,15 @@ export const authRateLimit = redis
  * WhatsApp / Lemin AI send-template rate limit. Each delivered message is
  * billed by Meta + WPBox, so the cap protects against runaway loops, hostile
  * scripts, and accidental abuse from a compromised or curious user.
+ *
+ * @bucket   `ratelimit:whatsapp`
+ * @scope    Per-authenticated-user-id (`user:${user.id}`)
+ * @consumed by:
+ *   - `POST /api/whatsapp/send-invoice` — operator-triggered template send.
+ *   - `GET  /api/whatsapp/test` — operator-config probe. NOT in
+ *     `ratelimit:auth` despite being an operator-diagnostic endpoint —
+ *     the per-user `user:${user.id}` scope and the 30/min budget match
+ *     WhatsApp's billing-protection threat model.
  *
  * 30 requests / minute / authenticated user identifier.
  */
