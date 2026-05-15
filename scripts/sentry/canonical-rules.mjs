@@ -40,6 +40,32 @@ export const REQUIRED_FIELDS = /** @type {const} */ ([
 ])
 
 /**
+ * Tag keys that the codebase actually emits. The linter checks that
+ * every `TaggedEventFilter` in CANONICAL_RULES references a key listed
+ * here — preventing the "rule filters on a tag that no code ever
+ * emits" footgun (the rule would never fire; would look live in Sentry).
+ *
+ * Cross-package sentinel test (apps/dashboard/__tests__/canonical-rules-tag-contract.test.ts)
+ * verifies that each entry here matches a tag-key constant in the
+ * relevant package's instrumentation module. Adding a key here without
+ * a corresponding code emit will fail that test loudly.
+ */
+export const EMITTED_TAG_KEYS = /** @type {const} */ ([
+  // Pre-existing tag (PR #8 — apps/dashboard finance route):
+  "kind", // values: "payment_response_lost", and (via rbac-instrumentation):
+          //         (nothing — RBAC denial uses rbac.* below, not "kind")
+  // packages/services/src/shared/with-rpc.ts:
+  "supabase.rpc",
+  "supabase.rpc_name",
+  "supabase.error_code",
+  // packages/auth/src/rbac-instrumentation.ts:
+  "rbac.denial",
+  "rbac.required_role",
+  "rbac.actual_role",
+  "rbac.surface",
+])
+
+/**
  * Canonical rules. To add a new rule, append to this array and re-run
  * the script. Existing rules with the same `name` are NOT modified —
  * manual delete in Sentry + re-run is required to update an existing
@@ -49,12 +75,12 @@ export const REQUIRED_FIELDS = /** @type {const} */ ([
  *
  * Coverage matrix (issue #22 acceptance criteria):
  *   (a) unhandled exceptions in apps/dashboard >5 events/min   →  RULE 3 below
- *   (b) Supabase RPC failures tagged at error level           →  pending #N
- *       (requires packages/services to setTag('source','supabase_rpc')
- *        on captureException — instrumentation tracked separately)
- *   (c) auth/rbac denial spike >20/min                        →  pending #N
- *       (requires packages/auth to emit captureException with
- *        kind='rbac_denial' tag — instrumentation tracked separately)
+ *   (b) Supabase RPC failures tagged at error level            →  RULE 4 below
+ *       (consumes tags emitted by packages/services/src/shared/with-rpc.ts —
+ *        see SUPABASE_RPC_TAG_KEYS for the contract)
+ *   (c) auth/rbac denial spike >20/min                         →  RULE 5 below
+ *       (consumes tags emitted by packages/auth/src/rbac-instrumentation.ts —
+ *        see RBAC_DENIAL_TAG_KEYS for the contract)
  *
  * Rules 1 and 2 below predate the #22 verification and remain
  * load-bearing for the payment-response-lost flow PR #8 wired up.
@@ -158,6 +184,101 @@ export const CANONICAL_RULES = [
       },
     ],
   },
+  {
+    // Issue #22 acceptance criterion (b): "Supabase RPC failures tagged
+    // at error level". Fires on every new RPC-failure issue. Filter on
+    // `supabase.rpc=true` (the constant tag the wrapper emits) so this
+    // rule is scoped strictly to RPC paths and not generic Postgres
+    // query errors.
+    //
+    // Threshold: first-seen + regression (no frequency gate). RPC
+    // failures are rare AND high-signal — every one is worth paging
+    // on. If volume grows, the throttle (frequency=10min) prevents
+    // pager-storm without dropping events.
+    //
+    // Tags consumed (must match SUPABASE_RPC_TAG_KEYS in
+    // packages/services/src/shared/with-rpc.ts):
+    //   - supabase.rpc        (constant "true")
+    //   - supabase.rpc_name   (which RPC failed — surface in alert)
+    //   - supabase.error_code (Postgres / PostgREST error code)
+    name: "Supabase RPC failures — javascript-nextjs",
+    actionMatch: "any",
+    filterMatch: "all",
+    frequency: 10,
+    environment: "production",
+    conditions: [
+      { id: "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition" },
+      { id: "sentry.rules.conditions.regression_event.RegressionEventCondition" },
+    ],
+    filters: [
+      {
+        id: "sentry.rules.filters.tagged_event.TaggedEventFilter",
+        key: "supabase.rpc",
+        match: "eq",
+        value: "true",
+      },
+      {
+        id: "sentry.rules.filters.level.LevelFilter",
+        match: "gte",
+        level: "40", // error and above
+      },
+    ],
+    actions: [
+      {
+        id: "sentry.mail.actions.NotifyEmailAction",
+        targetType: "IssueOwners",
+        targetIdentifier: "",
+      },
+    ],
+  },
+  {
+    // Issue #22 acceptance criterion (c): "auth/rbac denial spike
+    // (>20/min) sourced from the packages/auth instrumentation".
+    // Frequency-based — fires when RBAC denials accumulate >20 in any
+    // rolling 1-minute window. Distinct from a "first denial" rule
+    // (a single denial is not a spike — denials are normal for any
+    // role-gated UI) — only the spike (potential probing / brute-force
+    // attempt / misrouted automation) is alert-worthy.
+    //
+    // Tags consumed (must match RBAC_DENIAL_TAG_KEYS in
+    // packages/auth/src/rbac-instrumentation.ts):
+    //   - rbac.denial         (constant "true")
+    //   - rbac.required_role  (surface in alert for triage)
+    //   - rbac.actual_role
+    //   - rbac.surface        (which route/component denied)
+    //
+    // Throttle: 5min (frequency=5). Spikes are usually short-lived
+    // (deploy-broken role, automated probe); a 5min dedupe keeps the
+    // signal honest without spamming.
+    name: "RBAC denial spike — javascript-nextjs",
+    actionMatch: "any",
+    filterMatch: "all",
+    frequency: 5,
+    environment: "production",
+    conditions: [
+      {
+        id: "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+        value: 20,
+        interval: "1m",
+        comparisonType: "count",
+      },
+    ],
+    filters: [
+      {
+        id: "sentry.rules.filters.tagged_event.TaggedEventFilter",
+        key: "rbac.denial",
+        match: "eq",
+        value: "true",
+      },
+    ],
+    actions: [
+      {
+        id: "sentry.mail.actions.NotifyEmailAction",
+        targetType: "IssueOwners",
+        targetIdentifier: "",
+      },
+    ],
+  },
 ]
 
 /**
@@ -226,6 +347,32 @@ export function validateRule(rule, index) {
     arr.forEach((entry, i) => {
       if (!entry || typeof entry !== "object" || typeof entry.id !== "string" || entry.id.length === 0) {
         errs.push(`${where}: ${arrKey}[${i}] missing string "id"`)
+      }
+    })
+  }
+
+  // Tagged-event filters need a string `key`/`value`/`match`. The base
+  // id-check above can't catch e.g. `key: undefined` on a tagged_event
+  // filter, which Sentry's API rejects with a confusing 400. We also
+  // verify the `key` references EMITTED_TAG_KEYS so a rule can never
+  // filter on a tag the codebase doesn't emit (rules 4+5 from PR adding
+  // packages/auth + packages/services Sentry instrumentation).
+  if (Array.isArray(rule.filters)) {
+    rule.filters.forEach((filter, i) => {
+      if (filter && filter.id === "sentry.rules.filters.tagged_event.TaggedEventFilter") {
+        for (const k of /** @type {const} */ (["key", "match", "value"])) {
+          if (typeof filter[k] !== "string" || filter[k].length === 0) {
+            errs.push(`${where}: filters[${i}] (TaggedEventFilter) "${k}" must be a non-empty string`)
+          }
+        }
+        if (typeof filter.key === "string" && filter.key.length > 0 && !EMITTED_TAG_KEYS.includes(filter.key)) {
+          errs.push(
+            `${where}: filters[${i}] (TaggedEventFilter) key=${JSON.stringify(filter.key)} ` +
+              `is not in EMITTED_TAG_KEYS — rule would never fire. ` +
+              `Either emit this tag in the codebase + add it to EMITTED_TAG_KEYS, ` +
+              `or change the rule to filter on a tag that is emitted.`,
+          )
+        }
       }
     })
   }
