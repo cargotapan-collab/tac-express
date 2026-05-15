@@ -81,14 +81,14 @@ jobs:
     name: Migrations apply on fresh DB
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # SOFT-FAIL MODE — see issue tracking the May-12 migration backlog.
-    # The first run of this gate exposed multiple pre-existing latent bugs
-    # in the May-12 batch (broken trigger, uppercase enum literals, missing
-    # NOT NULL columns in seed). Until those are reconciled with what
-    # production actually has, the gate's failure is a TODO signal — its
-    # logs still surface bugs in the PR's check tab without blocking merge.
-    # When the migration backlog is clean, remove the continue-on-error.
-    continue-on-error: true
+    # LOAD-BEARING — gate failures BLOCK merge.
+    # Soft-fail mode was removed 2026-05-15 after the Path A migration
+    # baseline (#96) + OPERATOR fix (#97) + advisor fix (#98) reconciled
+    # the repo with production. The gate has run green on every PR since
+    # the consolidated baseline replaced the divergent migration history.
+    # If you need to ship a migration that intentionally restructures
+    # state and `supabase db reset` fails, fix the migration — don't
+    # re-add continue-on-error.
     # The workflow's top-level `paths:` filter already gates this whole
     # workflow to PRs touching apps/packages/scripts/supabase/workflow,
     # so this job runs whenever the workflow runs. Boot + reset + CLI
