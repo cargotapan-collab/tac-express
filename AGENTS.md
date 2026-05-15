@@ -81,6 +81,24 @@ Adding a new skill OR a new trigger phrase REQUIRES a corresponding line in [`.c
 | [`conventions/subagent-routing.md`](.claude/skills/conventions/subagent-routing.md) | Native Agent tool vs inline work |
 | [`conventions/friction-protocol.md`](.claude/skills/conventions/friction-protocol.md) | Response when asked to violate a law |
 
+### Agent-side scaffolding scripts (PRs + CI watching)
+
+Use `scripts/ci-watch-pr.mjs` for ALL CI watching. **Do NOT write inline `until [ "$(gh pr view ... mergeStateStatus)" != "UNSTABLE" ]; do sleep 30; done` bash loops** — that pattern silently reported stale-sha CLEAN states across PRs #118/#120/#121/#123 (closed as #122).
+
+```bash
+# Anchors on the PR's current headRefOid, polls mergeStateStatus,
+# exits non-zero (code 2) when HEAD drifts mid-watch:
+node scripts/ci-watch-pr.mjs <pr-number>
+
+# Exit codes: 0 settled clean | 1 usage | 2 stale-sha (re-issue) | 3 gh-error | 4 timeout
+# On code 2, the agent re-runs the same command — it re-anchors on the
+# new HEAD automatically. No state-keeping required at the agent layer.
+```
+
+**Pipeline gotcha:** `node scripts/ci-watch-pr.mjs 124 | tail -20` MASKS the script's exit code — `tail`'s exit 0 wins and the agent's harness sees "exit code 0" even when the script actually exited 2 (stale). Caught on this script's very first dogfooding (PR #124's own watch). Either invoke without a pipe, or run with `set -o pipefail` if a pipe is genuinely needed for output truncation. The stderr message (`✗ STALE: PR HEAD drifted…`) still appears in the captured output regardless, so the agent can grep for `STALE` as a fallback signal when piped.
+
+Sentinel: `apps/dashboard/__tests__/ci-watch-script.test.ts` pins the script's load-bearing behavior (initial sha anchor, per-poll drift check, exit-code 2 contract). A future refactor that strips the drift detection fails this test.
+
 ---
 
 ## 1. SYSTEM ROLE & BEHAVIORAL PROTOCOLS
