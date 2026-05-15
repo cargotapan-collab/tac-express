@@ -18,6 +18,38 @@ import {
 // The OPERATOR role bug (#97) — where a policy referenced a role that
 // didn't exist in the CHECK list — is exactly the class of mistake a
 // test floor here would catch. Adding coverage now to prevent recurrence.
+//
+// Note on design: the matrices below use hardcoded role lists, not
+// `Object.values(UserRole).filter(...)`. That's deliberate — when a new
+// UserRole is added, the dev should make a conscious decision about
+// where it fits in each matrix (warehouse? admin-or-above? what idle
+// minutes?). A silent auto-include would weaken that pedagogy. The
+// sentinel test directly below catches drift loudly.
+
+describe("UserRole enum surface (sentinel for the matrices below)", () => {
+  it("has exactly the expected set of roles — update the matrices below when this fails", () => {
+    // When this assertion fails, a new UserRole was added or removed.
+    // Search this file for every hardcoded role array and add/remove the
+    // role with intent — do not just update this set to make the test
+    // green. The matrices below encode authorization decisions that
+    // must be made explicitly for each new role.
+    expect(new Set(Object.values(UserRole))).toEqual(
+      new Set([
+        UserRole.SUPER_ADMIN,
+        UserRole.ADMIN,
+        UserRole.MANAGER,
+        UserRole.OPS,
+        UserRole.OPS_STAFF,
+        UserRole.SUPPORT,
+        UserRole.INVOICE,
+        UserRole.FINANCE_STAFF,
+        UserRole.WAREHOUSE_IMPHAL,
+        UserRole.WAREHOUSE_DELHI,
+        UserRole.WAREHOUSE_STAFF,
+      ]),
+    )
+  })
+})
 
 describe("hasMinimumRole", () => {
   it("returns true when user role equals minimum", () => {
