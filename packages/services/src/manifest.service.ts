@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@workspace/database/supabase.types"
 import type { Manifest, ManifestSummary, ManifestFilters } from "@workspace/types"
 import { ManifestStatus } from "@workspace/types"
 
+import { captureSupabaseRpcError, withRpc } from "./shared/with-rpc"
+
 export function createManifestService(db: SupabaseClient) {
   return {
     async getManifests(filters: ManifestFilters = {}): Promise<ManifestSummary[]> {
@@ -103,7 +105,14 @@ export function createManifestService(db: SupabaseClient) {
         code === "PGRST202" ||
         code === "42883" ||
         /function .* does not exist|Could not find/i.test(message)
-      if (!rpcMissing) throw rpc.error
+      if (!rpcMissing) {
+        // SELECTIVE adoption per audit doc § 3.2: emit only on the real-error
+        // branch. The RPC-not-deployed fallback below runs as normal business
+        // state during issue #19's migration window; emitting on it would
+        // saturate rule 4.
+        captureSupabaseRpcError("add_shipment_to_manifest", rpc.error)
+        throw rpc.error
+      }
 
       const { error } = await db.from("manifest_shipments").insert({
         manifest_id: manifestId,
@@ -122,7 +131,9 @@ export function createManifestService(db: SupabaseClient) {
     },
 
     async closeManifest(manifestId: string): Promise<void> {
-      const { error } = await db.rpc("close_manifest_atomic", { p_manifest_id: manifestId })
+      const { error } = await withRpc("close_manifest_atomic", () =>
+        db.rpc("close_manifest_atomic", { p_manifest_id: manifestId }),
+      )
       if (error) throw error
     },
 

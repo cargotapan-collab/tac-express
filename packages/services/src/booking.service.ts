@@ -8,6 +8,7 @@
 import type { SupabaseClient } from "@workspace/database/supabase.types"
 
 import { isMissingRpcOrRelation } from "./shared/rpc-errors"
+import { captureSupabaseRpcError } from "./shared/with-rpc"
 
 export type BookingStatus = "PENDING" | "APPROVED" | "CONVERTED" | "REJECTED"
 
@@ -208,6 +209,10 @@ export function createBookingService(db: SupabaseClient) {
         }
       }
       if (rpc.error && !isMissingRpcOrRelation(rpc.error)) {
+        // SELECTIVE adoption per audit doc § 3.2: emit only on the real-error
+        // branch. The fallback below is normal business state during issue
+        // #19 migration window — instrumenting it would saturate rule 4.
+        captureSupabaseRpcError("convert_booking_to_shipment", rpc.error)
         throw rpc.error
       }
 

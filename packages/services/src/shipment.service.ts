@@ -4,6 +4,7 @@ import type { Shipment, ShipmentSummary, ShipmentFilters, TrackingEvent } from "
 import { ShipmentStatus } from "@workspace/types"
 
 import { isMissingRpcOrRelation } from "./shared/rpc-errors"
+import { captureSupabaseRpcError, withRpc } from "./shared/with-rpc"
 
 /**
  * The canonical insert shape for `shipments` rows, derived from the generated
@@ -87,7 +88,9 @@ export function createShipmentService(db: SupabaseClient) {
      * sequence + prefix (e.g. `TAC26043010002`).
      */
     async generateAwbNumber(): Promise<string> {
-      const { data, error } = await db.rpc("generate_awb_number")
+      const { data, error } = await withRpc("generate_awb_number", () =>
+        db.rpc("generate_awb_number"),
+      )
       if (error) throw error
       if (typeof data !== "string" || !data) {
         throw new Error("generate_awb_number returned an empty value")
@@ -131,6 +134,8 @@ export function createShipmentService(db: SupabaseClient) {
         }
       }
       if (rpc.error && !isMissingRpcOrRelation(rpc.error)) {
+        // SELECTIVE adoption per audit doc § 3.2: real-error branch only.
+        captureSupabaseRpcError("bulk_create_shipments", rpc.error)
         throw rpc.error
       }
 

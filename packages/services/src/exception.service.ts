@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@workspace/database/supabase.types"
 import type { Exception, ExceptionFilters } from "@workspace/types"
 
+import { withRpc } from "./shared/with-rpc"
+
 function mapException(row: Record<string, unknown>): Exception {
   return {
     id: row.id as unknown as Exception["id"],
@@ -45,11 +47,13 @@ export function createExceptionService(db: SupabaseClient) {
     },
 
     async resolveException(id: string, resolution: string): Promise<void> {
-      const { error } = await db.rpc("resolve_exception", {
-        p_exception_id: id,
-        p_staff_id: null,
-        p_resolution: resolution,
-      })
+      const { error } = await withRpc("resolve_exception", () =>
+        db.rpc("resolve_exception", {
+          p_exception_id: id,
+          p_staff_id: null,
+          p_resolution: resolution,
+        }),
+      )
       if (error) throw error
     },
 
