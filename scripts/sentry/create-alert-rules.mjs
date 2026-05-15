@@ -1,128 +1,75 @@
 #!/usr/bin/env node
 // Idempotently create the canonical Sentry alert rules for the
 // tapan-cargo-az/javascript-nextjs project. Replaces the manual 4-click
-// dashboard setup that was tracked in #94.
+// dashboard setup originally tracked in #94.
 //
-// Usage:
-//   1. Ensure SENTRY_AUTH_TOKEN is set in env (it lives in
-//      apps/dashboard/.env.local already; the token must have project:write
-//      scope — sntryu_ user-auth tokens have this by default).
-//   2. node scripts/sentry/create-alert-rules.mjs
+// USAGE
+//   node scripts/sentry/create-alert-rules.mjs            # live run
+//   node scripts/sentry/create-alert-rules.mjs --dry-run  # no writes; prints the plan
 //
-// What it does:
-//   - GETs the project's existing rules
-//   - For each canonical rule defined in CANONICAL_RULES below:
-//       - if a rule with the same name exists, skips (idempotent)
-//       - otherwise, POSTs the rule to Sentry's REST API
-//   - Prints a summary of what was created vs skipped
+// REQUIRED ENV
+//   SENTRY_AUTH_TOKEN — scope: `project:write` (POST .../rules/).
+//                       A user-auth `sntryu_…` token covers this.
+//                       Sourced automatically from apps/dashboard/.env.local
+//                       if you run via `node --env-file=...`; otherwise
+//                       export it inline.
+//   --dry-run also requires SENTRY_AUTH_TOKEN for the GET list-rules
+//   step (Sentry's REST API rejects unauthenticated reads). The token
+//   is NOT used to write anything in dry-run mode.
 //
-// Why a script instead of a Terraform / Pulumi resource:
-//   This is a one-off operational setup. The TAC Express project uses
-//   click-ops for the rest of its Sentry config (DSN keys, integrations,
-//   etc.) — adding IaC just for alerts would be over-engineering for the
-//   current scale. Re-evaluate when alert-rule count exceeds ~10.
+// WHAT IT DOES (live run)
+//   1. GETs the project's existing rules
+//   2. For each entry in CANONICAL_RULES (see canonical-rules.mjs):
+//      - if a rule with the same name exists, skips (idempotent)
+//      - otherwise validates the rule shape, then POSTs to Sentry
+//   3. Prints a summary of created / skipped
 //
-// Why a script instead of doing it from Claude Code's session:
-//   Claude's Sentry MCP exposes update_issue / update_project but not
-//   create_alert_rule. Direct REST API calls from Claude would require
-//   exposing the auth token to the agent context, which we'd rather not
-//   do (token-in-transcript risk). Owner runs locally with their own
-//   token.
+// DRY-RUN MODE
+//   Identical to a live run up through validation, but PRINTS each
+//   POST that *would* happen and exits 0. Useful in two situations:
+//     - first-time owner sanity-check before committing to a write
+//     - CI smoke for the runner itself (no token = job skips)
 //
-// Tracked: issue #94. After this script runs successfully and the rule
-// is verified by a test event, comment "alert rule live, target=<channel>"
-// on #94 and close it.
+// IDEMPOTENCY GUARANTEE
+//   `name` is the key. Existing rules with the same name are NEVER
+//   modified by this script — to update an existing rule, manually
+//   delete it in Sentry (Settings → Alerts → Rules → ⋯) then re-run.
+//   The "rule was hand-edited" state remains obvious.
+//
+// ROLLBACK
+//   Each rule lives independently. To roll back a single rule, delete
+//   it in the Sentry UI. To roll back ALL rules created by this script,
+//   delete every rule whose name matches a CANONICAL_RULES[].name —
+//   see docs/runbooks/sentry-alert-rules.md § Rollback for the
+//   API-driven version (a one-liner using the rule IDs printed by this
+//   script's success output).
+//
+// WHY A SCRIPT INSTEAD OF TERRAFORM / PULUMI
+//   One-off operational setup. Click-ops everywhere else in the Sentry
+//   config (DSN keys, integrations). Adding IaC for ~3 rules is
+//   over-engineering. Re-evaluate when rule count exceeds ~10.
+//
+// WHY NOT FROM CLAUDE'S MCP SESSION
+//   Sentry MCP exposes update_issue / update_project but NOT
+//   create_alert_rule. Direct REST calls from Claude would require
+//   exposing the auth token to the agent context (token-in-transcript
+//   risk). Owner runs locally with their own token.
+//
+// Tracked: issue #94 (the alert-rule action) + #22 (closed, the
+// verification umbrella). Post-run, comment "alert rule live,
+// target=<channel>" on #94 and close it.
+//
+// See: docs/runbooks/sentry-alert-rules.md for the full owner playbook.
 
-const ORG_SLUG = "tapan-cargo-az"
-const PROJECT_SLUG = "javascript-nextjs"
-const REGION_URL = "https://de.sentry.io"
+import {
+  CANONICAL_RULES,
+  ORG_SLUG,
+  PROJECT_SLUG,
+  REGION_URL,
+  validateAllRules,
+} from "./canonical-rules.mjs"
 
-/**
- * Canonical alert rules. Each entry is the body of a POST to
- *   {REGION_URL}/api/0/projects/{ORG_SLUG}/{PROJECT_SLUG}/rules/
- *
- * Schema reference: https://docs.sentry.io/api/alerts/create-an-issue-alert-rule-for-a-project/
- *
- * To add a rule, append to this array and re-run the script. Existing
- * rules with the same `name` are NOT modified — manual delete in Sentry
- * + re-run is required to update an existing rule. This is intentional:
- *   - prevents accidental clobber of operator's hand-tweaked filters
- *   - makes the "rule was modified by hand" state surface obvious
- */
-const CANONICAL_RULES = [
-  {
-    name: "Production errors — javascript-nextjs",
-    actionMatch: "any",
-    filterMatch: "all",
-    frequency: 30, // throttle: at most once per 30 minutes per group
-    environment: "production",
-    conditions: [
-      // Fire when a NEW issue is created or a resolved issue regresses
-      { id: "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition" },
-      { id: "sentry.rules.conditions.regression_event.RegressionEventCondition" },
-    ],
-    filters: [
-      // Drop warnings — only error and above page anyone
-      {
-        id: "sentry.rules.filters.level.LevelFilter",
-        match: "gte",
-        level: "40", // error
-      },
-    ],
-    actions: [
-      // The owner picks ONE notification target by editing this entry
-      // before running the script. Default uses the org-default email
-      // notification (which goes to the issue's assignee + project
-      // members per their notification preferences).
-      //
-      // For Slack: replace with
-      //   {
-      //     id: "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-      //     workspace: "<numeric workspace ID from integration page>",
-      //     channel: "#tac-incidents",
-      //     channel_id: "",
-      //     tags: "environment,level,kind,correlation_id",
-      //   }
-      //
-      // For PagerDuty: replace with the integration's notify action.
-      {
-        id: "sentry.mail.actions.NotifyEmailAction",
-        targetType: "IssueOwners",
-        targetIdentifier: "",
-      },
-    ],
-  },
-  {
-    name: "Payment-response-lost — javascript-nextjs",
-    // Higher-priority dedicated rule for the payment race condition the
-    // dashboard tags as `kind:payment_response_lost`. Fires immediately
-    // on every event (no throttling).
-    actionMatch: "any",
-    filterMatch: "all",
-    frequency: 5,
-    environment: "production",
-    conditions: [
-      { id: "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition" },
-      { id: "sentry.rules.conditions.regression_event.RegressionEventCondition" },
-      { id: "sentry.rules.conditions.reappeared_event.ReappearedEventCondition" },
-    ],
-    filters: [
-      {
-        id: "sentry.rules.filters.tagged_event.TaggedEventFilter",
-        key: "kind",
-        match: "eq",
-        value: "payment_response_lost",
-      },
-    ],
-    actions: [
-      {
-        id: "sentry.mail.actions.NotifyEmailAction",
-        targetType: "IssueOwners",
-        targetIdentifier: "",
-      },
-    ],
-  },
-]
+const DRY_RUN = process.argv.includes("--dry-run")
 
 const TOKEN = process.env.SENTRY_AUTH_TOKEN
 if (!TOKEN) {
@@ -130,8 +77,21 @@ if (!TOKEN) {
     "FATAL: SENTRY_AUTH_TOKEN env var is not set.\n" +
       "  - Source it from apps/dashboard/.env.local OR\n" +
       "  - Generate a fresh token at https://sentry.io/settings/account/api/auth-tokens/\n" +
-      "    (scope: project:write — required for POST /api/0/projects/.../rules/)\n",
+      "    (scope: project:write — required for POST /api/0/projects/.../rules/)\n" +
+      "  - See docs/runbooks/sentry-alert-rules.md for the full setup.\n",
   )
+  process.exit(1)
+}
+
+// Defense-in-depth: validate locally before any network call. The same
+// validator runs as a CI gate (scripts/sentry/lint-alert-rules.mjs),
+// so a malformed rule should never reach this point — but if a future
+// edit slips past CI, the runner still refuses to POST garbage.
+const validationErrors = validateAllRules(CANONICAL_RULES)
+if (validationErrors.length > 0) {
+  console.error("FATAL: canonical-rules.mjs has validation errors:")
+  for (const e of validationErrors) console.error(`  - ${e}`)
+  console.error("\nFix canonical-rules.mjs, then re-run.")
   process.exit(1)
 }
 
@@ -166,8 +126,9 @@ async function createRule(rule) {
 }
 
 async function main() {
+  const modeLabel = DRY_RUN ? "DRY-RUN" : "LIVE"
   console.log(
-    `→ Fetching existing alert rules for ${ORG_SLUG}/${PROJECT_SLUG} on ${REGION_URL} …`,
+    `→ [${modeLabel}] Fetching existing alert rules for ${ORG_SLUG}/${PROJECT_SLUG} on ${REGION_URL} …`,
   )
   const existing = await listExistingRules()
   const existingNames = new Set(existing.map((r) => r.name))
@@ -178,16 +139,29 @@ async function main() {
 
   let created = 0
   let skipped = 0
+  let plannedDryRun = 0
   for (const rule of CANONICAL_RULES) {
     if (existingNames.has(rule.name)) {
       console.log(`⊘ Skipping "${rule.name}" — already exists`)
       skipped++
       continue
     }
+    if (DRY_RUN) {
+      console.log(`◻ [DRY-RUN] Would create "${rule.name}"`)
+      console.log(`    conditions=${rule.conditions.length} filters=${rule.filters.length} actions=${rule.actions.length} frequency=${rule.frequency}min`)
+      plannedDryRun++
+      continue
+    }
     console.log(`+ Creating "${rule.name}" …`)
     const result = await createRule(rule)
     console.log(`  ✓ Created with id=${result.id}`)
     created++
+  }
+
+  if (DRY_RUN) {
+    console.log(`\n[DRY-RUN] Summary: ${plannedDryRun} would be created, ${skipped} skipped (already exist).`)
+    console.log(`[DRY-RUN] No writes performed. Re-run without --dry-run to apply.`)
+    return
   }
 
   console.log(`\nSummary: ${created} created, ${skipped} skipped (already existed).`)
@@ -198,8 +172,9 @@ async function main() {
       `\n     https://${ORG_SLUG}.sentry.io/alerts/rules/${PROJECT_SLUG}/`,
       "\n  2. Fire a test event via /api/diagnostics/sentry to confirm notifications arrive.",
       "\n  3. If you wanted Slack/PagerDuty instead of email-to-issue-owners,",
-      "\n     edit CANONICAL_RULES[].actions in this script, delete the rule",
+      "\n     edit CANONICAL_RULES[].actions in canonical-rules.mjs, delete the rule",
       "\n     in Sentry, and re-run.",
+      "\n  4. See docs/runbooks/sentry-alert-rules.md for the full playbook.",
     )
   }
 }

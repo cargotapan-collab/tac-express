@@ -153,6 +153,24 @@ jobs:
         # have a different threat model.
         run: pnpm audit --prod --audit-level moderate
 
+  alert-rule-lint:
+    name: Sentry alert-rule structure lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    # Validates scripts/sentry/canonical-rules.mjs without calling the
+    # Sentry API. The runner (create-alert-rules.mjs) is owner-runnable
+    # only — needs a project:write token that intentionally never enters
+    # CI. This gate catches malformed CANONICAL_RULES at PR time, which
+    # would otherwise only surface when the owner next runs the runner.
+    # See docs/runbooks/sentry-alert-rules.md § 7.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Lint canonical alert rules (no network, no token)
+        run: node scripts/sentry/lint-alert-rules.mjs
+
   bundle-size:
     name: Bundle size
     runs-on: ubuntu-latest
