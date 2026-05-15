@@ -34,7 +34,11 @@ function tooManyRequests(reset: number): NextResponse {
   )
 }
 
-export default async function proxy(req: NextRequest) {
+// Explicit Promise<NextResponse> return type avoids TS2742 "inferred type
+// cannot be named without a reference to ../../packages/database/node_modules/..."
+// after the Next.js 16.2 bump — the inferred return tries to reach into the
+// monorepo-internal Next install that backs @workspace/database.
+export default async function proxy(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl
   const identifier = getIdentifier(req)
 
@@ -52,7 +56,14 @@ export default async function proxy(req: NextRequest) {
   // Catch AuthApiError ("Invalid Refresh Token") so a stale browser
   // cookie doesn't crash every request — fall through as unauthenticated
   // and let the redirect below send the visitor to /sign-in.
-  const { supabase, response } = createMiddlewareClient(req)
+  //
+  // Cast through unknown to bridge a duplicate-Next type install in the
+  // monorepo (multiple pnpm-resolved next versions across packages). The
+  // runtime types are identical; this cast is a TS-only bridge — same
+  // pattern apps/dashboard/proxy.ts uses.
+  const { supabase, response } = createMiddlewareClient(
+    req as unknown as Parameters<typeof createMiddlewareClient>[0],
+  )
   let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] = null
   try {
     const result = await supabase.auth.getUser()
@@ -71,7 +82,10 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  return response
+  // Same monorepo type-dedup bridge as the input cast above — the response
+  // is the runtime-correct NextResponse, just typed against the
+  // @workspace/database-internal Next install instead of ours.
+  return response as unknown as NextResponse
 }
 
 export const config = {
