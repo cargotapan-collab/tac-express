@@ -81,6 +81,10 @@ Adding a new skill OR a new trigger phrase REQUIRES a corresponding line in [`.c
 | [`conventions/subagent-routing.md`](.claude/skills/conventions/subagent-routing.md) | Native Agent tool vs inline work |
 | [`conventions/friction-protocol.md`](.claude/skills/conventions/friction-protocol.md) | Response when asked to violate a law |
 
+### Pattern catalog (CodeRabbit findings)
+
+Mandatory pre-read when writing tests, mock-builders, sentinels, regex parsers, or marker comments: [`docs/patterns/coderabbit-catalog.md`](docs/patterns/coderabbit-catalog.md). 9 entries across 4 categories (test-assertion-strength, code-reference-stability, type-safety, abstraction-timing). Several are permanent CodeRabbit-memory learnings — writing the pattern correctly first time saves the review round.
+
 ### Agent-side scaffolding scripts (PRs + CI watching)
 
 Use `scripts/ci-watch-pr.mjs` for ALL CI watching. **Do NOT write inline `until [ "$(gh pr view ... mergeStateStatus)" != "UNSTABLE" ]; do sleep 30; done` bash loops** — that pattern silently reported stale-sha CLEAN states across PRs #118/#120/#121/#123 (closed as #122).
