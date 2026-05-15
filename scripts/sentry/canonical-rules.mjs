@@ -50,6 +50,28 @@ export const REQUIRED_FIELDS = /** @type {const} */ ([
  * relevant package's instrumentation module. Adding a key here without
  * a corresponding code emit will fail that test loudly.
  */
+/**
+ * Sentinel action id for rules that need an env-parameterized notification
+ * target. The runner (create-alert-rules.mjs) detects this sentinel and
+ * replaces the action with one built from SENTRY_ALERT_NOTIFICATION_ACTION
+ * before POSTing to Sentry. If the env var is missing, the runner refuses
+ * to POST with a clear error message.
+ *
+ * Why a sentinel rather than an empty actions array:
+ *   The lint validator requires `actions[]` to be non-empty (a rule with
+ *   no action fires silently). The sentinel satisfies the structural lint
+ *   while signaling to the runner that the action needs late binding.
+ *
+ * Why one rule (rule 6) rather than parameterizing all rules:
+ *   Rules 1–5 use the org-default IssueOwners email — which routes via
+ *   the assignee or project-member email preferences. That's a safe
+ *   default for most cases. Rule 6 is the EXPLICITLY-targeted rule the
+ *   owner wires for the production-errors top-priority surface — it
+ *   exists specifically to close #94's "verify a real notification action
+ *   fires" acceptance criterion.
+ */
+export const PARAMETERIZED_ACTION_SENTINEL = "PARAMETERIZED_NOTIFICATION_ACTION"
+
 export const EMITTED_TAG_KEYS = /** @type {const} */ ([
   // Pre-existing tag (PR #8 — apps/dashboard finance route):
   "kind", // values: "payment_response_lost", and (via rbac-instrumentation):
@@ -276,6 +298,51 @@ export const CANONICAL_RULES = [
         id: "sentry.mail.actions.NotifyEmailAction",
         targetType: "IssueOwners",
         targetIdentifier: "",
+      },
+    ],
+  },
+  {
+    // Issue #94 — explicitly-targeted production-errors alert rule.
+    //
+    // The canonical "owner gets paged when a new production error fires"
+    // rule. Distinct from rule 1 (which uses IssueOwners email default —
+    // works only if the issue is auto-assigned and that person has
+    // notifications enabled — brittle for solo-operator setups).
+    //
+    // Triggers: first-seen OR regression event, level ≥ error, environment
+    // = production. Frequency throttled at 30 min/group so a single noisy
+    // issue can't spam the channel.
+    //
+    // Notification target is PARAMETERIZED — the action below uses the
+    // sentinel id PARAMETERIZED_ACTION_SENTINEL, which the runner
+    // (scripts/sentry/create-alert-rules.mjs) replaces with the action
+    // JSON read from env var SENTRY_ALERT_NOTIFICATION_ACTION before
+    // POSTing. If the env var is missing, the runner refuses to provision
+    // this rule with a clear error.
+    //
+    // See docs/runbooks/sentry-alert-rules.md § "Owner one-time
+    // provisioning — #94 closure procedure" for the 7-step owner workflow.
+    name: "Production errors (owner-targeted) — javascript-nextjs",
+    actionMatch: "any",
+    filterMatch: "all",
+    frequency: 30,
+    environment: "production",
+    conditions: [
+      { id: "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition" },
+      { id: "sentry.rules.conditions.regression_event.RegressionEventCondition" },
+    ],
+    filters: [
+      {
+        id: "sentry.rules.filters.level.LevelFilter",
+        match: "gte",
+        level: "40", // error and above
+      },
+    ],
+    actions: [
+      {
+        // Runner replaces this entry with the env-derived action.
+        // Lint sees id as a non-empty string (passes structural check).
+        id: PARAMETERIZED_ACTION_SENTINEL,
       },
     ],
   },
