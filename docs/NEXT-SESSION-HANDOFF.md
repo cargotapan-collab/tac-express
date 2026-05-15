@@ -1,29 +1,31 @@
 # Next-Session Handoff — Start Here
 
-> **You are picking up TAC Express after the 2026-05-15 Instrumentation-track session.** Read this top-to-bottom before opening any other file. Designed to take 5 minutes and get you productive.
+> **You are picking up TAC Express after the 2026-05-15 PM non-stop campaign session.** That session shipped 4 sequential PRs (#114 → #118) on top of the prior Sentry-track + Instrumentation-track from earlier the same day. Read this top-to-bottom before opening any other file. Designed to take 5 minutes and get you productive.
 
-**Last commit on `main`:** post-#113 — `feat(sentry): packages/auth + packages/services Sentry instrumentation`
-**Date this doc was written:** 2026-05-15 (Instrumentation-track, third track of the day)
-**Author of last session:** Claude Code (Opus 4.7) in PM mode
+**Last commit on `main`:** `2de96f7` — `test(services): payment.service.ts unit-test floor (#118)`
+**Date this doc was written:** 2026-05-15 (post-campaign — third+fourth tracks of the day)
+**Author of last session:** Claude Code (Opus 4.7) in PM-mode + Senior FSE + Big-Tech CTO simultaneously
 
 ---
 
-## 0. READ THIS FIRST — five things you must NOT do
+## 0. READ THIS FIRST — six things you must NOT do
 
-1. **Do NOT skip [`tac-express-onboarding`](.claude/skills/tac-express-onboarding/SKILL.md).** Mandatory per `CLAUDE.md § 0.5` (the GBrain four-step gate). Load it as your literal first action of every session.
+1. **Do NOT skip [`tac-express-onboarding`](.claude/skills/tac-express-onboarding/SKILL.md).** Mandatory per `CLAUDE.md § 0.5`. Load it as your literal first action of every session.
 
 2. **Do NOT bump dependencies in feature PRs.** The `npm-audit` gate has been load-bearing since #108. Dep bumps belong in their own PR.
 
-3. **Do NOT add Sentry tag keys without updating all four artifacts.** The cross-package contract is enforced by a sentinel test — the four are:
-   - The package's tag-key constant (e.g. `RBAC_DENIAL_TAG_KEYS`, `SUPABASE_RPC_TAG_KEYS`)
+3. **Do NOT add Sentry tag keys without updating all four artifacts** (the cross-package tag-emission contract):
+   - The package's tag-key constant (`RBAC_DENIAL_TAG_KEYS`, `SUPABASE_RPC_TAG_KEYS`)
    - The canonical alert rule's `TaggedEventFilter.key` in `scripts/sentry/canonical-rules.mjs`
    - `EMITTED_TAG_KEYS` in the same file
    - The sentinel test at `apps/dashboard/__tests__/canonical-rules-tag-contract.test.ts`
    Drift in any one fails the sentinel + the `alert-rule-lint` CI gate.
 
-4. **Do NOT run `scripts/sentry/create-alert-rules.mjs` from an agent session.** The script needs `SENTRY_AUTH_TOKEN` and the token must NOT enter the agent transcript. Owner runs it locally. Agents may inspect with `--dry-run` only if the token is already in local env.
+4. **Do NOT run `scripts/sentry/create-alert-rules.mjs` from an agent session.** The script needs `SENTRY_AUTH_TOKEN` (and now `SENTRY_ALERT_NOTIFICATION_ACTION` for rule 6); both must NOT enter the agent transcript. Owner runs it locally. Agents may inspect with `--dry-run` only if the token is already in local env.
 
-5. **Do NOT attempt to merge from an agent session without typed per-PR authorization.** The classifier requires the owner to type the literal phrase `merge PR <N>` for each PR.
+5. **Do NOT regress to `console.*` in `apps/dashboard/app/api/{diagnostics,public/invoice-pdf,whatsapp}` routes.** The sentinel test at `apps/dashboard/__tests__/api-routes-no-console.test.ts` fails loudly on any regression. Use `logger` from `@/lib/logger` instead. See PR #117.
+
+6. **Do NOT attempt to merge from an agent session without typed per-PR authorization.** The classifier requires the owner to type the literal phrase `merge PR <N>` for each PR. This is the third campaign where this safety has mattered — lean into it.
 
 ---
 
@@ -32,18 +34,19 @@
 ```bash
 # 1. Confirm you have the latest main
 git checkout main && git pull origin main
+# Expected: 2de96f7 at HEAD
 
 # 2. Confirm quality gates pass on a clean main
 pnpm typecheck && pnpm lint && pnpm test
-# Expected: all green; 286 tests passing (+22 instrumentation tests from this session)
+# Expected: all green; 362 tests passing
 
 # 3. Confirm the load-bearing audit gate is clean
 pnpm audit --prod --audit-level moderate
 # Expected: "No known vulnerabilities found"
 
-# 4. Confirm the alert-rule lint passes (5 rules now)
+# 4. Confirm the alert-rule lint passes (6 rules now)
 node scripts/sentry/lint-alert-rules.mjs
-# Expected: "✓ canonical-rules.mjs is valid (5 rules)."
+# Expected: "✓ canonical-rules.mjs is valid (6 rules)."
 ```
 
 Then in your agent harness:
@@ -63,65 +66,61 @@ If the agent asks "what's the task?", see § 4.
 
 ### Open PRs (0)
 
-No open PRs at session end. Clean slate.
+Clean slate.
 
 ### Open Issues — short list (full backlog in #102)
 
 | # | Title | Priority | Notes |
 |---|---|---|---|
-| [#94](https://github.com/cargotapan-collab/tac-express/issues/94) | Verify + wire Sentry alert-rule notification action | P2 | Script + runbook + 5 canonical rules ship; **owner runs the script** to close the live-action half |
-| [#112](https://github.com/cargotapan-collab/tac-express/issues/112) | Adopt withRpc + captureRbacDenial at remaining call sites | P2 | Filed this session as the next-logical-step from #110. Recommended lead task — see § 4 |
+| [#94](https://github.com/cargotapan-collab/tac-express/issues/94) | Verify + wire Sentry alert-rule notification action | P2 | **One owner step from close.** Run the 7-step procedure in `docs/runbooks/sentry-alert-rules.md § 5.3`. ≤5 min. |
+| [#115](https://github.com/cargotapan-collab/tac-express/issues/115) | Observability follow-ups from PR #114 audit § 6 | P2 | Filed during this campaign. DEFERRED `detect_sla_breaches` decision + AMBIGUOUS `isAdminOrAbove` sub-gate. Both observability-completeness items. ~1 small PR. **Recommended lead task next session.** |
 | [#25](https://github.com/cargotapan-collab/tac-express/issues/25) | Audit + migrate dialogs/forms to react-hook-form + zod | — | Sprint-scale |
 | [#54](https://github.com/cargotapan-collab/tac-express/issues/54) | OpsManagementView role-select + Invite Staff actions | follow-up | Most addressed in #104 |
 | [#55–#58](https://github.com/cargotapan-collab/tac-express/issues/55) | Cosmetic follow-ups | follow-up | ~10min each; batchable |
-| [#102](https://github.com/cargotapan-collab/tac-express/issues/102) | Production-readiness backlog tracking | meta | ~21 sub-items remain |
+| [#102](https://github.com/cargotapan-collab/tac-express/issues/102) | Production-readiness backlog tracking | meta | ~18 sub-items remain (was ~21; campaign ticked at least 4) |
 
-**Resolved this session:**
-- [#110](https://github.com/cargotapan-collab/tac-express/issues/110) — Sentry instrumentation for Supabase RPC + RBAC denial tags. Helpers shipped; rules 4+5 in `canonical-rules.mjs` are live in CI; one canonical adoption at `payment.service.ts`. Per-call-site adoption tracked as #112.
+**Resolved during this campaign (2026-05-15 PM non-stop):**
+- [#112](https://github.com/cargotapan-collab/tac-express/issues/112) — Sentry instrumentation adoption (closed by PR #114; full helper + canonical-rule + adoption-contract sweep landed).
+
+**Owner-runnable close pending:**
+- [#94](https://github.com/cargotapan-collab/tac-express/issues/94) — owner runs the 7-step procedure in runbook § 5.3.
+
+### #102 checkboxes that should be ticked (owner action — these were silently completed)
+
+| Sub-item | Completed by | PR | Status |
+|---|---|---|---|
+| Add `/api/health` endpoint | #103 | merged | DONE; checkbox not ticked |
+| Fix 5 production bugs (#93) | #93 closure | merged | DONE; checkbox not ticked |
+| `INVOICE_PDF_SIGNING_SECRET` hex-format validation | already in code (`invoice-pdf-token.ts:67`) | merged | DONE; checkbox not ticked |
+| Unit tests for `packages/services/src/payment.service.ts` | this campaign | #118 | DONE; checkbox not ticked |
+| Unit tests for `record_invoice_payment` RPC | this campaign | #118 | DONE; checkbox not ticked |
+| Unit tests for `packages/auth/*` | prior session | #106 | DONE; checkbox not ticked |
+| Wire Sentry alert rules | prior sessions + this campaign | #105, #111, #113, #114, #116 | DONE script-side; OWNER-CLOSE remaining for live wiring (#94) |
+| Replace `console.log` with structured logger (pino) | this campaign | #117 | DONE; checkbox not ticked |
+| Add `pnpm audit --production` job | prior session | #105 | DONE; checkbox not ticked |
+| Enable Dependabot | prior session | #105 | DONE; checkbox not ticked |
+
+Owner can update #102's body directly or ask an agent to draft an updated body. The campaign retro at `docs/retros/2026-05-15-pm-campaign-track.md` § 4 has the full ledger.
 
 ---
 
 ## 3. Critical context (the things that will trip you up)
 
-### 3.1. Cross-package tag-emission contract (NEW this session — load-bearing)
+### 3.1. Cross-package tag-emission contract is enforced at THREE levels (unchanged from PR #113)
 
-The Sentry observability surface is held together by a cross-package contract enforced at three levels:
-
-| Level | Artifact | Enforcement |
+| Level | Artifact | What enforces it |
 |---|---|---|
 | CI gate | `node scripts/sentry/lint-alert-rules.mjs` | Validates rule shape + that every `TaggedEventFilter.key` is in `EMITTED_TAG_KEYS` |
-| Vitest sentinel | `apps/dashboard/__tests__/canonical-rules-tag-contract.test.ts` | Asserts that `RBAC_DENIAL_TAG_KEYS` + `SUPABASE_RPC_TAG_KEYS` exports match `EMITTED_TAG_KEYS` + the canonical rules |
+| Vitest sentinel | `apps/dashboard/__tests__/canonical-rules-tag-contract.test.ts` | Asserts package tag-key exports match `EMITTED_TAG_KEYS` + the canonical rules. PR β extended this with rule-6 shape pinning. |
 | Runbook | `docs/runbooks/sentry-alert-rules.md § 4` | Documents the package → helper → tag-keys → rule mapping for human review |
 
-**To add a new alert rule that filters on a new tag:**
+### 3.2. PR α's PHASE A audit doc IS the binding contract for adoption
 
-```
-1. Add a tag-key constant to the relevant package (e.g. WHATSAPP_DELIVERY_TAG_KEYS)
-   in a new instrumentation module. Export from index.ts.
-2. Add the helper that emits via emitTaggedException(err, tags) using the constant.
-3. Append the rule to scripts/sentry/canonical-rules.mjs with TaggedEventFilter
-   referencing the new key.
-4. Add the key to EMITTED_TAG_KEYS in the same file.
-5. Extend apps/dashboard/__tests__/canonical-rules-tag-contract.test.ts to
-   import the new tag-keys constant and assert it appears in EMITTED_TAG_KEYS.
-6. Run pnpm test + node scripts/sentry/lint-alert-rules.mjs — both must pass.
-```
+[`docs/audits/2026-05-15-rbac-denial-audit.md`](audits/2026-05-15-rbac-denial-audit.md) classifies every RPC call site as DIRECT-WRAP / SELECTIVE / DEFERRED and every RBAC site as BLOCK / GATE / AMBIGUOUS. The bucketing is the contract for what `withRpc` / `captureSupabaseRpcError` / `captureRbacDenial` are adopted at.
 
-Skipping any of the four artifacts → the sentinel test fails OR the lint gate fails.
+**Critical:** if you add a new RPC site or a new role-gate, classify it in this audit doc FIRST (or update the doc), THEN write the adoption code. The order matters for reviewer sanity.
 
-### 3.2. Dependency injection for Sentry across workspace packages
-
-`packages/auth` and `packages/services` do NOT depend on `@sentry/nextjs`. Instead, each package exports `registerSentry(emitter)`. `apps/dashboard/sentry-wire.ts` injects the Sentry SDK at startup (called from `sentry.{server,edge,client}.config.ts` after `Sentry.init`). Apps without Sentry (apps/web) silently no-op.
-
-If you need to add another instrumentation backend (Datadog, OTLP, audit table): edit `apps/dashboard/sentry-wire.ts`. The package side stays Sentry-agnostic.
-
-### 3.3. The runner is owner-only; the linter is the only CI Sentry-touching artifact
-
-`scripts/sentry/create-alert-rules.mjs` needs `SENTRY_AUTH_TOKEN` (`project:write`). It MUST NOT enter the agent transcript or any CI workflow. Owner runs locally, one-time after the canonical rules change.
-
-`scripts/sentry/lint-alert-rules.mjs` makes ZERO network calls and requires NO token. Wired as a CI gate in `architecture-gates.yml`.
-
-### 3.4. Six CI gates load-bearing on main (unchanged from #111)
+### 3.3. Six CI gates load-bearing on main (unchanged)
 
 | Job | What it checks |
 |---|---|
@@ -132,54 +131,75 @@ If you need to add another instrumentation backend (Datadog, OTLP, audit table):
 | `alert-rule-lint` | `canonical-rules.mjs` structure + tagged_event key coverage |
 | `bundle-size` | `apps/dashboard/.bundle-budget.json` honored |
 
-### 3.5. The handoff doc is a snapshot, not a contract (lesson from prior session)
+### 3.4. Rule 6 (parameterized notification action) needs env var to provision
 
-Always re-verify with `gh issue view <N>` before committing to claims about issue state. The May-15 CI-hardening handoff claimed #22 was open; it was already CLOSED. Update this doc aggressively at session close — stale handoffs are misinformation.
+PR β added rule 6 ("Production errors (owner-targeted) — javascript-nextjs") which uses a `PARAMETERIZED_NOTIFICATION_ACTION` sentinel id. The runner intercepts the sentinel and replaces it with the action JSON from `SENTRY_ALERT_NOTIFICATION_ACTION` env var. If the env var is missing, rule 6 is SKIPPED with a warning; rules 1–5 provision normally.
+
+Owner procedure to provision + close #94: `docs/runbooks/sentry-alert-rules.md § 5.3` (7 steps, ≤5 min).
+
+### 3.5. Three API routes use pino, NOT console.* (PR γ)
+
+`apps/dashboard/lib/logger.ts` exports the configured `logger`. Three routes import it:
+- `apps/dashboard/app/api/diagnostics/sentry/route.ts`
+- `apps/dashboard/app/api/public/invoice-pdf/route.ts`
+- `apps/dashboard/app/api/whatsapp/send-invoice/route.ts`
+
+Each binds a child logger with `route: <path>`. The sentinel test fails on any regression to `console.*` in these files.
+
+`LOG_LEVEL` env var sets the minimum level (defaults: `info` in prod, `debug` elsewhere). Both `LOG_LEVEL` and `SENTRY_ALERT_NOTIFICATION_ACTION` are declared in `turbo.json` env list.
+
+### 3.6. The "no derived sets" law applies to runtime enums; string-union types use TypeScript-native exhaustiveness
+
+PR δ's `PaymentMethod` sentinel uses:
+```ts
+const ALL_METHODS = [...] as const satisfies readonly PaymentMethod[]
+type _Missing = Exclude<PaymentMethod, (typeof ALL_METHODS)[number]>
+const _allPaymentMethodsCovered: _Missing extends never ? true : never = true
+```
+
+This is the correct equivalent of `rbac.test.ts`'s `Object.values(UserRole)` sentinel for string-union types (which have no runtime representation). Two different tools for two different shapes — both achieve the same goal: catch drift at compile time.
+
+### 3.7. Day's totals (2026-05-15 across all sessions)
+
+- 10 PRs merged to main (#105 → #118; was 0 open PRs at start of CI-hardening session early in the day; 0 open PRs at campaign close)
+- 252 tests → 362 tests (+110 across the day)
+- 6 canonical Sentry alert rules (was 0 at start of day)
+- 6 load-bearing CI gates (was 4 at start of day)
+- 3 new instrumentation modules + 1 logger wrapper + 1 cross-package tag-contract sentinel
 
 ---
 
 ## 4. Your first task — recommended
 
-### Option A — Close #112 (adopt withRpc + captureRbacDenial at remaining call sites) (~1 focused session) RECOMMENDED
+### Option A — Close #115 (the campaign's filed follow-up) (~30-60 min) RECOMMENDED warm-up
 
-The natural close to this session's bailout. The helpers + rules + contract are shipped; the missing piece is migrating the call sites. Splittable into two PRs if you want narrower scope.
+Two small observability-completeness items from PR #114's audit § 6:
 
-```
-1. Load skills: tac-express-onboarding → tac-debug (instrumentation is observability)
-2. packages/services migration (6 service files):
-   - For each of manifest.service, shipment.service, booking.service,
-     rate-card.service, exception.service, dashboard.service:
-     - Find every db.rpc("x", args) call site
-     - Replace with withRpc("x", () => db.rpc("x", args))
-     - If the file has a fallback branch (like payment.service's issue-#9
-       path), use captureSupabaseRpcError selectively on the real-error branch
-   - Existing service tests should still pass — withRpc preserves the {data, error} shape
-3. packages/auth call-site adoption (audit + adopt):
-   - Grep for canAccess|canDo across apps/dashboard
-   - For each call site that 403s/redirects on false: replace with
-     `throw captureRbacDenial({ requiredRole, actualRole, surface })`
-   - Skip UI conditional rendering (use-rbac.ts consumers) — not page-worthy
-4. Owner runs the synthetic-event recipes in docs/runbooks/sentry-alert-rules.md
-   § 5.1 + § 5.2 in a deploy preview to confirm rules 4 + 5 actually fire
-5. Open PR — should be ~300-500 LoC; can split as two PRs if needed
-```
+1. **`dashboard.service.ts:228` — `detect_sla_breaches` DEFERRED marker.** Pick one of three options inline:
+   - (a) keep silent — accept the observability gap; document why in the runbook
+   - (b) emit at info level via a new `emitTaggedInfo` helper that doesn't fire rule 4
+   - (c) emit at error level — accept the alert noise, fix root cause
 
-Why this is the right next task:
-- Closes #112 + makes alert rules 4 + 5 actually fire (currently dead until adoption)
-- After this lands, owner runs the provisioning script + verifies live, and #94 closes
-- Mechanical adoption with clear precedent at `payment.service.ts` + `captureRbacDenial` test patterns
+2. **`apps/dashboard/app/api/whatsapp/send-invoice/route.ts:325` — AMBIGUOUS `isAdminOrAbove` sub-gate.** Decide: silent / sub-info / soft-denial.
 
-### Option B — Payment service test floor (~1 focused session)
+If you pick (b) or (c), one small new PR (~100-200 LoC) implements the helper + emission. If you pick (a), it's a documentation-only PR.
 
-`packages/services/src/payment.service.ts` is high-risk (money flows) with limited coverage. PR #106 established the pattern; PR #113 added Sentry instrumentation. Now add the test floor.
+Why this is the right warm-up:
+- Low-energy session start. Small surface. Clear options.
+- Closes the only follow-up filed during the prior campaign.
+- Demonstrates the pattern for handling DEFERRED markers — the next contributor will see this resolution as precedent.
 
-### Option C — Cosmetic follow-ups (#54–#58) (~1 hour, batchable)
+### Option B — `invoice.service.ts` unit-test floor (~1 focused session)
 
-Five small UI items. Good warm-up session.
+Mirror PR #118's pattern. `invoice.service.ts` is the next financial surface at 0 tests after `payment.service.ts` got coverage. Same mocked-Supabase pattern, same module-level state isolation via `vi.resetModules()`. ~400 LoC.
 
-### Option D — Start NextAdmin Phase 4c (~one focused session)
+### Option C — Owner runs the #94 procedure (5 min, owner-only)
 
-Same template as Phase 4b. Use PR #82 as the reference.
+Not an agent task — but flag it explicitly so the owner can knock it out. After this, #94 closes and the day's observability arc is fully done.
+
+### Option D — Phase 4c Manifest wizard (~1 focused session)
+
+Same template as Phase 4b. Use PR #82 as reference. Generalize `useShipmentDraft` to `useFormDraft<T>` first.
 
 ---
 
@@ -207,12 +227,24 @@ pnpm typecheck && pnpm lint && pnpm test && pnpm audit --prod --audit-level mode
 # Alert-rule lint (no token, no network — CI gate runs this too)
 node scripts/sentry/lint-alert-rules.mjs
 
-# Cross-package tag-contract sentinel (verifies emit-keys + rules are aligned)
+# Cross-package tag-contract sentinel
 pnpm vitest run apps/dashboard/__tests__/canonical-rules-tag-contract.test.ts
+
+# Sentinel for the BLOCK-site captureRbacDenial adoption (PR #114)
+pnpm vitest run apps/dashboard/__tests__/rbac-block-adoption.test.ts
+
+# Sentinel for the API-route pino migration (PR #117)
+pnpm vitest run apps/dashboard/__tests__/api-routes-no-console.test.ts
+
+# Service adoption tests
+pnpm vitest run packages/services/src/__tests__/services-rpc-adoption.test.ts
+pnpm vitest run packages/services/src/__tests__/with-rpc.test.ts
+pnpm vitest run packages/services/src/__tests__/payment.service.test.ts
 
 # Owner-runnable Sentry provisioning (NEVER in agent transcript)
 SENTRY_AUTH_TOKEN=<token> node scripts/sentry/create-alert-rules.mjs --dry-run
-SENTRY_AUTH_TOKEN=<token> node scripts/sentry/create-alert-rules.mjs
+# To provision rule 6 (owner-targeted):
+SENTRY_AUTH_TOKEN=<token> SENTRY_ALERT_NOTIFICATION_ACTION='<json>' node scripts/sentry/create-alert-rules.mjs
 
 # Synthetic event for rule verification (after provisioning)
 curl -X POST https://<host>/api/diagnostics/sentry
@@ -222,27 +254,35 @@ curl -X POST https://<host>/api/diagnostics/sentry
 
 ```
 # Roadmap + planning
-docs/SESSION-RETRO-2026-05-15.md                    # May-15 CI-hardening retro
-docs/retros/2026-05-15-pm-sentry-track.md           # PR #111 retro
-docs/retros/2026-05-15-pm-instrumentation-track.md  # PR #113 retro (this session)
-docs/NEXT-SESSION-HANDOFF.md                        # ← this file
-docs/runbooks/sentry-alert-rules.md                 # Sentry alert-rule owner playbook
+docs/SESSION-RETRO-2026-05-15.md                      # May-15 CI-hardening retro
+docs/retros/2026-05-15-pm-sentry-track.md             # PR #111 retro
+docs/retros/2026-05-15-pm-instrumentation-track.md    # PR #113 retro
+docs/retros/2026-05-15-pm-pr112-adoption.md           # PR #114 retro (campaign PR α)
+docs/retros/2026-05-15-pm-campaign-track.md           # Non-stop campaign retro (PRs α–δ)
+docs/NEXT-SESSION-HANDOFF.md                          # ← this file
+docs/runbooks/sentry-alert-rules.md                   # Sentry alert-rule owner playbook (§ 5.3 is the #94 closure procedure)
+docs/audits/2026-05-15-rbac-denial-audit.md           # PHASE A audit — binding contract for adoption
 
 # Sentry observability — packages
-packages/auth/src/sentry-tagger.ts                  # DI injector for packages/auth
-packages/auth/src/rbac-instrumentation.ts           # captureRbacDenial + RBAC_DENIAL_TAG_KEYS
-packages/services/src/shared/sentry-tagger.ts       # DI injector for packages/services
-packages/services/src/shared/with-rpc.ts            # withRpc + SUPABASE_RPC_TAG_KEYS
-packages/services/src/payment.service.ts            # First canonical adoption site
+packages/auth/src/sentry-tagger.ts                    # DI injector for packages/auth
+packages/auth/src/rbac-instrumentation.ts             # captureRbacDenial + RBAC_DENIAL_TAG_KEYS
+packages/services/src/shared/sentry-tagger.ts         # DI injector for packages/services
+packages/services/src/shared/with-rpc.ts              # withRpc + SUPABASE_RPC_TAG_KEYS
+packages/services/src/payment.service.ts              # adopted; partial-coverage payment ops
+packages/services/src/{booking,manifest,shipment,rate-card,exception}.service.ts  # all adopted by PR #114
+packages/services/src/dashboard.service.ts            # DEFERRED marker at :228 (#115)
 
 # Sentry observability — apps + scripts
-apps/dashboard/sentry-wire.ts                       # Wires @sentry/nextjs into both packages
-apps/dashboard/sentry.{server,edge,client}.config.ts # Calls wireWorkspaceSentry after init
-apps/dashboard/sentry-init.test.ts                  # 12-case SDK init smoke test
+apps/dashboard/sentry-wire.ts                         # Wires @sentry/nextjs into both packages
+apps/dashboard/sentry.{server,edge,client}.config.ts  # Calls wireWorkspaceSentry after init
+apps/dashboard/sentry-init.test.ts                    # SDK init smoke tests (PR #111)
+apps/dashboard/lib/logger.ts                          # pino-based structured logger (PR γ / #117)
 apps/dashboard/__tests__/canonical-rules-tag-contract.test.ts  # Cross-package contract sentinel
-scripts/sentry/canonical-rules.mjs                  # 5 canonical rules + EMITTED_TAG_KEYS
-scripts/sentry/create-alert-rules.mjs               # Owner-runnable provisioning + --dry-run
-scripts/sentry/lint-alert-rules.mjs                 # CI gate (no token, no network)
+apps/dashboard/__tests__/rbac-block-adoption.test.ts  # BLOCK-site adoption sentinel (PR #114)
+apps/dashboard/__tests__/api-routes-no-console.test.ts  # Pino-migration sentinel (PR #117)
+scripts/sentry/canonical-rules.mjs                    # 6 canonical rules + EMITTED_TAG_KEYS + PARAMETERIZED_ACTION_SENTINEL
+scripts/sentry/create-alert-rules.mjs                 # Owner-runnable provisioning + --dry-run + parameterized action support
+scripts/sentry/lint-alert-rules.mjs                   # CI gate (no token, no network)
 
 # Core rules + skills
 CLAUDE.md
@@ -253,40 +293,46 @@ DESIGN_SYSTEM.md
 
 ---
 
-## 6. The discipline patterns that worked this session
+## 6. Discipline patterns from this campaign (worth preserving)
 
-### 6.1. The bailout (third use of the pattern)
+### 6.1. Honest scoping at session-start beats per-PR discipline
+The campaign prompt named the budget up front ("3-4 sub-items, no more"). The session-level cap kept the campaign from drifting into adjacent #102 items even when they were tractable.
 
-The PR shipped helpers + ONE canonical adoption. Migrating all 7 service files + auditing all 15+ RBAC call sites would have pushed the diff past 1500 LoC and forced the bailout anyway. Filed #112 to track the remaining adoption. Same shape as #110 was to #22 (b)+(c): wrapper now, follow-up later.
+### 6.2. PHASE A audit doc IS the adoption contract
+PR α's `docs/audits/2026-05-15-rbac-denial-audit.md` was the single most-leveraged artifact. Reviewers, bots, and future agents all read the same per-line classification.
 
-### 6.2. The cross-package contract sentinel (new pattern)
+### 6.3. The bailout fires at PER-LINE granularity
+`dashboard.service.ts:228`'s `SENTRY-MIGRATION-DEFERRED` comment is the bailout at a per-call-site level. Leaving an explicit marker + decision tree + follow-up issue is the right tradeoff when the surrounding sweep is otherwise mechanical.
 
-Three artifacts (package emission, canonical rule, EMITTED_TAG_KEYS) share string constants but can't be DRYed across the JS / Markdown / YAML boundary. The sentinel test imports from all three and asserts equality. Definition-correctness gate, third of its kind in this repo.
+### 6.4. Static-analysis sentinel tests for adoption contracts
+Three new sentinel tests this campaign (rbac-block-adoption, api-routes-no-console, canonical-rules-tag-contract extensions). Each uses file-text grep to pin the adoption pattern without heavyweight integration mocks. Document the brittleness tradeoff inline — "if this feels brittle, replace with integration; never soften."
 
-### 6.3. Dependency injection over peerDependency / direct import (new pattern)
+### 6.5. CodeRabbit findings are signal, not friction
+PR δ shipped with 2 Major findings; both legitimate. Fix carefully + reply on each thread + push the fix. Don't dismiss bot findings as noise — they catch real things the agent missed.
 
-Workspace packages don't import @sentry/nextjs. apps/dashboard injects via `registerSentry`. apps/web silently no-ops. Future backends (Datadog, audit table) plug in by editing the injector, not the packages.
+### 6.6. The merge-phrase classifier is the system
+Every merge required the owner to type `merge PR #N` exactly. Indirect phrasing blocked. Third campaign where this safety has mattered — lean into the friction.
 
 ---
 
 ## 7. The honest read
 
-The Sentry observability floor is structurally complete after this PR:
+Two-and-a-half observability arcs landed today:
+- Morning: CI-hardening floor (audit gate, vuln cleanup, Dependabot).
+- Mid-day: Sentry harness + canonical rules + cross-package contract (#111, #113).
+- This campaign: broad adoption + parameterized rule 6 + pino + payment.service test floor.
 
-- DSN wired + tested (PR #111)
-- Owner runbook with dry-run + idempotency + rollback (PR #111)
-- 5 canonical alert rules covering production errors, payment-response-lost, volume spike, Supabase RPC failures, RBAC denial spike (PR #105 + #111 + #113)
-- Cross-package tag-contract enforced by CI lint + vitest sentinel (PR #113)
-- Helpers in packages/auth + packages/services with one canonical adoption each (PR #113)
+The next session opens on a substantially stronger foundation. The on-call engineer at 2 AM now has:
+- Six load-bearing CI gates protecting every merge
+- Six canonical Sentry alert rules wired to real source-code emissions
+- Structured JSON logs from every migrated API route
+- A documented owner runbook for live alert-rule provisioning
+- A financial-service test floor that pins the RLS-fallback regression contract
 
-What's still operationally pending:
-- Per-call-site adoption (tracked as #112)
-- Owner one-time live provisioning + synthetic-event verification (tracked as #94)
-
-**This remains a logistics company web app.** The on-call engineer at 2 AM now has a runbook, a CI-enforced contract, and a five-alert coverage map. The helpers are the rails; the next session lays the cars on them.
+Future product work (Phase 4c manifest, Phase 4d invoice, the cosmetic followups) inherits all of this. Zero pixels moved today, but the next 6 months of features ship on top of the substrate the day's work built.
 
 ---
 
 **You've got the map. Load the skills. Pick a task from § 4. Ship one clean PR.**
 
-When you're done, update or replace this file with a fresh handoff for the session after you. The discipline carries forward by hand, every time.
+When you're done, update or replace this file with a fresh handoff. The discipline carries forward by hand, every time.
