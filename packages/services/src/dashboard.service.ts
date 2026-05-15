@@ -225,15 +225,26 @@ export function createDashboardService(db: SupabaseClient) {
 
     async getSLABreaches(limit = 10): Promise<SLABreach[]> {
       try {
-        // SENTRY-MIGRATION-DEFERRED: this RPC's failure is currently silent
-        // by design — the dashboard widget degrades gracefully. Adopting
-        // withRpc here would emit on every dashboard render when the RPC is
-        // missing/slow, saturating rule 4 (Supabase RPC failures). Three
-        // options under follow-up review:
-        //   (a) keep silent — accept the observability gap; document why
-        //   (b) emit at info level via a future emitTaggedInfo helper
-        //   (c) emit at error level — accept the alert noise, fix root cause
-        // See docs/audits/2026-05-15-rbac-denial-audit.md § 3.3 + follow-up #N.
+        // SENTRY-SILENT-BY-DESIGN (decision recorded #115, runbook § 4.1):
+        // `detect_sla_breaches` is a non-critical dashboard-widget RPC. The
+        // try/catch silent-degrade pattern is intentional — if the RPC is
+        // missing/slow, the SLA-breaches panel renders empty and the rest
+        // of the dashboard continues to work. The cost of NOT being silent:
+        //   - every dashboard render during a migration window emits to
+        //     Sentry, saturating rule 4 (Supabase RPC failures)
+        //   - operators mute rule 4 → real RPC failures elsewhere lose their
+        //     paging signal
+        //   - false signal: "RPC failures" when really it's "RPC missing"
+        //     (a different operational state)
+        // Three follow-up options considered (audit § 3.3):
+        //   (a) keep silent + document — CHOSEN here
+        //   (b) emit at info level via a new emitTaggedInfo helper — over-
+        //     engineering for one site; revisit if we accumulate ≥3 sites
+        //     that want low-severity emission
+        //   (c) emit at error level — contradicts the silent-degrade contract
+        // The observability gap is real but explicit. If this widget starts
+        // returning wrong data (vs. empty data) it surfaces via operator
+        // feedback or downstream KPI mismatches, not via Sentry.
         const { data, error } = await db.rpc("detect_sla_breaches" as never)
         if (error) throw error
         return ((data as Record<string, unknown>[]) ?? []).slice(0, limit).map(
