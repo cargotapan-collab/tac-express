@@ -219,43 +219,52 @@ EWAYBILL_PASSWORD=
 - ✅ Production DSN is set — Sentry receives events end-to-end (verified via `mcp__sentry__search_issues`, 9 unresolved issues from real production traffic in last 30d as of 2026-05-15)
 - ⚠️ **Alert rule still pending** — events arrive in Sentry but no rule fires a notification when a new error appears. Tracked in **#94**.
 
-**To fully close #22 (manual UI steps):**
+**Remaining work — alert-rule wiring (tracked in #94):**
 
-1. **Set production env vars** in deploy platform (Vercel):
+Production env vars are set; events flow end-to-end (verified 2026-05-15). The
+remaining gap is a notification rule: errors land in Sentry but no one gets
+paged. To close #94:
+
+1. **For reference, the env vars that must be set** (already configured in
+   production; values stored in the deploy platform's secret store, NOT here):
+
    ```
-   SENTRY_DSN=https://36081208c160813b4df2bbd36f19fcca@o4510226292932608.ingest.de.sentry.io/4511352032067664
-   NEXT_PUBLIC_SENTRY_DSN=https://36081208c160813b4df2bbd36f19fcca@o4510226292932608.ingest.de.sentry.io/4511352032067664
+   SENTRY_DSN=<DSN from Sentry → Settings → Client Keys (DSN)>
+   NEXT_PUBLIC_SENTRY_DSN=<same value as SENTRY_DSN — public by design>
    SENTRY_ENV=production
    NEXT_PUBLIC_SENTRY_ENV=production
-   SENTRY_AUTH_TOKEN=<generate at Settings → Account → API → Auth Tokens, scope: project:releases>
+   # NEVER paste a real SENTRY_AUTH_TOKEN value into this file. Generate at
+   # Settings → Account → API → Auth Tokens (scope: project:releases) and set
+   # in the deploy platform's secret store only.
+   SENTRY_AUTH_TOKEN=<generated, never committed>
    ```
 
-2. **Configure alert rule** at https://tapan-cargo-az.sentry.io/alerts:
+2. **Configure the alert rule** at https://tapan-cargo-az.sentry.io/alerts:
    - Type: Issue Alert
    - Filter: `tags[kind]:payment_response_lost`
    - Threshold: any event matching, last 1 minute
    - Action: notify ops via Slack / email / PagerDuty
    - Save
 
-3. **Verify wiring** via the in-app diagnostic endpoint (added 2026-05-12 per issue #22):
+3. **Verify the rule fires** via the in-app diagnostic endpoint (added per
+   issue #22):
 
    ```bash
    # Sign in as MANAGER+ in a browser, copy the session cookie, then:
 
    # (a) Report-only: does Sentry think it's initialized?
    curl -H "Cookie: <session-cookie>" https://<deployed-host>/api/diagnostics/sentry
-   # → { enabled: true, dsnHost: "o4510226292932608.ingest.de.sentry.io", ... }
+   # → { enabled: true, dsnHost: "...", ... }
 
    # (b) Fire a tagged smoke-test event:
    curl -X POST -H "Cookie: <session-cookie>" https://<deployed-host>/api/diagnostics/sentry
    # → { ok: true, eventId: "...", searchQuery: "tags.kind:sentry_smoke_test correlation_id:smoke-..." }
    ```
 
-   Then in Sentry: paste the returned `searchQuery` into the issue stream. The event should appear within 60 seconds. If `enabled: false`, the DSN env vars from step 1 didn't reach the runtime — re-check Vercel project settings + redeploy.
-
-4. **Configure alert rule** (same Sentry UI, separate step from wiring verification): an issue alert with filter `tags[kind]:payment_response_lost` → notify ops via Slack / PagerDuty. The smoke-test event from step 3 uses `tags.kind:sentry_smoke_test` so it WON'T trigger this alert — by design.
-
-**Until step 1 lands**, `Sentry.captureException()` in production is still a no-op. Lost-payment events still surface to the user via toast (correct UX), but ops has no telemetry. Pair with #9 — close this BEFORE deploying the payment migration so you can measure whether the fix is working.
+   The smoke-test event uses `tags.kind:sentry_smoke_test` so it does NOT
+   trigger the `payment_response_lost` alert — by design. To verify that
+   alert specifically, manually post a test event with the
+   `payment_response_lost` tag (or wait for an organic one).
 
 ### Migration rollback
 
