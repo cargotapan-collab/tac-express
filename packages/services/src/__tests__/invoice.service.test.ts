@@ -168,20 +168,62 @@ describe("getInvoices", () => {
     })
   })
 
-  it("accepts a status-array filter without breaking the call chain", async () => {
-    const db = makeDb({
-      fromResults: { invoices: { data: [], error: null } },
+  it("applies a status-array filter via .in('status', [...])", async () => {
+    // Capture the .in() args to pin the actual filter predicate, not
+    // just that the chain stayed alive. CodeRabbit caught the prior
+    // assertion was too weak: a regression that dropped the status
+    // filter entirely would still have passed `from('invoices')`.
+    let inArgs: unknown[] = []
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation((_table: string) => {
+      const builder: Record<string, unknown> = {}
+      for (const m of [
+        "select", "insert", "update", "upsert", "delete",
+        "eq", "in", "or", "gte", "lte", "order", "limit",
+        "single", "maybeSingle",
+      ]) {
+        builder[m] = vi.fn((...args: unknown[]) => {
+          if (m === "in") inArgs = args
+          return builder
+        })
+      }
+      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
+        Promise.resolve({ data: [], error: null }).then(resolve)
+      return builder as unknown as never
     })
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).getInvoices({
       status: [InvoiceStatus.DRAFT, InvoiceStatus.ISSUED],
     })
-    expect(db.from).toHaveBeenCalledWith("invoices")
+    // Service uppercases via toDbInvoiceStatus before sending to PG.
+    expect(inArgs[0]).toBe("status")
+    expect(inArgs[1]).toEqual(["DRAFT", "ISSUED"])
   })
 
-  it("accepts search + date-range filters together", async () => {
-    const db = makeDb({
-      fromResults: { invoices: { data: [], error: null } },
+  it("applies search + date-range filters with the expected predicate values", async () => {
+    // Capture .or(), .gte(), .lte() args. Pins all three filter predicates
+    // in one test — a regression that drops any one of them fails loud.
+    let orArg: unknown
+    let gteArgs: unknown[] = []
+    let lteArgs: unknown[] = []
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation((_table: string) => {
+      const builder: Record<string, unknown> = {}
+      for (const m of [
+        "select", "insert", "update", "upsert", "delete",
+        "eq", "in", "or", "gte", "lte", "order", "limit",
+        "single", "maybeSingle",
+      ]) {
+        builder[m] = vi.fn((...args: unknown[]) => {
+          if (m === "or") orArg = args[0]
+          if (m === "gte") gteArgs = args
+          if (m === "lte") lteArgs = args
+          return builder
+        })
+      }
+      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
+        Promise.resolve({ data: [], error: null }).then(resolve)
+      return builder as unknown as never
     })
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).getInvoices({
@@ -189,7 +231,13 @@ describe("getInvoices", () => {
       dateFrom: "2026-01-01",
       dateTo: "2026-12-31",
     })
-    expect(db.from).toHaveBeenCalledWith("invoices")
+    // Search uses a multi-column ilike .or() — the service constructs
+    // the exact string; pin both column predicates.
+    expect(typeof orArg).toBe("string")
+    expect(orArg as string).toContain("invoice_number.ilike.%TAC26001%")
+    expect(orArg as string).toContain("awb_number.ilike.%TAC26001%")
+    expect(gteArgs).toEqual(["created_at", "2026-01-01"])
+    expect(lteArgs).toEqual(["created_at", "2026-12-31"])
   })
 
   it("defaults pageSize to 50 when caller omits it", async () => {
@@ -556,15 +604,45 @@ describe("createInvoice — multi-step path (shipments → customers → invoice
 // ─── issueInvoice / markPaid / cancelInvoice ─────────────────────────────────
 
 describe("issueInvoice", () => {
-  it("succeeds on the DRAFT → ISSUED transition", async () => {
-    const db = makeDb({
-      fromResults: { invoices: { data: null, error: null } },
+  it("issues with status=ISSUED + guards on current state DRAFT", async () => {
+    // Capture both the .update() payload AND the .eq() guard predicates.
+    // CodeRabbit caught that a "did not throw" assertion would pass even
+    // if a regression dropped the .eq("status", "DRAFT") guard — which
+    // would silently allow ISSUE on any current status, a real bug.
+    let updatePayload: Record<string, unknown> | undefined
+    const eqCalls: Array<{ col: unknown; val: unknown }> = []
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation((_table: string) => {
+      const builder: Record<string, unknown> = {}
+      for (const m of [
+        "select", "insert", "update", "upsert", "delete",
+        "eq", "in", "or", "gte", "lte", "order", "limit",
+        "single", "maybeSingle",
+      ]) {
+        builder[m] = vi.fn((...args: unknown[]) => {
+          if (m === "update") updatePayload = args[0] as Record<string, unknown>
+          if (m === "eq") eqCalls.push({ col: args[0], val: args[1] })
+          return builder
+        })
+      }
+      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
+        Promise.resolve({ data: null, error: null }).then(resolve)
+      return builder as unknown as never
     })
     const { createInvoiceService } = await freshInvoiceService()
     await expect(
       createInvoiceService(db).issueInvoice("inv-1"),
     ).resolves.toBeUndefined()
-    expect(db.from).toHaveBeenCalledWith("invoices")
+
+    // Update payload: status flipped to ISSUED + issued_at populated
+    expect(updatePayload?.status).toBe("ISSUED")
+    expect(typeof updatePayload?.issued_at).toBe("string")
+
+    // Two guards must run: id match + current-status=DRAFT.
+    // The current-status guard is load-bearing — drop it and the
+    // service would issue invoices in any state including PAID/CANCELLED.
+    expect(eqCalls).toContainEqual({ col: "id", val: "inv-1" })
+    expect(eqCalls).toContainEqual({ col: "status", val: "DRAFT" })
   })
 
   it("rethrows on DB error", async () => {
@@ -648,14 +726,46 @@ describe("markPaid", () => {
 })
 
 describe("cancelInvoice", () => {
-  it("succeeds (DRAFT|ISSUED → CANCELLED guard via .in())", async () => {
-    const db = makeDb({
-      fromResults: { invoices: { data: null, error: null } },
+  it("cancels with status=CANCELLED + guards on current state DRAFT or ISSUED", async () => {
+    // Same value-contract discipline as issueInvoice: capture update
+    // payload + .eq(id) + .in(status, [DRAFT, ISSUED]) guard. A regression
+    // that drops the .in() guard would silently allow CANCEL on any
+    // status including PAID — destructive bug shape.
+    let updatePayload: Record<string, unknown> | undefined
+    const eqCalls: Array<{ col: unknown; val: unknown }> = []
+    let inArgs: unknown[] = []
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation((_table: string) => {
+      const builder: Record<string, unknown> = {}
+      for (const m of [
+        "select", "insert", "update", "upsert", "delete",
+        "eq", "in", "or", "gte", "lte", "order", "limit",
+        "single", "maybeSingle",
+      ]) {
+        builder[m] = vi.fn((...args: unknown[]) => {
+          if (m === "update") updatePayload = args[0] as Record<string, unknown>
+          if (m === "eq") eqCalls.push({ col: args[0], val: args[1] })
+          if (m === "in") inArgs = args
+          return builder
+        })
+      }
+      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
+        Promise.resolve({ data: null, error: null }).then(resolve)
+      return builder as unknown as never
     })
     const { createInvoiceService } = await freshInvoiceService()
     await expect(
       createInvoiceService(db).cancelInvoice("inv-1"),
     ).resolves.toBeUndefined()
+
+    expect(updatePayload?.status).toBe("CANCELLED")
+    expect(eqCalls).toContainEqual({ col: "id", val: "inv-1" })
+
+    // Critical guard: in("status", [DRAFT, ISSUED]) — restricts cancel
+    // to the two pre-paid states. Without this, cancel could overwrite
+    // PAID/OVERDUE/CANCELLED rows.
+    expect(inArgs[0]).toBe("status")
+    expect(inArgs[1]).toEqual(["DRAFT", "ISSUED"])
   })
 
   it("rethrows on DB error", async () => {
@@ -677,10 +787,13 @@ describe("cancelInvoice", () => {
 // ─── getOverdueCount ─────────────────────────────────────────────────────────
 
 describe("getOverdueCount", () => {
-  it("returns the count from DB", async () => {
+  it("queries invoices with .eq('status', 'OVERDUE') + returns the count", async () => {
+    // Pin the table + the overdue predicate. CodeRabbit caught that the
+    // prior mock accepted any table — if the service pointed at the wrong
+    // table or dropped the status filter, the test would still have passed.
     const tableCalls: string[] = []
+    const eqCalls: Array<{ col: unknown; val: unknown }> = []
     const db = makeDb({ tableCalls })
-    // Override the builder to return a numeric count terminal.
     vi.mocked(db.from).mockImplementation((table: string) => {
       tableCalls.push(table)
       const builder: Record<string, unknown> = {}
@@ -689,7 +802,10 @@ describe("getOverdueCount", () => {
         "eq", "in", "or", "gte", "lte", "order", "limit",
         "single", "maybeSingle",
       ]) {
-        builder[m] = vi.fn(() => builder)
+        builder[m] = vi.fn((...args: unknown[]) => {
+          if (m === "eq") eqCalls.push({ col: args[0], val: args[1] })
+          return builder
+        })
       }
       ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
         Promise.resolve({ count: 7, error: null }).then(resolve)
@@ -697,6 +813,8 @@ describe("getOverdueCount", () => {
     })
     const { createInvoiceService } = await freshInvoiceService()
     expect(await createInvoiceService(db).getOverdueCount()).toBe(7)
+    expect(tableCalls).toContain("invoices")
+    expect(eqCalls).toContainEqual({ col: "status", val: "OVERDUE" })
   })
 
   it("returns 0 when count is null", async () => {
@@ -900,6 +1018,12 @@ describe("Sentry tag emission (negative assertion)", () => {
     const service = createInvoiceService(db)
     await service.getInvoices()
     await service.getInvoiceById("inv-1")
+    // createInvoice is the multi-step path with the riskiest accidental-
+    // emission surface (shipments lookup + customers lookup + insert).
+    // CodeRabbit caught this was missing from the prior CRUD sequence.
+    // Cast as never because createInvoice's input type requires fields
+    // we don't need to populate for this passive check.
+    await service.createInvoice({ invoice_number: "INV-SMOKE-1" } as never)
     await service.issueInvoice("inv-1")
     await service.markPaid("inv-1")
     await service.cancelInvoice("inv-1")
