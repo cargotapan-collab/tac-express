@@ -662,14 +662,38 @@ describe("issueInvoice", () => {
 })
 
 describe("markPaid", () => {
-  it("uses provided paidAt when caller passes one", async () => {
-    const db = makeDb({
-      fromResults: { invoices: { data: null, error: null } },
+  it("uses provided paidAt when caller passes one (asserts the value reaches the DB payload)", async () => {
+    // Symmetric to the default-now test below: capture .update() args
+    // and pin paid_at === the provided value. CodeRabbit caught that
+    // I missed this site in the prior arg-capture sweep — bare resolves-
+    // undefined would pass even if the service ignored the caller's
+    // input and wrote a different timestamp (or `undefined`).
+    const providedPaidAt = "2026-05-15T10:00:00Z"
+    let paidAtArg: unknown
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation((table: string) => {
+      const builder: Record<string, unknown> = {}
+      for (const m of [
+        "select", "insert", "update", "upsert", "delete",
+        "eq", "in", "or", "gte", "lte", "order", "limit",
+        "single", "maybeSingle",
+      ]) {
+        builder[m] = vi.fn((arg?: unknown) => {
+          if (m === "update" && table === "invoices") {
+            paidAtArg = (arg as { paid_at?: unknown })?.paid_at
+          }
+          return builder
+        })
+      }
+      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
+        Promise.resolve({ data: null, error: null }).then(resolve)
+      return builder as unknown as never
     })
     const { createInvoiceService } = await freshInvoiceService()
     await expect(
-      createInvoiceService(db).markPaid("inv-1", "2026-05-15T10:00:00Z"),
+      createInvoiceService(db).markPaid("inv-1", providedPaidAt),
     ).resolves.toBeUndefined()
+    expect(paidAtArg).toBe(providedPaidAt)
   })
 
   it("defaults paidAt to now-ish ISO when caller omits it", async () => {
