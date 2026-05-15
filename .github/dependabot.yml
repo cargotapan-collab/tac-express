@@ -53,7 +53,10 @@ updates:
       actions-bumps:
         patterns:
           - "*"
+        # Mirror the npm policy above: group minor + patch only. Major
+        # action bumps (e.g. actions/checkout v4 → v5) arrive as their
+        # own PR so breaking changes get reviewed in isolation instead
+        # of buried in a grouped bump.
         update-types:
-          - "major"
           - "minor"
           - "patch"

@@ -36,6 +36,13 @@ on:
       - "packages/**"
       - "scripts/**"
       - "supabase/**"
+      # Root dependency manifests — without these the npm-audit job
+      # below would skip on Dependabot-driven PRs (which are exactly the
+      # PRs that need it).
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/dependabot.yml"
       - ".github/workflows/architecture-gates.yml"
   push:
     branches: [main]
