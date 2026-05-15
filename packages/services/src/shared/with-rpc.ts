@@ -119,7 +119,11 @@ export function captureSupabaseRpcError(
  */
 export async function withRpc<T>(
   rpcName: string,
-  exec: () => Promise<RpcResult<T>>,
+  // `PromiseLike` rather than `Promise` because Supabase's `.rpc()` returns
+  // a `PostgrestFilterBuilder` — a thenable that satisfies await but is not
+  // a strict Promise. Widening here avoids forcing every adopting service to
+  // wrap the call in `(async () => ...)()`.
+  exec: () => PromiseLike<RpcResult<T>>,
 ): Promise<RpcResult<T>> {
   const result = await exec()
   if (result.error) {

@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@workspace/database/supabase.types"
 import type { RateCard, RateCardFilters, RateCardInput, RateCardLookupResult } from "@workspace/types"
 
+import { withRpc } from "./shared/with-rpc"
+
 function mapRateCard(row: Record<string, unknown>): RateCard {
   return {
     id: row.id as string,
@@ -93,12 +95,14 @@ export function createRateCardService(db: SupabaseClient) {
       serviceLevel: string,
       weight: number,
     ): Promise<RateCardLookupResult | null> {
-      const { data, error } = await db.rpc("get_rate_card", {
-        p_origin: originHub,
-        p_dest: destHub,
-        p_service_level: serviceLevel,
-        p_weight: weight,
-      })
+      const { data, error } = await withRpc("get_rate_card", () =>
+        db.rpc("get_rate_card", {
+          p_origin: originHub,
+          p_dest: destHub,
+          p_service_level: serviceLevel,
+          p_weight: weight,
+        }),
+      )
       if (error) throw error
       const row = (data ?? [])[0] as Record<string, unknown> | undefined
       if (!row) return null

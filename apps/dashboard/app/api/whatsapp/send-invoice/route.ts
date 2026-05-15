@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
 
 import { getServerAuth } from "@workspace/auth/server"
+import { captureRbacDenial } from "@workspace/auth"
 import { isAdminOrAbove, isManagerOrAbove } from "@workspace/auth/rbac"
 import { UserRole } from "@workspace/types"
 import {
@@ -187,6 +188,12 @@ export async function POST(req: NextRequest) {
   const profile = await adminService.getProfileById(user.id).catch(() => null)
   const role = profile?.role as UserRole | undefined
   if (!role || !isManagerOrAbove(role)) {
+    // BLOCK adoption per audit doc § 2.1.
+    captureRbacDenial({
+      requiredRole: UserRole.MANAGER,
+      actualRole: role ?? UserRole.OPS_STAFF,
+      surface: "/api/whatsapp/send-invoice",
+    })
     return NextResponse.json(
       {
         error:

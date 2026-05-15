@@ -2,6 +2,7 @@ import { cookies } from "next/headers"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { getServerAuth } from "@workspace/auth/server"
+import { captureRbacDenial } from "@workspace/auth"
 import { isManagerOrAbove } from "@workspace/auth/rbac"
 import { UserRole } from "@workspace/types"
 import { createAdminServerService } from "@workspace/services/server"
@@ -52,6 +53,12 @@ export async function GET(req: NextRequest) {
   const profile = await adminService.getProfileById(user.id).catch(() => null)
   const role = profile?.role as UserRole | undefined
   if (!role || !isManagerOrAbove(role)) {
+    // BLOCK adoption per audit doc § 2.1.
+    captureRbacDenial({
+      requiredRole: UserRole.MANAGER,
+      actualRole: role ?? UserRole.OPS_STAFF,
+      surface: "/api/whatsapp/test",
+    })
     return NextResponse.json(
       { error: "Insufficient permissions. WhatsApp diagnostics require MANAGER or above." },
       { status: 403 },

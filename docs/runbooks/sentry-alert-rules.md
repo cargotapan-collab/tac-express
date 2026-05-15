@@ -114,11 +114,21 @@ The `scripts/sentry/canonical-rules.mjs` linter (`alert-rule-lint` CI gate) enfo
 
 | Surface | Adoption | Notes |
 |---|---|---|
-| `packages/services/src/payment.service.ts` — `record_invoice_payment` RPC | ✅ Adopted | First canonical call site; emits on real RPC failure, NOT on the issue-#9 "RPC missing" fallback (expected business state). |
-| `packages/services/src/{manifest,shipment,booking,rate-card,exception,dashboard}.service.ts` | ⏳ Pending | 6 service files with `.rpc(` calls remain. Migrating to `withRpc()` tracked as follow-up issue (filed alongside this PR). |
-| `packages/auth/src/rbac-instrumentation.ts` — `captureRbacDenial` helper | ✅ Available | Helper ships, but no call site yet adopts it. The 15 callers of `canAccess`/`canDo` need surgical migration to emit on denial. Follow-up. |
+| `packages/services/src/payment.service.ts` — `record_invoice_payment` RPC | ✅ Adopted (PR #113) | First canonical call site; emits on real RPC failure, NOT on the issue-#9 "RPC missing" fallback. |
+| `packages/services/src/exception.service.ts` — `resolve_exception` RPC | ✅ Adopted (PR α, #112) | DIRECT-WRAP via `withRpc()` |
+| `packages/services/src/manifest.service.ts` — `close_manifest_atomic` RPC | ✅ Adopted (PR α, #112) | DIRECT-WRAP via `withRpc()` |
+| `packages/services/src/rate-card.service.ts` — `get_rate_card` RPC | ✅ Adopted (PR α, #112) | DIRECT-WRAP via `withRpc()` |
+| `packages/services/src/shipment.service.ts` — `generate_awb_number` RPC | ✅ Adopted (PR α, #112) | DIRECT-WRAP via `withRpc()` |
+| `packages/services/src/booking.service.ts` — `convert_booking_to_shipment` RPC | ✅ Adopted (PR α, #112) | SELECTIVE — real-error branch only; issue-#19 fallback stays silent |
+| `packages/services/src/manifest.service.ts` — `add_shipment_to_manifest` RPC | ✅ Adopted (PR α, #112) | SELECTIVE — real-error branch only |
+| `packages/services/src/shipment.service.ts` — `bulk_create_shipments` RPC | ✅ Adopted (PR α, #112) | SELECTIVE — real-error branch only |
+| `packages/services/src/dashboard.service.ts` — `detect_sla_breaches` RPC | ⏸ Deferred (PR α, #112) | Marked `SENTRY-MIGRATION-DEFERRED` — wrapped in try/catch silent-degrade pattern; adopting would emit on every dashboard render during RPC-missing windows. See audit doc § 3.3. |
+| `apps/dashboard/app/api/diagnostics/sentry/route.ts` — MANAGER gate | ✅ Adopted (PR α, #112) | BLOCK site — `captureRbacDenial` with surface=`/api/diagnostics/sentry` |
+| `apps/dashboard/app/api/whatsapp/send-invoice/route.ts` — MANAGER gate | ✅ Adopted (PR α, #112) | BLOCK site — surface=`/api/whatsapp/send-invoice` |
+| `apps/dashboard/app/api/whatsapp/test/route.ts` — MANAGER gate | ✅ Adopted (PR α, #112) | BLOCK site — surface=`/api/whatsapp/test` |
+| `packages/ui/*` — `canAccess` / `canAccessModule` GATE callers | 🚫 Not adopted (intentional) | UI conditional rendering — silent UX, not page-worthy. Adopting would saturate rule 5. See audit doc § 2.2. |
 
-The "available helper / not yet adopted at call sites" state is intentional for this PR — adopting at every call site would have ballooned the PR past the §7a 1500-LoC cap and forced the bailout. See PR description for the follow-up scope.
+Audit doc: [`docs/audits/2026-05-15-rbac-denial-audit.md`](../audits/2026-05-15-rbac-denial-audit.md).
 
 ---
 

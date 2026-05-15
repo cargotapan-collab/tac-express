@@ -36,6 +36,7 @@ import { NextResponse } from "next/server"
 import * as Sentry from "@sentry/nextjs"
 
 import { getServerAuth } from "@workspace/auth/server"
+import { captureRbacDenial } from "@workspace/auth"
 import { isManagerOrAbove } from "@workspace/auth/rbac"
 import { UserRole } from "@workspace/types"
 import { createAdminServerService } from "@workspace/services/server"
@@ -77,6 +78,15 @@ async function requireManager(): Promise<GateResult> {
     ? (rawRole as UserRole)
     : undefined
   if (!role || !isManagerOrAbove(role)) {
+    // BLOCK adoption per audit doc § 2.1. Tag values are deterministic:
+    // UserRole enum for actualRole (sentinel OPS_STAFF when role is
+    // missing/invalid, which puts unauthenticated traffic in the lowest
+    // role bucket without leaking identity), hardcoded route surface.
+    captureRbacDenial({
+      requiredRole: UserRole.MANAGER,
+      actualRole: role ?? UserRole.OPS_STAFF,
+      surface: "/api/diagnostics/sentry",
+    })
     return {
       allowed: false,
       response: NextResponse.json(

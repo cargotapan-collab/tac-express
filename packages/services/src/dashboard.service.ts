@@ -225,6 +225,15 @@ export function createDashboardService(db: SupabaseClient) {
 
     async getSLABreaches(limit = 10): Promise<SLABreach[]> {
       try {
+        // SENTRY-MIGRATION-DEFERRED: this RPC's failure is currently silent
+        // by design — the dashboard widget degrades gracefully. Adopting
+        // withRpc here would emit on every dashboard render when the RPC is
+        // missing/slow, saturating rule 4 (Supabase RPC failures). Three
+        // options under follow-up review:
+        //   (a) keep silent — accept the observability gap; document why
+        //   (b) emit at info level via a future emitTaggedInfo helper
+        //   (c) emit at error level — accept the alert noise, fix root cause
+        // See docs/audits/2026-05-15-rbac-denial-audit.md § 3.3 + follow-up #N.
         const { data, error } = await db.rpc("detect_sla_breaches" as never)
         if (error) throw error
         return ((data as Record<string, unknown>[]) ?? []).slice(0, limit).map(
