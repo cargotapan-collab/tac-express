@@ -1,4 +1,4 @@
-import type { ShipmentSummary, TrackingEvent } from "@workspace/types"
+import type { ServiceLevel, ShipmentSummary, TrackingEvent } from "@workspace/types"
 
 interface PublicTrackingConfig {
   supabaseUrl: string
@@ -11,7 +11,7 @@ export function createPublicTrackingService({ supabaseUrl, anonKey }: PublicTrac
   return {
     async getShipmentByAwb(awb: string): Promise<ShipmentSummary | null> {
       const res = await fetch(
-        `${supabaseUrl}/rest/v1/shipments?awb_number=eq.${encodeURIComponent(awb)}&select=id,awb_number,status,sender_name,receiver_name,origin_hub,dest_hub,chargeable_weight,total_amount,pieces,manifest_number,created_at,updated_at`,
+        `${supabaseUrl}/rest/v1/shipments?awb_number=eq.${encodeURIComponent(awb)}&select=id,awb_number,status,sender_name,receiver_name,origin_hub,dest_hub,chargeable_weight,total_amount,pieces,manifest_number,service_level,created_at,updated_at`,
         { headers, next: { revalidate: 60 } } as RequestInit
       )
       if (!res.ok) return null
@@ -46,6 +46,7 @@ function mapPublicShipment(row: Record<string, unknown>): ShipmentSummary {
     totalAmount: (row.total_amount as number) ?? 0,
     pieces: (row.pieces as number) ?? 1,
     manifestNumber: row.manifest_number as string | undefined,
+    serviceLevel: row.service_level as ServiceLevel | undefined,
     createdAt: row.created_at as string,
     updatedAt: (row.updated_at ?? row.created_at) as string,
   } as ShipmentSummary

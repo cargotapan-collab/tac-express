@@ -15,6 +15,8 @@ import {
 
 export const dynamic = "force-dynamic"
 
+const AIR_SERVICE_PATTERN = /express|priority/i
+
 interface PageProps {
   params: Promise<{ awb: string }>
 }
@@ -53,11 +55,8 @@ export default async function PublicTrackingPage({ params }: PageProps) {
   // Sender/receiver names + addresses + phone are intentionally removed
   // before render to prevent leaking PII. Phase 6.5 will switch the
   // service to query the `public_shipment_tracking` view instead.
-  const ModeIcon = /express|priority/i.test(
-    (shipment as unknown as { serviceLevel?: string }).serviceLevel ?? ""
-  )
-    ? RiPlaneLine
-    : RiTruckLine
+  const isAirService = AIR_SERVICE_PATTERN.test(shipment.serviceLevel ?? "")
+  const ModeIcon = isAirService ? RiPlaneLine : RiTruckLine
 
   return (
     <div className="space-y-6">
@@ -91,16 +90,7 @@ export default async function PublicTrackingPage({ params }: PageProps) {
           label="Weight"
           value={`${(shipment.chargeableWeight ?? 0).toFixed(1)} kg`}
         />
-        <Stat
-          label="Mode"
-          value={
-            /express|priority/i.test(
-              (shipment as unknown as { serviceLevel?: string }).serviceLevel ?? ""
-            )
-              ? "Air"
-              : "Surface"
-          }
-        />
+        <Stat label="Mode" value={isAirService ? "Air" : "Surface"} />
         <Stat label="Created" value={fmtDate(shipment.createdAt)} />
         <Stat
           label="ETA"
@@ -230,7 +220,7 @@ function computeEta(shipment: {
     return shipment.status === "DELIVERED" ? "Delivered" : "—"
   }
   if (!shipment.createdAt) return "—"
-  const sla = /priority|express/i.test(shipment.serviceLevel ?? "") ? 1 : 3
+  const sla = AIR_SERVICE_PATTERN.test(shipment.serviceLevel ?? "") ? 1 : 3
   try {
     return format(addDays(parseISO(shipment.createdAt), sla), "dd MMM")
   } catch {

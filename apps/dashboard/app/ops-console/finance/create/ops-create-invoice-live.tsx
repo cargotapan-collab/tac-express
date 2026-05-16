@@ -260,14 +260,13 @@ export function OpsCreateInvoiceLive() {
           advancePaidAmount: state.advancePaidAmount,
         }),
       })
-      const inv = invoice as unknown as Record<string, unknown>
       autosave.clearDraft()
       addNotification({
         type: "success",
         title: "Invoice created",
-        message: (inv.invoiceNumber as string) ?? "New invoice",
+        message: invoice.invoiceNumber ?? "New invoice",
       })
-      router.push(`/ops-console/finance/${inv.id}`)
+      router.push(`/ops-console/finance/${invoice.id}`)
     } catch (err) {
       const msg = String(err)
       const isPermission =
