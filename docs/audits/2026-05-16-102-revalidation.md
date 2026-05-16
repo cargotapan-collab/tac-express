@@ -27,7 +27,7 @@
 
 **Out-of-scope items:** all 5 still hold; no design/policy change since 2026-05-15 makes any of them relevant.
 
-**Bailout did not fire.** All 39 items (32 checkboxes + 5 out-of-scope + 2 WONTFIX) verdicted.
+**Bailout did not fire.** All 37 items (32 checkboxes + 5 out-of-scope, of which 2 of the checkboxes are also WONTFIX) verdicted.
 
 ---
 
