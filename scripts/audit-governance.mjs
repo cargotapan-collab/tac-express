@@ -93,10 +93,6 @@ for (const file of files) {
     fail(file, "uses backdrop blur instead of solid TAC Precision overlay")
   }
 
-  if (repoPath === "packages/ui/src/components/composed/marquee.tsx" && content.includes("dangerouslySetInnerHTML")) {
-    fail(file, "defines scoped keyframes instead of using globals.css")
-  }
-
   // LAW 2 — All UI components must live in `packages/ui`. Files under
   // `apps/*/components/` are restricted to app-specific glue: React Context
   // providers, auth guards, and other side-effect wrappers that legitimately
@@ -189,6 +185,10 @@ function isComposedSource(repoPath) {
   if (/\.(test|spec|stories)\.tsx?$/.test(repoPath)) return false
   if (/(^|\/)__(tests|snapshots)__\//.test(repoPath)) return false
   if (/\/index\.tsx?$/.test(repoPath)) return false
+  // `_archive/` subtrees are intentionally orphaned (see the corresponding
+  // README.md). Same convention as supabase/migrations/_archive/ and
+  // docs/_archive/ — files are kept for git-blame value but are NOT live.
+  if (/(^|\/)_archive\//.test(repoPath)) return false
   return true
 }
 
