@@ -54,7 +54,7 @@ export default async function PublicTrackingPage({ params }: PageProps) {
   // before render to prevent leaking PII. Phase 6.5 will switch the
   // service to query the `public_shipment_tracking` view instead.
   const ModeIcon = /express|priority/i.test(
-    (shipment as unknown as { serviceLevel?: string }).serviceLevel ?? ""
+    shipment.serviceLevel ?? ""
   )
     ? RiPlaneLine
     : RiTruckLine
@@ -95,7 +95,7 @@ export default async function PublicTrackingPage({ params }: PageProps) {
           label="Mode"
           value={
             /express|priority/i.test(
-              (shipment as unknown as { serviceLevel?: string }).serviceLevel ?? ""
+              shipment.serviceLevel ?? ""
             )
               ? "Air"
               : "Surface"

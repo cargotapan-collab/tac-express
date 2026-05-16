@@ -104,9 +104,15 @@ export async function GET(req: NextRequest) {
 
   /* ─── 2. Load the header banner ─── */
   const headerBuffer = await loadHeaderImage()
-  // Pass as `{ data, format }` — the shape @react-pdf/renderer accepts
-  // for in-memory binary images. Cast at the boundary because the
-  // package's type defs omit the binary variant.
+  // THIRD-PARTY-TYPE-GAP: @react-pdf/renderer's <Image src> type omits the
+  // `{ data: Buffer, format: "png" | "jpg" }` variant that the package
+  // accepts at runtime for in-memory binary images. We need the binary
+  // variant because the header banner is loaded from disk into a Buffer
+  // (see loadHeaderImage); passing a URL string would force a second
+  // HTTP fetch from the rendering child process. Cast at the boundary;
+  // the runtime contract is verified by the invoice-pdf E2E (when it
+  // lands — see #102 Sprint 2). Re-evaluate when @react-pdf/renderer
+  // widens the type or we switch PDF engines.
   const headerImageSrc = headerBuffer
     ? ({ data: headerBuffer, format: "png" } as unknown as string)
     : undefined

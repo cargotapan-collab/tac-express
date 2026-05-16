@@ -76,12 +76,7 @@ export async function proxy(req: NextRequest): Promise<NextResponse> {
   }
 
   // 2. Refresh Supabase session cookies + read user.
-  // Cast through unknown to bridge a duplicate-Next type install in the
-  // monorepo (multiple pnpm-resolved next@16.1.6 hashes). The runtime
-  // types are identical; this cast is purely a TS-only bridge.
-  const { supabase, response } = createMiddlewareClient(
-    req as unknown as Parameters<typeof createMiddlewareClient>[0],
-  )
+  const { supabase, response } = createMiddlewareClient(req)
 
   // Treat any auth-layer error (most commonly `Invalid Refresh Token:
   // Refresh Token Not Found` when the browser has stale cookies from a
@@ -108,7 +103,7 @@ export async function proxy(req: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(url)
   }
 
-  return response as unknown as NextResponse
+  return response
 }
 
 export const config = {

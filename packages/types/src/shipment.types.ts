@@ -51,6 +51,7 @@ export interface ShipmentSummary {
   totalAmount: number
   pieces: number
   manifestNumber?: string
+  serviceLevel?: ServiceLevel
   createdAt: string
   updatedAt: string
 }
