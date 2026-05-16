@@ -59,16 +59,25 @@ table: whatsapp_sends
 ### O1 — `manifest.service.ts` full test floor
 
 **Risk:** rank #4 per re-validation § 6.
-**Status:** OPEN — partial (narrow audit surface covered by PR #135; ~9 other methods uncovered).
+**Status:** DONE — PR #<TBD-MANIFEST-FLOOR>. Full coverage of all 10 public methods (the 9 previously-uncovered plus the audit-wired `removeShipmentFromManifest` from PR #135) landed; `freshManifestService` factory mirrors the established floor pattern; ManifestStatus enum exhaustiveness pinned via dual sentinel.
 **Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item.
 
-The next test-floor target. Mirror PR #132's pattern. ~1 session. The sentinel verifies the service file (existence) and the partial test file (which exists as the audit surface). Symbol refs name the methods that need coverage extension.
+Sentinel-checked refs below pin the full set of methods exercised by the floor — drift on any of them (rename, deletion, signature change) fails CI.
 
 ```refs
 file: packages/services/src/manifest.service.ts
 file: packages/services/src/__tests__/manifest.service.test.ts
 symbol: packages/services/src/manifest.service.ts::createManifestService
+symbol: packages/services/src/manifest.service.ts::getManifests
+symbol: packages/services/src/manifest.service.ts::getManifestById
+symbol: packages/services/src/manifest.service.ts::getManifestShipments
+symbol: packages/services/src/manifest.service.ts::createManifest
+symbol: packages/services/src/manifest.service.ts::addShipmentToManifest
 symbol: packages/services/src/manifest.service.ts::removeShipmentFromManifest
+symbol: packages/services/src/manifest.service.ts::closeManifest
+symbol: packages/services/src/manifest.service.ts::departManifest
+symbol: packages/services/src/manifest.service.ts::arriveManifest
+symbol: packages/services/src/manifest.service.ts::reconcileManifest
 ```
 
 ---

@@ -72,6 +72,10 @@ export function makeDb(config: {
       // `range(from, to)` — Supabase's pagination terminal. See the
       // matching note in make-builder-spy.ts for the rationale.
       "range",
+      // `ilike(column, pattern)` — Postgres case-insensitive LIKE. Added
+      // alongside the make-builder-spy entry when manifest.service.ts's
+      // getManifests filter.search became the first consumer.
+      "ilike",
       "single",
       "maybeSingle",
     ]) {
