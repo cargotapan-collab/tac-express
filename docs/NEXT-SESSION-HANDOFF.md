@@ -2,19 +2,21 @@
 
 > **You are picking up TAC Express after the pre-Sprint-2 consolidation session.** Read this top-to-bottom before opening any other file. Designed to take 5 minutes and get you productive.
 
-**Last commit on `main`:** `<post-PR β>` — `docs: CodeRabbit catalog + two-day arc chapter retro consolidation`
-**Date this doc was written:** 2026-05-16 (consolidation session — PRs #124 + this PR)
+**Last commit on `main`:** `188e31c` — `fix(types): cast cleanups via root-cause fixes (#102 ticks)` (PR #128)
+**Date this doc was written:** 2026-05-16 (pre-Sprint-2 maximum-sweep session — PRs #126, #127, #128)
 **Author of last session:** Claude Code (Opus 4.7) in PM-mode + Senior FSE + Big-Tech CTO simultaneously
 
 ---
 
 ## 0. REQUIRED PRE-READING (added by the consolidation session)
 
-Before writing ANY code in a session, load these two artifacts:
+Before writing ANY code in a session, load these three artifacts:
 
 1. **[`docs/patterns/coderabbit-catalog.md`](patterns/coderabbit-catalog.md)** — 9 entries × 4 categories. The accumulated test-pattern discipline from PRs #114/#117/#118/#120/#121/#123. Several are CodeRabbit long-term-memory learnings — writing the pattern correctly first time saves the round-trip.
 
 2. **[`docs/retros/2026-05-15-2026-05-16-two-day-arc.md`](retros/2026-05-15-2026-05-16-two-day-arc.md)** — chapter-level retro covering the 16-PR arc. § 1 (what survived), § 5 (cadence shift), § 8 (honest read) are the load-bearing sections.
+
+3. **[`docs/retros/2026-05-16-pre-sprint2-maximum-sweep.md`](retros/2026-05-16-pre-sprint2-maximum-sweep.md)** — session retro covering PRs #126/#127/#128. § 3 (bidirectional learnings: alternation-order grep + cast-comment = bug ticket), § 4 (cast-inventory drift), § 7 (honest read) are the load-bearing sections.
 
 Plus this file's § 1 (cadence pre-commit) below.
 
@@ -102,16 +104,21 @@ Clean slate.
 | # | Title | Priority | Notes |
 |---|---|---|---|
 | [#94](https://github.com/cargotapan-collab/tac-express/issues/94) | Verify + wire Sentry alert-rule notification action | P2 | **5-min owner action.** Runbook § 5.3 has the 7-step procedure. Activates the full observability arc. |
-| [#122](https://github.com/cargotapan-collab/tac-express/issues/122) | CI-watch helper rebinds to stale sha after force-push | tech-debt | Filed during the post-#121 debrief. Tooling debt; ~10-20 LoC fix. |
 | [#25](https://github.com/cargotapan-collab/tac-express/issues/25) | Audit + migrate dialogs/forms to react-hook-form + zod | — | Sprint-scale |
-| [#102](https://github.com/cargotapan-collab/tac-express/issues/102) | Production-readiness backlog tracking | meta | ~16 sub-items remain |
+| [#102](https://github.com/cargotapan-collab/tac-express/issues/102) | Production-readiness backlog tracking | meta | ~13 sub-items remain (3 ticked this session) |
 
-**Resolved during recent sessions:** #22, #110, #112, #115, plus the invoice.service test floor sub-item from #102 ticked by this PR.
+**Resolved during recent sessions:** #22, #110, #112, #115, #122, plus #102 sub-items: invoice.service test floor (#123), orphan UI archive (#127), scratchpad doc archive (#127), as-unknown-as casts (#128).
 
 ### #102 checkboxes worth ticking (owner action)
 
-Updated paste-ready blob in the PR body of this PR's commit. Notable from this session:
-- **Unit tests for `packages/services/src/invoice.service.ts`** → DONE in this PR. 40 cases.
+This session ticked three additional sub-items:
+- **Document or archive orphaned UI components** → DONE in PR #127. 4 components + 2 scratchpad docs into `_archive/` subtrees.
+- **Archive session-scratchpad files in `docs/`** → DONE in PR #127. 2 of 3 listed files archived (handoff doc deliberately retained — see PR #127 description).
+- **Remove `as unknown as` casts (per-site root cause)** → DONE in PR #128. 4 of 5 sites dropped; 1 retained with `THIRD-PARTY-TYPE-GAP` grep handle.
+
+Plus two STALE #102 lines explicitly renounced (not acted on) with written justification:
+- "7 dashboard cards" — cards are LIVE behind the `tac-design` v7 flag. Documented in `packages/ui/src/components/composed/_archive/2026-05-16/README.md`.
+- "Archive `NEXT-SESSION-HANDOFF.md`" — promoted to load-bearing cross-session protocol artifact. Documented in `docs/_archive/2026-05-14/README.md`.
 
 ---
 
@@ -155,6 +162,9 @@ Three patterns this codebase has now learned to preempt:
 | File-level `toContain` | PR #120 | Too coarse. Use anchor-scoped ±N-char windows. |
 | `existsSync` for file invariants | PR #121 | Add `statSync(path).isFile()` — `existsSync` returns true for directories. |
 | Regex narrow to current data | PR #121 | Generalize. Don't hardcode `../../`-prefix when matching relative links. |
+| **Alternation-order grep miss** | **PR #128** | **When extracting a regex pattern, grep BOTH alternation orders OR each alternative independently. `/express\|priority/` and `/priority\|express/` are semantically identical but grep won't find each other.** |
+| **Cast-comment = bug ticket** | **PR #128** | **A cast with a "we have to do this because X is impossible to fix" comment IS a candidate for re-evaluation. The comment IS the bug ticket; nobody re-reads it because it reads as a permanent fact. proxy.ts's "duplicate-Next install" comment was fixable with 2 character edits in 2 package.json files.** |
+| **Dead defensive cast = real bug** | **PR #128** | **If a cast asserts a field shape, grep the data layer for the field. If the data layer doesn't supply it, the cast is hiding a bug, not defending against one. track/[awb]/page.tsx Mode column was ALWAYS rendering "Surface" because serviceLevel was never projected from the public-tracking SELECT.** |
 
 ---
 
