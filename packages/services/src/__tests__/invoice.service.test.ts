@@ -4,13 +4,17 @@ import { InvoiceStatus, PaymentMode } from "@workspace/types"
 
 import { registerSentry } from "../shared/sentry-tagger"
 import { makeDb } from "./helpers/make-db"
+import {
+  makeBuilderSpy,
+  makeBuilderSpyByTable,
+} from "./helpers/make-builder-spy"
 
-// The inline mockImplementation callbacks below return a chainable builder
-// (Record<string, unknown>) whose .then() is a thenable resolving to the
-// configured result. Supabase's PostgrestQueryBuilder type is broader than
-// what we need — the consuming service code only invokes the chained methods
-// we stub. Each impl casts `builder as unknown as never` at its return site
-// to satisfy the strict signature; runtime is sound by construction.
+// Chainable-builder spies for value-contract assertions are produced by
+// `makeBuilderSpy` / `makeBuilderSpyByTable` in helpers/make-builder-spy.ts.
+// The POSTGREST-BUILDER-TYPE-GAP cast is centralized in that helper; call
+// sites here stay free of `as unknown as never`. See catalog entries #1
+// (value-contract over call-existence) and #11 (cast-comment-as-bug-ticket)
+// for the reasoning.
 
 /**
  * Test floor for invoice.service.ts — ticks the #102 Sprint 1 Testing
@@ -173,58 +177,25 @@ describe("getInvoices", () => {
     // just that the chain stayed alive. CodeRabbit caught the prior
     // assertion was too weak: a regression that dropped the status
     // filter entirely would still have passed `from('invoices')`.
-    let inArgs: unknown[] = []
     const db = makeDb({})
-    vi.mocked(db.from).mockImplementation((_table: string) => {
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((...args: unknown[]) => {
-          if (m === "in") inArgs = args
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve({ data: [], error: null }).then(resolve)
-      return builder as unknown as never
-    })
+    const { builder, spy } = makeBuilderSpy({ data: [], error: null })
+    vi.mocked(db.from).mockReturnValue(builder)
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).getInvoices({
       status: [InvoiceStatus.DRAFT, InvoiceStatus.ISSUED],
     })
     // Service uppercases via toDbInvoiceStatus before sending to PG.
-    expect(inArgs[0]).toBe("status")
-    expect(inArgs[1]).toEqual(["DRAFT", "ISSUED"])
+    const inArgs = spy.firstCallArgs("in")
+    expect(inArgs?.[0]).toBe("status")
+    expect(inArgs?.[1]).toEqual(["DRAFT", "ISSUED"])
   })
 
   it("applies search + date-range filters with the expected predicate values", async () => {
     // Capture .or(), .gte(), .lte() args. Pins all three filter predicates
     // in one test — a regression that drops any one of them fails loud.
-    let orArg: unknown
-    let gteArgs: unknown[] = []
-    let lteArgs: unknown[] = []
     const db = makeDb({})
-    vi.mocked(db.from).mockImplementation((_table: string) => {
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((...args: unknown[]) => {
-          if (m === "or") orArg = args[0]
-          if (m === "gte") gteArgs = args
-          if (m === "lte") lteArgs = args
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve({ data: [], error: null }).then(resolve)
-      return builder as unknown as never
-    })
+    const { builder, spy } = makeBuilderSpy({ data: [], error: null })
+    vi.mocked(db.from).mockReturnValue(builder)
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).getInvoices({
       search: "TAC26001",
@@ -233,11 +204,12 @@ describe("getInvoices", () => {
     })
     // Search uses a multi-column ilike .or() — the service constructs
     // the exact string; pin both column predicates.
+    const orArg = spy.firstCallArgs("or")?.[0]
     expect(typeof orArg).toBe("string")
     expect(orArg as string).toContain("invoice_number.ilike.%TAC26001%")
     expect(orArg as string).toContain("awb_number.ilike.%TAC26001%")
-    expect(gteArgs).toEqual(["created_at", "2026-01-01"])
-    expect(lteArgs).toEqual(["created_at", "2026-12-31"])
+    expect(spy.firstCallArgs("gte")).toEqual(["created_at", "2026-01-01"])
+    expect(spy.firstCallArgs("lte")).toEqual(["created_at", "2026-12-31"])
   })
 
   it("defaults pageSize to 50 when caller omits it", async () => {
@@ -245,30 +217,14 @@ describe("getInvoices", () => {
     // test only asserted .from("invoices") was called, which would pass
     // if the default were 100, 25, or any other value. CodeRabbit caught
     // that the contract is about the VALUE (50), not just call existence.
-    let observedLimit: unknown
-    const db = makeDb({
-      fromResults: { invoices: { data: [], error: null } },
+    const db = makeDb({})
+    const { fromImpl, spies } = makeBuilderSpyByTable({
+      invoices: { data: [], error: null },
     })
-    vi.mocked(db.from).mockImplementation((table: string) => {
-      const result = { data: [], error: null }
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((arg?: unknown) => {
-          if (m === "limit" && table === "invoices") observedLimit = arg
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve(result).then(resolve)
-      return builder as unknown as never
-    })
+    vi.mocked(db.from).mockImplementation(fromImpl)
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).getInvoices()
-    expect(observedLimit).toBe(50)
+    expect(spies.invoices?.firstCallArgs("limit")?.[0]).toBe(50)
   })
 })
 
@@ -357,44 +313,12 @@ describe("createInvoice — multi-step path (shipments → customers → invoice
   })
 
   it("shipment not found → null linkage + notes.externalAwbNumber metadata", async () => {
-    const insertCapture: Record<string, unknown>[] = []
-    const tableCalls: string[] = []
-    // Spy on insert payload via vi.fn factory swap — the builder's
-    // insert vi.fn captures the argument we care about.
-    const db = makeDb({
-      tableCalls,
-      fromResults: {
-        shipments: { data: null, error: null },
-        invoices: { data: INSERTED_ROW, error: null },
-      },
+    const db = makeDb({})
+    const { fromImpl, spies, tableCalls } = makeBuilderSpyByTable({
+      shipments: { data: null, error: null },
+      invoices: { data: INSERTED_ROW, error: null },
     })
-    // Wrap db.from to capture invoice insert payload
-    const originalFrom = db.from as unknown as ReturnType<typeof vi.fn>
-    vi.mocked(originalFrom).mockImplementation((table: string) => {
-      tableCalls.push(table)
-      const result =
-        table === "shipments"
-          ? { data: null, error: null }
-          : table === "invoices"
-            ? { data: INSERTED_ROW, error: null }
-            : { data: null, error: null }
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((arg?: unknown) => {
-          if (m === "insert" && table === "invoices") {
-            insertCapture.push(arg as Record<string, unknown>)
-          }
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve(result).then(resolve)
-      return builder as unknown as never
-    })
+    vi.mocked(db.from).mockImplementation(fromImpl)
 
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).createInvoice({
@@ -402,8 +326,9 @@ describe("createInvoice — multi-step path (shipments → customers → invoice
       awb_number: "ORPHAN1234",
     })
 
-    expect(insertCapture).toHaveLength(1)
-    const payload = insertCapture[0]!
+    const insertArgs = spies.invoices?.argsFor("insert") ?? []
+    expect(insertArgs).toHaveLength(1)
+    const payload = insertArgs[0] as Record<string, unknown>
     expect(payload.awb_number).toBeNull()
     expect(payload.shipment_id).toBeNull()
     // Notes field should be JSON containing externalAwbNumber=ORPHAN1234
@@ -433,42 +358,22 @@ describe("createInvoice — multi-step path (shipments → customers → invoice
   })
 
   it("valid UUID but customer not in DB → null customer_id + notes.invalidCustomerId", async () => {
-    const insertCapture: Record<string, unknown>[] = []
-    const tableCalls: string[] = []
-    const db = makeDb({ tableCalls })
-    vi.mocked(db.from).mockImplementation((table: string) => {
-      tableCalls.push(table)
-      const result =
-        table === "customers"
-          ? { data: null, error: null } // customer NOT found
-          : table === "invoices"
-            ? { data: INSERTED_ROW, error: null }
-            : { data: null, error: null }
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((arg?: unknown) => {
-          if (m === "insert" && table === "invoices") {
-            insertCapture.push(arg as Record<string, unknown>)
-          }
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve(result).then(resolve)
-      return builder as unknown as never
+    const db = makeDb({})
+    const { fromImpl, spies } = makeBuilderSpyByTable({
+      customers: { data: null, error: null }, // customer NOT found
+      invoices: { data: INSERTED_ROW, error: null },
     })
+    vi.mocked(db.from).mockImplementation(fromImpl)
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).createInvoice({
       invoice_number: "INV-2026-102",
       customer_id: VALID_UUID,
     })
-    expect(insertCapture).toHaveLength(1)
-    expect(insertCapture[0]!.customer_id).toBeNull()
-    expect(JSON.parse(insertCapture[0]!.notes as string)).toMatchObject({
+    const insertArgs = spies.invoices?.argsFor("insert") ?? []
+    expect(insertArgs).toHaveLength(1)
+    const payload = insertArgs[0] as Record<string, unknown>
+    expect(payload.customer_id).toBeNull()
+    expect(JSON.parse(payload.notes as string)).toMatchObject({
       invalidCustomerId: VALID_UUID,
     })
   })
@@ -519,39 +424,20 @@ describe("createInvoice — multi-step path (shipments → customers → invoice
   })
 
   it("preserves existing JSON notes when merging metadata", async () => {
-    const insertCapture: Record<string, unknown>[] = []
     const db = makeDb({})
-    vi.mocked(db.from).mockImplementation((table: string) => {
-      const result =
-        table === "shipments"
-          ? { data: null, error: null }
-          : table === "invoices"
-            ? { data: INSERTED_ROW, error: null }
-            : { data: null, error: null }
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((arg?: unknown) => {
-          if (m === "insert" && table === "invoices") {
-            insertCapture.push(arg as Record<string, unknown>)
-          }
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve(result).then(resolve)
-      return builder as unknown as never
+    const { fromImpl, spies } = makeBuilderSpyByTable({
+      shipments: { data: null, error: null },
+      invoices: { data: INSERTED_ROW, error: null },
     })
+    vi.mocked(db.from).mockImplementation(fromImpl)
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).createInvoice({
       invoice_number: "INV-2026-104",
       awb_number: "ORPHAN",
       notes: JSON.stringify({ preExisting: "value" }),
     })
-    const parsed = JSON.parse(insertCapture[0]!.notes as string)
+    const insertArgs = spies.invoices?.argsFor("insert") ?? []
+    const parsed = JSON.parse((insertArgs[0] as Record<string, unknown>).notes as string)
     expect(parsed).toMatchObject({
       preExisting: "value",
       externalAwbNumber: "ORPHAN",
@@ -561,39 +447,20 @@ describe("createInvoice — multi-step path (shipments → customers → invoice
   it("falls back gracefully when existing notes is not valid JSON", async () => {
     // mergeInvoiceNotes catches the parse failure and wraps the
     // non-JSON notes value into a `notes` field of the new JSON object.
-    const insertCapture: Record<string, unknown>[] = []
     const db = makeDb({})
-    vi.mocked(db.from).mockImplementation((table: string) => {
-      const result =
-        table === "shipments"
-          ? { data: null, error: null }
-          : table === "invoices"
-            ? { data: INSERTED_ROW, error: null }
-            : { data: null, error: null }
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((arg?: unknown) => {
-          if (m === "insert" && table === "invoices") {
-            insertCapture.push(arg as Record<string, unknown>)
-          }
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve(result).then(resolve)
-      return builder as unknown as never
+    const { fromImpl, spies } = makeBuilderSpyByTable({
+      shipments: { data: null, error: null },
+      invoices: { data: INSERTED_ROW, error: null },
     })
+    vi.mocked(db.from).mockImplementation(fromImpl)
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).createInvoice({
       invoice_number: "INV-2026-105",
       awb_number: "ORPHAN",
       notes: "free-text note (not JSON)",
     })
-    const parsed = JSON.parse(insertCapture[0]!.notes as string)
+    const insertArgs = spies.invoices?.argsFor("insert") ?? []
+    const parsed = JSON.parse((insertArgs[0] as Record<string, unknown>).notes as string)
     expect(parsed).toMatchObject({
       notes: "free-text note (not JSON)",
       externalAwbNumber: "ORPHAN",
@@ -609,38 +476,23 @@ describe("issueInvoice", () => {
     // CodeRabbit caught that a "did not throw" assertion would pass even
     // if a regression dropped the .eq("status", "DRAFT") guard — which
     // would silently allow ISSUE on any current status, a real bug.
-    let updatePayload: Record<string, unknown> | undefined
-    const eqCalls: Array<{ col: unknown; val: unknown }> = []
     const db = makeDb({})
-    vi.mocked(db.from).mockImplementation((_table: string) => {
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((...args: unknown[]) => {
-          if (m === "update") updatePayload = args[0] as Record<string, unknown>
-          if (m === "eq") eqCalls.push({ col: args[0], val: args[1] })
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve({ data: null, error: null }).then(resolve)
-      return builder as unknown as never
-    })
+    const { builder, spy } = makeBuilderSpy({ data: null, error: null })
+    vi.mocked(db.from).mockReturnValue(builder)
     const { createInvoiceService } = await freshInvoiceService()
     await expect(
       createInvoiceService(db).issueInvoice("inv-1"),
     ).resolves.toBeUndefined()
 
     // Update payload: status flipped to ISSUED + issued_at populated
+    const updatePayload = spy.firstCallArgs("update")?.[0] as Record<string, unknown> | undefined
     expect(updatePayload?.status).toBe("ISSUED")
     expect(typeof updatePayload?.issued_at).toBe("string")
 
     // Two guards must run: id match + current-status=DRAFT.
     // The current-status guard is load-bearing — drop it and the
     // service would issue invoices in any state including PAID/CANCELLED.
+    const eqCalls = spy.calls.eq.map(([col, val]) => ({ col, val }))
     expect(eqCalls).toContainEqual({ col: "id", val: "inv-1" })
     expect(eqCalls).toContainEqual({ col: "status", val: "DRAFT" })
   })
@@ -669,31 +521,19 @@ describe("markPaid", () => {
     // undefined would pass even if the service ignored the caller's
     // input and wrote a different timestamp (or `undefined`).
     const providedPaidAt = "2026-05-15T10:00:00Z"
-    let paidAtArg: unknown
     const db = makeDb({})
-    vi.mocked(db.from).mockImplementation((table: string) => {
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((arg?: unknown) => {
-          if (m === "update" && table === "invoices") {
-            paidAtArg = (arg as { paid_at?: unknown })?.paid_at
-          }
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve({ data: null, error: null }).then(resolve)
-      return builder as unknown as never
+    const { fromImpl, spies } = makeBuilderSpyByTable({
+      invoices: { data: null, error: null },
     })
+    vi.mocked(db.from).mockImplementation(fromImpl)
     const { createInvoiceService } = await freshInvoiceService()
     await expect(
       createInvoiceService(db).markPaid("inv-1", providedPaidAt),
     ).resolves.toBeUndefined()
-    expect(paidAtArg).toBe(providedPaidAt)
+    const updateArg = spies.invoices?.firstCallArgs("update")?.[0] as
+      | { paid_at?: unknown }
+      | undefined
+    expect(updateArg?.paid_at).toBe(providedPaidAt)
   })
 
   it("defaults paidAt to now-ish ISO when caller omits it", async () => {
@@ -703,30 +543,18 @@ describe("markPaid", () => {
     // hardcoded epoch timestamp. CodeRabbit caught that the contract is
     // about the VALUE in the update payload, not the wall clock.
     const before = new Date().toISOString()
-    let paidAtArg: unknown
     const db = makeDb({})
-    vi.mocked(db.from).mockImplementation((table: string) => {
-      const result = { data: null, error: null }
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((arg?: unknown) => {
-          if (m === "update" && table === "invoices") {
-            paidAtArg = (arg as { paid_at?: unknown })?.paid_at
-          }
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve(result).then(resolve)
-      return builder as unknown as never
+    const { fromImpl, spies } = makeBuilderSpyByTable({
+      invoices: { data: null, error: null },
     })
+    vi.mocked(db.from).mockImplementation(fromImpl)
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).markPaid("inv-1")
     const after = new Date().toISOString()
+    const updateArg = spies.invoices?.firstCallArgs("update")?.[0] as
+      | { paid_at?: unknown }
+      | undefined
+    const paidAtArg = updateArg?.paid_at
     expect(typeof paidAtArg).toBe("string")
     expect(
       (paidAtArg as string) >= before && (paidAtArg as string) <= after,
@@ -755,41 +583,26 @@ describe("cancelInvoice", () => {
     // payload + .eq(id) + .in(status, [DRAFT, ISSUED]) guard. A regression
     // that drops the .in() guard would silently allow CANCEL on any
     // status including PAID — destructive bug shape.
-    let updatePayload: Record<string, unknown> | undefined
-    const eqCalls: Array<{ col: unknown; val: unknown }> = []
-    let inArgs: unknown[] = []
     const db = makeDb({})
-    vi.mocked(db.from).mockImplementation((_table: string) => {
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((...args: unknown[]) => {
-          if (m === "update") updatePayload = args[0] as Record<string, unknown>
-          if (m === "eq") eqCalls.push({ col: args[0], val: args[1] })
-          if (m === "in") inArgs = args
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve({ data: null, error: null }).then(resolve)
-      return builder as unknown as never
-    })
+    const { builder, spy } = makeBuilderSpy({ data: null, error: null })
+    vi.mocked(db.from).mockReturnValue(builder)
     const { createInvoiceService } = await freshInvoiceService()
     await expect(
       createInvoiceService(db).cancelInvoice("inv-1"),
     ).resolves.toBeUndefined()
 
+    const updatePayload = spy.firstCallArgs("update")?.[0] as Record<string, unknown> | undefined
     expect(updatePayload?.status).toBe("CANCELLED")
+
+    const eqCalls = spy.calls.eq.map(([col, val]) => ({ col, val }))
     expect(eqCalls).toContainEqual({ col: "id", val: "inv-1" })
 
     // Critical guard: in("status", [DRAFT, ISSUED]) — restricts cancel
     // to the two pre-paid states. Without this, cancel could overwrite
     // PAID/OVERDUE/CANCELLED rows.
-    expect(inArgs[0]).toBe("status")
-    expect(inArgs[1]).toEqual(["DRAFT", "ISSUED"])
+    const inArgs = spy.firstCallArgs("in")
+    expect(inArgs?.[0]).toBe("status")
+    expect(inArgs?.[1]).toEqual(["DRAFT", "ISSUED"])
   })
 
   it("rethrows on DB error", async () => {
@@ -815,66 +628,30 @@ describe("getOverdueCount", () => {
     // Pin the table + the overdue predicate. CodeRabbit caught that the
     // prior mock accepted any table — if the service pointed at the wrong
     // table or dropped the status filter, the test would still have passed.
-    const tableCalls: string[] = []
-    const eqCalls: Array<{ col: unknown; val: unknown }> = []
-    const db = makeDb({ tableCalls })
-    vi.mocked(db.from).mockImplementation((table: string) => {
-      tableCalls.push(table)
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((...args: unknown[]) => {
-          if (m === "eq") eqCalls.push({ col: args[0], val: args[1] })
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve({ count: 7, error: null }).then(resolve)
-      return builder as unknown as never
+    const db = makeDb({})
+    const { fromImpl, spies, tableCalls } = makeBuilderSpyByTable({
+      invoices: { count: 7, error: null },
     })
+    vi.mocked(db.from).mockImplementation(fromImpl)
     const { createInvoiceService } = await freshInvoiceService()
     expect(await createInvoiceService(db).getOverdueCount()).toBe(7)
     expect(tableCalls).toContain("invoices")
+    const eqCalls = (spies.invoices?.calls.eq ?? []).map(([col, val]) => ({ col, val }))
     expect(eqCalls).toContainEqual({ col: "status", val: "OVERDUE" })
   })
 
   it("returns 0 when count is null", async () => {
     const db = makeDb({})
-    vi.mocked(db.from).mockImplementation(() => {
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn(() => builder)
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve({ count: null, error: null }).then(resolve)
-      return builder as unknown as never
-    })
+    const { builder } = makeBuilderSpy({ count: null, error: null })
+    vi.mocked(db.from).mockReturnValue(builder)
     const { createInvoiceService } = await freshInvoiceService()
     expect(await createInvoiceService(db).getOverdueCount()).toBe(0)
   })
 
   it("throws on DB error", async () => {
     const db = makeDb({})
-    vi.mocked(db.from).mockImplementation(() => {
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn(() => builder)
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve({ count: null, error: { code: "X", message: "fail" } }).then(resolve)
-      return builder as unknown as never
-    })
+    const { builder } = makeBuilderSpy({ count: null, error: { code: "X", message: "fail" } })
+    vi.mocked(db.from).mockReturnValue(builder)
     const { createInvoiceService } = await freshInvoiceService()
     await expect(
       createInvoiceService(db).getOverdueCount(),
@@ -959,69 +736,33 @@ describe("PaymentMode enum sentinel + toDbPaymentMode legacy aliases", () => {
     ["credit", "TBB"],
     ["prepaid", "PAID"],
   ])("legacy alias %s maps to canonical %s in the insert payload", async (input, expected) => {
-    const insertCapture: Record<string, unknown>[] = []
     const db = makeDb({})
-    vi.mocked(db.from).mockImplementation((table: string) => {
-      const result =
-        table === "invoices"
-          ? { data: { id: "x", invoice_number: "Y", status: "DRAFT" }, error: null }
-          : { data: null, error: null }
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((arg?: unknown) => {
-          if (m === "insert" && table === "invoices") {
-            insertCapture.push(arg as Record<string, unknown>)
-          }
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve(result).then(resolve)
-      return builder as unknown as never
+    const { fromImpl, spies } = makeBuilderSpyByTable({
+      invoices: { data: { id: "x", invoice_number: "Y", status: "DRAFT" }, error: null },
     })
+    vi.mocked(db.from).mockImplementation(fromImpl)
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).createInvoice({
       invoice_number: "PM-TEST",
       payment_mode: input,
     } as never)
-    expect(insertCapture[0]!.payment_mode).toBe(expected)
+    const insertArg = spies.invoices?.firstCallArgs("insert")?.[0] as Record<string, unknown>
+    expect(insertArg.payment_mode).toBe(expected)
   })
 
   it("unknown payment_mode falls back to TO_PAY default in the insert payload", async () => {
-    const insertCapture: Record<string, unknown>[] = []
     const db = makeDb({})
-    vi.mocked(db.from).mockImplementation((table: string) => {
-      const result =
-        table === "invoices"
-          ? { data: { id: "x", invoice_number: "Y", status: "DRAFT" }, error: null }
-          : { data: null, error: null }
-      const builder: Record<string, unknown> = {}
-      for (const m of [
-        "select", "insert", "update", "upsert", "delete",
-        "eq", "in", "or", "gte", "lte", "order", "limit",
-        "single", "maybeSingle",
-      ]) {
-        builder[m] = vi.fn((arg?: unknown) => {
-          if (m === "insert" && table === "invoices") {
-            insertCapture.push(arg as Record<string, unknown>)
-          }
-          return builder
-        })
-      }
-      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
-        Promise.resolve(result).then(resolve)
-      return builder as unknown as never
+    const { fromImpl, spies } = makeBuilderSpyByTable({
+      invoices: { data: { id: "x", invoice_number: "Y", status: "DRAFT" }, error: null },
     })
+    vi.mocked(db.from).mockImplementation(fromImpl)
     const { createInvoiceService } = await freshInvoiceService()
     await createInvoiceService(db).createInvoice({
       invoice_number: "PM-MISSING",
       payment_mode: undefined,
     } as never)
-    expect(insertCapture[0]!.payment_mode).toBe("TO_PAY")
+    const insertArg = spies.invoices?.firstCallArgs("insert")?.[0] as Record<string, unknown>
+    expect(insertArg.payment_mode).toBe("TO_PAY")
   })
 })
 

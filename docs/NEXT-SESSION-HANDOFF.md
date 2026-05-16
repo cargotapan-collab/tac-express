@@ -2,9 +2,9 @@
 
 > **You are picking up TAC Express after the pre-Sprint-2 consolidation session.** Read this top-to-bottom before opening any other file. Designed to take 5 minutes and get you productive.
 
-**Last commit on `main`:** `188e31c` — `fix(types): cast cleanups via root-cause fixes (#102 ticks)` (PR #128)
-**Date this doc was written:** 2026-05-16 (pre-Sprint-2 maximum-sweep session — PRs #126, #127, #128)
-**Author of last session:** Claude Code (Opus 4.7) in PM-mode + Senior FSE + Big-Tech CTO simultaneously
+**Last commit on `main`:** `<post-PR-#132-merge>` — `test(services): shipment.service.ts unit-test floor + makeBuilderSpy extraction` (PR #132)
+**Date this doc was written:** 2026-05-16 (first substantive Sprint 2 session — PR #132)
+**Author of last session:** Claude Code (Opus 4.7) in PM-mode + Senior FSE + Big-Tech CTO + Designer
 
 ---
 
@@ -107,18 +107,25 @@ Clean slate.
 | [#25](https://github.com/cargotapan-collab/tac-express/issues/25) | Audit + migrate dialogs/forms to react-hook-form + zod | — | Sprint-scale |
 | [#102](https://github.com/cargotapan-collab/tac-express/issues/102) | Production-readiness backlog tracking | meta | ~13 sub-items remain (3 ticked this session) |
 
-**Resolved during recent sessions:** #22, #110, #112, #115, #122, plus #102 sub-items: invoice.service test floor (#123), orphan UI archive (#127), scratchpad doc archive (#127), as-unknown-as casts (#128).
+**Resolved during recent sessions:** #22, #110, #112, #115, #122, plus #102 sub-items: invoice.service test floor (#123), orphan UI archive (#127), scratchpad doc archive (#127), as-unknown-as casts (#128), **shipment.service test floor (#132)**.
+
+**New tracked issues filed post-#129:** [#130](https://github.com/cargotapan-collab/tac-express/issues/130) (regex-alternation LAW gate), [#131](https://github.com/cargotapan-collab/tac-express/issues/131) (branded `ServiceLevel` type). Reciprocal cross-links + explicit "do NOT bundle" markers. Each is its own focused session.
 
 ### #102 checkboxes worth ticking (owner action)
 
-This session ticked three additional sub-items:
-- **Document or archive orphaned UI components** → DONE in PR #127. 4 components + 2 scratchpad docs into `_archive/` subtrees.
-- **Archive session-scratchpad files in `docs/`** → DONE in PR #127. 2 of 3 listed files archived (handoff doc deliberately retained — see PR #127 description).
-- **Remove `as unknown as` casts (per-site root cause)** → DONE in PR #128. 4 of 5 sites dropped; 1 retained with `THIRD-PARTY-TYPE-GAP` grep handle.
+PR #132 ticked one Sprint 2 sub-item:
+- **Unit tests for `shipment.service.ts`** → DONE in PR #132. 50 cases; full RPC + chunked-fallback decision tree; extracts `makeBuilderSpy` helper at the third consumer.
 
-Plus two STALE #102 lines explicitly renounced (not acted on) with written justification:
+(Plus PR #127's three earlier ticks + PR #128's cast cleanups remain — see prior handoff versions for details.)
+
+Two STALE #102 lines remain explicitly renounced (not acted on) with written justification:
 - "7 dashboard cards" — cards are LIVE behind the `tac-design` v7 flag. Documented in `packages/ui/src/components/composed/_archive/2026-05-16/README.md`.
 - "Archive `NEXT-SESSION-HANDOFF.md`" — promoted to load-bearing cross-session protocol artifact. Documented in `docs/_archive/2026-05-14/README.md`.
+
+Three "while I'm here" expansions from PR #132 declined per cadence and filed:
+- Regex-alternation LAW gate → #130 (own session)
+- Branded `ServiceLevel` type → #131 (own session)
+- Source-file `as unknown as` casts at shipment.service.ts:203/260/276 → future cast-cleanup session
 
 ---
 
@@ -172,21 +179,25 @@ Three patterns this codebase has now learned to preempt:
 
 Per the cadence pre-commit (§ 1), pick ONE of these — not multiple in the same session:
 
-### Option A — `shipment.service.ts` test floor (~one focused session) RECOMMENDED
+### Option A — `manifest.service.ts` test floor (~one focused session) RECOMMENDED
 
-The natural successor to this PR. ~9.2KB source — slightly larger than payment.service or invoice.service. Mirror this PR's structure: PHASE-A audit matrix first, then test file using the same `makeDb` helper, same `freshShipmentService()` factory shape, same CodeRabbit preempts.
+The natural successor to PR #132. ~7.3KB source — slightly smaller than shipment.service. Mirror PR #132's structure verbatim: PHASE-A audit matrix first, then test file using the same `makeDb` + `makeBuilderSpy` helpers (both already extracted; reuse, don't fork), same `freshManifestService()` factory shape, same 12-entry CodeRabbit preempt sweep.
 
-Estimate: ~500-700 LoC test code, ~50-60 cases, one disciplined session.
+Estimate: ~500-700 LoC test code, ~30-40 cases, one disciplined session.
 
-**Concrete starter:** the service has an RPC call (`generate_awb_number`, `bulk_create_shipments` per PR #114's audit) AND a SELECTIVE adoption (`bulk_create_shipments` uses `captureSupabaseRpcError` on the real-error branch, skips the issue-#19 fallback). That's BOTH branches of PR #118's RPC-or-fallback decision tree applicable here — full pattern reuse.
+**Concrete starter:** manifest.service exercises `manifests` + `manifest_shipments` (join table) + status-transition logic via `ManifestStatus` enum (7 values). The dual-sentinel enum pattern from `ShipmentStatus` (PR #132) and `InvoiceStatus` (PR #123) applies verbatim. Check for any RPC calls — if present, the `withRpc` + `captureSupabaseRpcError` pattern from PR #132's `generateAwbNumber` test applies directly.
 
 ### Option B — Owner runs the #94 procedure (5 min, owner-only)
 
 Not an agent task. Flag explicitly so the owner can knock it out. After this, #94 closes and the observability arc is fully live.
 
-### Option C — Fix #122 (CI-watch friction) — small standalone tooling PR (~30 min)
+### Option C — #130 (regex-alternation LAW gate) — small standalone tooling PR (~30 min)
 
-The CI-watch helper rebinds to stale sha after force-push. Filed during the post-#121 debrief. ~10-20 LoC fix. Low priority but bundleable into a small session if Option A doesn't fit the available time window.
+`scripts/check-regex-alternation.mjs` enforcing canonical-sorted regex alternation. ~30-50 LoC + architecture-gates.yml wiring. Forward infrastructure investment, NOT cleanup — but appropriately session-sized. If Option A doesn't fit the time window, this is a clean alternative. **Do NOT bundle with #131 — sibling-issue marker is in #130's body.**
+
+### Option D — #131 (branded `ServiceLevel` type) — structural type infrastructure (~45 min)
+
+The structural fix the PR #128 cast cleanup pointed at. Will require updating PR #132's `serviceLevel` test assertions as part of the work — flagged in PR #132's Designer note. **Do NOT bundle with #130.** Each is its own focused session.
 
 ---
 
@@ -221,7 +232,24 @@ Every merge across this arc required the owner to type `merge PR <N>` exactly. T
 
 ### 7.6. Shared helpers extract on second use, not first
 
-The `makeDb` was inline in PR #118. It got extracted in THIS PR (commit 1) when needed for a second test file. That's the right timing — first instance proves the pattern, second instance triggers the extraction. Don't pre-abstract.
+The `makeDb` was inline in PR #118. Extracted in PR #123 (commit 1) when needed for a second test file. The `makeBuilderSpy` was inline in PR #118 + repeated ~16 sites in PR #123 (extraction declined per the rule). Extracted in PR #132 (commit 1) at the THIRD consumer. Both extractions landed with zero behavior change.
+
+Pattern: extract when the next consumer materializes. NOT before (premature; constrains the API). NOT later (CodeRabbit-noise; bot will flag duplication).
+
+### 7.7. Cadence rule survives repeated tests (now three PRs old)
+
+Codified post-#129 in [`feedback_cadence_discipline_first_test.md`](memory:feedback_cadence_discipline_first_test). The rule "one PR per Sprint 2 session, don't bundle plausible follow-ups" has now held across three real tests:
+
+1. **First test (post-#129):** offer to bundle `regex-alternation gate` + `branded ServiceLevel` into the same session as the maximum-sweep retro analysis → DECLINED. Filed as #130 + #131 with reciprocal cross-links.
+2. **Second test (PR #132):** offer to bundle three "while I'm here" expansions (#130, #131, source-file cast cleanups) into the shipment.service test floor → DECLINED. All three deferred to their own sessions.
+3. **Next test:** whatever surfaces during the manifest.service test floor.
+
+The agent-side internalization is working as designed. The discipline survives because:
+- The handoff doc § 1 reminder fires at every session start
+- The feedback memory fires inside the agent's reasoning loop
+- The PR body's "while I'm here" disclosure makes the deferral visible to reviewers
+
+If a future session attempts to bundle, the failure mode will be highly visible (test file ballooning beyond the matrix, PR body apologizing for "we'll fix [X] in a follow-up"). Audit visible PR bodies for this shape.
 
 ---
 
@@ -260,15 +288,19 @@ docs/retros/2026-05-15-pm-sentry-track.md              # PR #111
 docs/retros/2026-05-15-pm-instrumentation-track.md     # PR #113
 docs/retros/2026-05-15-pm-pr112-adoption.md            # PR #114
 docs/retros/2026-05-15-pm-campaign-track.md            # 5-PR campaign retro
-docs/retros/2026-05-16-invoice-service-tests.md        # this PR's retro
+docs/retros/2026-05-16-invoice-service-tests.md        # PR #123 retro
+docs/retros/2026-05-16-pre-sprint2-maximum-sweep.md    # PRs #126/#127/#128 retro
+docs/retros/2026-05-16-shipment-service-tests.md       # PR #132 retro (← latest)
 docs/NEXT-SESSION-HANDOFF.md                           # ← this file
 docs/runbooks/sentry-alert-rules.md                    # Sentry alert-rule playbook
 docs/audits/2026-05-15-rbac-denial-audit.md            # PHASE-A audit reference
 
 # Service test floors (the pattern)
-packages/services/src/__tests__/helpers/make-db.ts     # CANONICAL shared mock builder
-packages/services/src/__tests__/payment.service.test.ts # template
-packages/services/src/__tests__/invoice.service.test.ts # this PR
+packages/services/src/__tests__/helpers/make-db.ts             # CANONICAL shared mock builder (extracted PR #123)
+packages/services/src/__tests__/helpers/make-builder-spy.ts    # CANONICAL recording spy (extracted PR #132)
+packages/services/src/__tests__/payment.service.test.ts        # template (29 cases, PR #118)
+packages/services/src/__tests__/invoice.service.test.ts        # second consumer (40 cases, PR #123)
+packages/services/src/__tests__/shipment.service.test.ts       # third consumer (50 cases, PR #132)
 
 # Sentry observability — packages
 packages/auth/src/sentry-tagger.ts
@@ -298,14 +330,14 @@ DESIGN_SYSTEM.md
 
 ## 10. The honest read
 
-The two-day arc shipped 14 PRs (#105 → this PR), grew tests from 252 → 454, added 6 canonical Sentry alert rules + 6 load-bearing CI gates + 4 sentinel test files following the same forcing-function discipline.
+Across the two-day arc + pre-Sprint-2 sweep + first Sprint 2 PR, the codebase has shipped 17 PRs (#105 → #132), grown tests from 252 → 515 (+263), added 5 canonical Sentry alert rules + 6 load-bearing CI gates + 5 sentinel test files + 2 canonical test helpers (`makeDb`, `makeBuilderSpy`) following the same forcing-function discipline.
 
-This PR closes the last comfortably-session-scale-fits-in-a-session test floor. The remaining Sprint 2 items (shipment/manifest/whatsapp) are each a session by themselves. The cadence pre-commit in § 1 is the load-bearing carry-forward.
+PR #132 closes the SECOND-largest service-test floor. The remaining Sprint 2 items (`manifest.service.ts` smaller; `whatsapp.service.ts` larger; 5 E2E flows session-sized each) are each a session by themselves. The cadence pre-commit in § 1 has now survived three real tests (see § 7.7).
 
-**Recommended one-line summary for the next session's prompt:** "Mirror this PR's pattern verbatim for shipment.service.ts. ONE PR. Take the full session."
+**Recommended one-line summary for the next session's prompt:** "Mirror PR #132's pattern verbatim for manifest.service.ts. ONE PR. Take the full session. Decline any 'while I'm here' expansion — file an issue instead."
 
 ---
 
-**Load the skills. Re-read § 1 (cadence pre-commit). Pick a task from § 6. Ship one clean PR.**
+**Load the skills. Re-read § 1 (cadence pre-commit) and § 7.7 (cadence-rule status). Pick a task from § 6. Ship one clean PR.**
 
 When you're done, update or replace this file with a fresh handoff.
