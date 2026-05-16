@@ -198,3 +198,40 @@ MOTION:         --duration-fast (80ms) | --duration-base (150ms) | --duration-sl
 TESTING:        Vitest (unit) | Playwright (E2E)
 GIT FLOW:       feature branches → PR → CI → merge
 ```
+
+---
+
+## 6. WONTFIX-UNLESS-TRIGGERED — #102 backlog deferrals
+
+> Codified during the pre-Sprint-2 maximum-sweep session (post-PR #125). Each entry below is a #102 sub-item explicitly DEFERRED — not abandoned. Each names a concrete TRIGGER that re-opens the item. The grep handle is `WONTFIX-UNLESS-TRIGGERED` — `grep -r WONTFIX-UNLESS-TRIGGERED CLAUDE.md docs/` lands the next contributor at every deferral.
+>
+> Pattern lineage: same shape as `docs/audits/2026-05-15-rbac-denial-audit.md § 6 item 3` (PR #121) and `dashboard.service.ts:getSLABreaches` SENTRY-SILENT-BY-DESIGN marker (PR #120). The discipline: if you can't ship it now AND can't predict when you'll need to ship it, name the conditions that would change the answer.
+
+### 6.1. Pick canonical form variant per domain — STATUS: WONTFIX-UNLESS-TRIGGERED
+
+**Item (from #102 Sprint 2):** Pick canonical form variant per domain (v7 vs original) and archive the loser. Document choice in CLAUDE.md.
+
+**Why deferred:** Locking in a canonical variant is premature while both v6 and v7 are actively iterated. The two variants serve different surfaces (v6 = ops-console legacy depth, v7 = new wizards) and the decision shape depends on whether the design system converges or stays bifurcated.
+
+**Trigger conditions for re-opening:**
+- Design freeze announced on EITHER v6 or v7 (one is officially deprecated)
+- A new wizard PR sits blocked on "which variant should this use?" for ≥ 1 session
+- The next product roadmap names a target form-architecture state
+- `tac-brainstorming` skill produces a written spec for the convergence
+
+**Last reviewed: 2026-05-16. If still un-triggered at 2026-08-16, re-evaluate the wontfix call.**
+
+### 6.2. On-call schedule + escalation policy — STATUS: WONTFIX-UNLESS-TRIGGERED
+
+**Item (from #102 Backlog):** On-call schedule + escalation policy.
+
+**Why deferred:** Organizational, not technical. Solo-owner project today; an on-call rotation requires ≥ 2 humans willing to be paged. The policy document without the people is theater.
+
+**Trigger conditions for re-opening:**
+- Team size grows to ≥ 2 engineers with shared production responsibility
+- First 24/7 incident (a real one, not a synthetic) — even if resolved by the owner alone, the postmortem should name the missing rotation as a contributing factor
+- Sentry rule 6 (production-errors owner-targeted) fires more than 3× in a 30-day window — sustained alert volume is the actual signal that a rotation matters
+
+**When triggered:** the policy lives in `docs/runbooks/ON-CALL.md` (to be created) — not in CLAUDE.md.
+
+**Last reviewed: 2026-05-16. If still un-triggered at 2026-08-16, re-evaluate the wontfix call.**
