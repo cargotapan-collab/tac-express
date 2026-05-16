@@ -31,15 +31,19 @@ const ENTITIES = [
   "staff",
 ] as const
 
+// Action filter options. The destructive trio (payment_delete /
+// invoice_cancel / manifest_revert) is the canonical set added in the
+// audit-logs hardening (#102, migration 20260516000001). STATUS_CHANGE
+// and RESOLVED are the historical actions written by the existing
+// SECURITY DEFINER RPCs (update_shipment_status, resolve_exception).
+// Update audit.types.ts AuditAction in lock-step when adding more.
 const ACTIONS = [
   "all",
-  "create",
-  "update",
-  "delete",
-  "login",
-  "logout",
-  "role_change",
-  "permission_change",
+  "payment_delete",
+  "invoice_cancel",
+  "manifest_revert",
+  "STATUS_CHANGE",
+  "RESOLVED",
 ] as const
 
 export function AuditClient() {
@@ -140,7 +144,7 @@ export function AuditClient() {
                     setExpandedId((prev) => (prev === log.id ? null : log.id))
                   }
                   aria-expanded={isOpen}
-                  className="grid w-full grid-cols-[150px_110px_140px_1fr_140px_140px_32px] items-center border-b border-border px-3 py-2 text-left text-sm transition-colors last:border-0 hover:bg-muted/30"
+                  className="grid w-full grid-cols-[150px_140px_140px_1fr_140px_32px] items-center border-b border-border px-3 py-2 text-left text-sm transition-colors last:border-0 hover:bg-muted/30"
                 >
                   <span className="font-mono text-paper-11 text-muted-foreground">
                     {new Date(log.createdAt).toLocaleString()}
@@ -154,9 +158,6 @@ export function AuditClient() {
                   <span className="truncate">{log.description}</span>
                   <span className="truncate font-mono text-paper-11 text-muted-foreground">
                     {log.userId ? log.userId.slice(0, 8) + "…" : "system"}
-                  </span>
-                  <span className="truncate font-mono text-paper-11 text-muted-foreground">
-                    {log.ipAddress ?? "—"}
                   </span>
                   <span
                     className={`flex justify-center text-muted-foreground transition-transform ${
@@ -179,18 +180,14 @@ export function AuditClient() {
                         label="Actor"
                         value={log.userId ?? "system"}
                       />
-                      <Detail
-                        label="IP"
-                        value={log.ipAddress ?? "—"}
-                      />
-                      <Detail
-                        label="User Agent"
-                        value={log.userAgent ?? "—"}
-                      />
                     </div>
+                    {/* AuditDiffViewer accepts before / after state. For
+                        destructive ops there is no after-state (the row
+                        is gone); we render the before_state snapshot
+                        alone so an auditor can see what was destroyed. */}
                     <AuditDiffViewer
-                      before={log.oldValues}
-                      after={log.newValues}
+                      before={log.beforeState}
+                      after={null}
                     />
                   </div>
                 )}
@@ -236,12 +233,16 @@ function Filter({ label, options, value, onChange }: FilterProps) {
 }
 
 function ActionBadge({ action }: { action: AuditLog["action"] }) {
-  const variant =
-    action === "create"
-      ? "default"
-      : action === "delete"
-        ? "destructive"
-        : "secondary"
+  // The three destructive actions render as `destructive`; the
+  // historical RPC-emitted actions render as `secondary`. Keeping the
+  // variant decision local to this component lets us add new actions
+  // by extending AuditAction + this switch in lockstep.
+  const variant: React.ComponentProps<typeof Badge>["variant"] =
+    action === "payment_delete" ||
+    action === "invoice_cancel" ||
+    action === "manifest_revert"
+      ? "destructive"
+      : "secondary"
   return (
     <Badge variant={variant} className="font-mono">
       {action}

@@ -41,6 +41,12 @@ const CHAIN_METHODS = [
   "lte",
   "order",
   "limit",
+  // `range(from, to)` — Supabase's pagination terminal. Added when
+  // audit.service.ts became the first consumer needing it; the helper
+  // had no other reason to model it before. Same shape as the other
+  // chain methods (returns the builder, resolves to the configured
+  // result when awaited).
+  "range",
   "single",
   "maybeSingle",
 ] as const
