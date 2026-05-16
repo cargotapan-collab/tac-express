@@ -1,15 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { HubCode, ManifestStatus } from "@workspace/types"
 
-import { createManifestService } from "../manifest.service"
-import { registerSentry } from "../shared/sentry-tagger"
 import { SUPABASE_RPC_TAG_KEYS } from "../shared/with-rpc"
 import { makeDb } from "./helpers/make-db"
 import {
   makeBuilderSpy,
   makeBuilderSpyByTable,
 } from "./helpers/make-builder-spy"
+// NOTE: createManifestService and registerSentry are NOT statically imported.
+// Per CodeRabbit's PR #147 isolation finding, static imports of these modules
+// (combined with vi.resetModules() + dynamic re-import in freshManifestService)
+// create two parallel module instances and a split isolation contract. Every
+// test must go through freshManifestService() so service code + Sentry-tagger
+// registration share the same dynamically-loaded instance.
 
 /**
  * Full test floor for manifest.service.ts — extends the audit-wired surface
@@ -74,21 +78,29 @@ import {
 const captureExceptionMock = vi.fn()
 
 beforeEach(() => {
+  // mockClear resets recorded calls between tests so per-test assertions on
+  // captureExceptionMock are deterministic. vi.resetModules() clears the
+  // module cache so the NEXT freshManifestService() call dynamically re-imports
+  // both sentry-tagger and manifest.service fresh — single isolation contract.
+  // NO call to registerSentry here: the freshManifestService() factory below
+  // owns registration on the freshly-loaded sentry-tagger instance. Calling
+  // registerSentry on a STATICALLY-imported instance would create a parallel
+  // module instance that the dynamically-loaded service code never sees
+  // (CodeRabbit's PR #147 finding).
   captureExceptionMock.mockClear()
-  registerSentry({ captureException: captureExceptionMock })
   vi.resetModules()
-})
-
-afterEach(() => {
-  registerSentry(null)
 })
 
 /**
  * Import manifest.service.ts FRESH each call. Mirrors freshPaymentService /
  * freshInvoiceService / freshShipmentService. manifest.service.ts has no
  * module-level mutable state today, but the pattern is retained for
- * consistency — if a future refactor adds module-level caching, tests
- * don't need to be reshuffled.
+ * consistency AND because — per CodeRabbit's PR #147 finding — this is the
+ * ONLY way to guarantee that the service code's transitive import of
+ * sentry-tagger resolves to the same instance the test registered the mock on.
+ *
+ * Returns the freshly-loaded module so callers can destructure
+ * `createManifestService`.
  */
 async function freshManifestService() {
   vi.resetModules()
@@ -946,13 +958,17 @@ describe("Sentry tag-emission contract — read-only methods do not emit", () =>
   })
 })
 
-// ─── removeShipmentFromManifest (audit-wired) — PRESERVED VERBATIM ──────────
+// ─── removeShipmentFromManifest (audit-wired) — preserved from PR #135 ─────
 //
 // Original coverage from PR #135 (the audit-adoption test floor for the
-// destructive op). Preserved without modification — these cases are
-// orthogonal to the read-only / non-destructive surface above and have
-// their own beforeEach (vi.clearAllMocks) compatible with the file-level
-// resetModules + sentry-mock setup. No duplication.
+// destructive op). Test BODIES preserved verbatim — same assertions, same
+// fixtures, same setup data. The ONLY change is the service-construction
+// preamble: `createManifestService(db)` is now routed through
+// `freshManifestService()` so this block shares the file's single isolation
+// contract (CodeRabbit's PR #147 finding). Without this refactor the 6 cases
+// here used a statically-imported `createManifestService` whose transitive
+// `sentry-tagger` import resolved to a DIFFERENT instance than the one the
+// freshManifestService() factory registers the mock on.
 
 describe("manifest.service / removeShipmentFromManifest (audit-wired)", () => {
   const MANIFEST_ID = "11111111-1111-1111-1111-111111111111"
@@ -975,6 +991,7 @@ describe("manifest.service / removeShipmentFromManifest (audit-wired)", () => {
         audit_logs: { data: null, error: null },
       },
     })
+    const { createManifestService } = await freshManifestService()
     const service = createManifestService(db)
     await expect(
       service.removeShipmentFromManifest(MANIFEST_ID, AWB),
@@ -996,6 +1013,7 @@ describe("manifest.service / removeShipmentFromManifest (audit-wired)", () => {
       error: null,
     })
     vi.mocked(db.from).mockReturnValue(builder)
+    const { createManifestService } = await freshManifestService()
     const service = createManifestService(db)
     await service.removeShipmentFromManifest(MANIFEST_ID, AWB)
     const insertPayload = spy.firstCallArgs("insert")?.[0] as
@@ -1023,6 +1041,7 @@ describe("manifest.service / removeShipmentFromManifest (audit-wired)", () => {
         audit_logs: { data: null, error: null },
       },
     })
+    const { createManifestService } = await freshManifestService()
     const service = createManifestService(db)
     await service.removeShipmentFromManifest(MANIFEST_ID, AWB)
     expect(tableCalls.filter((t) => t === "audit_logs")).toHaveLength(1)
@@ -1037,6 +1056,7 @@ describe("manifest.service / removeShipmentFromManifest (audit-wired)", () => {
         audit_logs: { data: null, error: null },
       },
     })
+    const { createManifestService } = await freshManifestService()
     const service = createManifestService(db)
     await expect(
       service.removeShipmentFromManifest(MANIFEST_ID, AWB),
@@ -1059,6 +1079,7 @@ describe("manifest.service / removeShipmentFromManifest (audit-wired)", () => {
         },
       },
     })
+    const { createManifestService } = await freshManifestService()
     const service = createManifestService(db)
     await expect(
       service.removeShipmentFromManifest(MANIFEST_ID, AWB),
@@ -1077,6 +1098,7 @@ describe("manifest.service / removeShipmentFromManifest (audit-wired)", () => {
         },
       },
     })
+    const { createManifestService } = await freshManifestService()
     const service = createManifestService(db)
     await expect(
       service.removeShipmentFromManifest(MANIFEST_ID, AWB),

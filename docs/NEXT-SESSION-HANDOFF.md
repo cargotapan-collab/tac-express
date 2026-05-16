@@ -96,7 +96,7 @@ pnpm test apps/dashboard/__tests__/backlog-refs-drift.test.ts
 
 (`LAW gates`, `@tac registry sync + smoke`, `migrations apply on fresh DB`, `npm audit`, `Sentry alert-rule structure lint`, `Bundle size`, `Backlog references drift check`, plus `visual + a11y` in the e2e workflow.)
 
-**Still NOT a CI gate:** `pnpm test` (the full vitest suite). The four pre-existing sentinels (`rbac-block-adoption`, `api-routes-no-console`, `silent-by-design`, `audit-doc-references`, `audit-logs-no-update-delete`) and ~700 unit tests still run only locally. Promoting `pnpm test` to a generic gate is a separately-scoped policy decision (see retro § 7.3 carry-forward).
+**Still NOT a CI gate:** `pnpm test` (the full vitest suite). The five pre-existing sentinels (`rbac-block-adoption`, `api-routes-no-console`, `silent-by-design`, `audit-doc-references`, `audit-logs-no-update-delete`) and ~700 unit tests still run only locally. Promoting `pnpm test` to a generic gate is a separately-scoped policy decision (see retro § 7.3 carry-forward).
 
 ### 5.5 CodeRabbit pattern catalog (9 entries) — unchanged. PRs #141 and #146 both went through both bots clean on first pass; the catalog works preventively.
 

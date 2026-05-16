@@ -71,7 +71,7 @@ The cumulative-discipline rule from PR #146's handoff § 7.18 ("authoritative-re
 2. **CI-gate the other four sentinels.** PR #146's retro § 7.3 flagged that `pnpm test` is NOT a CI gate today (the four pre-existing sentinels run only locally). This PR did NOT promote `pnpm test`; that's a separately-scoped carry-forward.
 3. **Bundle any of the 8 open issues.** None touched. The PR strictly does the test-floor + the O1 refs update.
 
-### 4.3 Three real fixes during local-gate iteration
+### 4.3 Four real fixes during local-gate iteration
 
 Caught by local gates before the PR opened:
 
