@@ -260,7 +260,7 @@ describe("audit.service / AuditAction exhaustiveness", () => {
   const _ALL_DESTRUCTIVE = [
     "payment_delete",
     "invoice_cancel",
-    "manifest_revert",
+    "manifest_shipment_remove",
   ] as const satisfies readonly DestructiveAuditAction[]
   type _DestructiveMissing = Exclude<DestructiveAuditAction, (typeof _ALL_DESTRUCTIVE)[number]>
   const _destCovered: _DestructiveMissing extends never ? true : never = true
@@ -270,7 +270,7 @@ describe("audit.service / AuditAction exhaustiveness", () => {
     expect([...DESTRUCTIVE_AUDIT_ACTIONS]).toEqual([
       "payment_delete",
       "invoice_cancel",
-      "manifest_revert",
+      "manifest_shipment_remove",
     ])
   })
 
@@ -283,7 +283,7 @@ describe("audit.service / AuditAction exhaustiveness", () => {
     const ENTITY_TYPE_BY_ACTION: Record<DestructiveAuditAction, DestructiveAuditEntityType> = {
       payment_delete: "payment",
       invoice_cancel: "invoice",
-      manifest_revert: "manifest",
+      manifest_shipment_remove: "manifest",
     }
 
     for (const action of DESTRUCTIVE_AUDIT_ACTIONS) {

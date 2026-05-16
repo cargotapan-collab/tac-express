@@ -577,25 +577,52 @@ describe("markPaid", () => {
   })
 })
 
-describe("cancelInvoice", () => {
-  it("cancels with status=CANCELLED + guards on current state DRAFT or ISSUED", async () => {
-    // Same value-contract discipline as issueInvoice: capture update
-    // payload + .eq(id) + .in(status, [DRAFT, ISSUED]) guard. A regression
-    // that drops the .in() guard would silently allow CANCEL on any
-    // status including PAID — destructive bug shape.
+describe("cancelInvoice (post-#134 withAudit-wrapped)", () => {
+  // Per the audit-logs PR-2 adoption (#134), cancelInvoice now:
+  //   1. SELECTs the invoice row (forensic before_state).
+  //   2. If the row doesn't exist, short-circuits — no audit, no UPDATE.
+  //   3. Wraps the UPDATE in withAudit. Audit-first / fail-loud.
+  // The .in("status", [DRAFT, ISSUED]) guard is PRESERVED inside the
+  // wrapper — a regression that drops it would still let the audit row
+  // commit (operator attempted to cancel), then the UPDATE would
+  // affect zero rows. That divergence between "audit says cancelled"
+  // and "DB row unchanged" is exactly the forensic signal an audit
+  // surface should record.
+  const SAMPLE_INVOICE = {
+    id: "inv-1",
+    invoice_number: "INV-001",
+    status: "ISSUED",
+    total_amount: 2000,
+    customer_id: "cust-1",
+    created_at: "2026-05-15T10:00:00Z",
+  }
+
+  it("cancels with status=CANCELLED + preserves the DRAFT|ISSUED status guard", async () => {
+    // Single-builder pattern still works: every db.from() call shares
+    // the spy, so we can read both the audit INSERT and the UPDATE
+    // payload off the same recording. The SELECT returns the row
+    // because we configured data: SAMPLE_INVOICE.
     const db = makeDb({})
-    const { builder, spy } = makeBuilderSpy({ data: null, error: null })
+    const { builder, spy } = makeBuilderSpy({ data: SAMPLE_INVOICE, error: null })
     vi.mocked(db.from).mockReturnValue(builder)
     const { createInvoiceService } = await freshInvoiceService()
     await expect(
       createInvoiceService(db).cancelInvoice("inv-1"),
     ).resolves.toBeUndefined()
 
+    // Audit INSERT happened with the right shape — the action literal
+    // is the one the registry knows + the CHECK constraint accepts.
+    const insertPayload = spy.firstCallArgs("insert")?.[0] as
+      | Record<string, unknown>
+      | undefined
+    expect(insertPayload?.action).toBe("invoice_cancel")
+    expect(insertPayload?.entity_type).toBe("invoice")
+    expect(insertPayload?.entity_id).toBe("inv-1")
+    expect(insertPayload?.before_state).toEqual(SAMPLE_INVOICE)
+
+    // Status UPDATE payload + the load-bearing guard.
     const updatePayload = spy.firstCallArgs("update")?.[0] as Record<string, unknown> | undefined
     expect(updatePayload?.status).toBe("CANCELLED")
-
-    const eqCalls = spy.calls.eq.map(([col, val]) => ({ col, val }))
-    expect(eqCalls).toContainEqual({ col: "id", val: "inv-1" })
 
     // Critical guard: in("status", [DRAFT, ISSUED]) — restricts cancel
     // to the two pre-paid states. Without this, cancel could overwrite
@@ -603,14 +630,73 @@ describe("cancelInvoice", () => {
     const inArgs = spy.firstCallArgs("in")
     expect(inArgs?.[0]).toBe("status")
     expect(inArgs?.[1]).toEqual(["DRAFT", "ISSUED"])
+
+    // No-double-audit: audit_logs hit exactly once.
+    const tableCalls = vi.mocked(db.from).mock.calls.map((c) => c[0])
+    expect(tableCalls.filter((t) => t === "audit_logs")).toHaveLength(1)
   })
 
-  it("rethrows on DB error", async () => {
+  it("reads the row, writes one audit row, then updates — table-call ordering", async () => {
+    const tableCalls: string[] = []
+    const db = makeDb({
+      tableCalls,
+      fromResults: {
+        invoices: { data: SAMPLE_INVOICE, error: null },
+        audit_logs: { data: null, error: null },
+      },
+    })
+    const { createInvoiceService } = await freshInvoiceService()
+    await createInvoiceService(db).cancelInvoice("inv-1")
+    expect(tableCalls).toEqual([
+      "invoices",   // SELECT (read row for before_state)
+      "audit_logs", // audit INSERT (audit-first)
+      "invoices",   // UPDATE (cancel, with status guard)
+    ])
+  })
+
+  it("short-circuits silently with no audit when the invoice doesn't exist", async () => {
+    const tableCalls: string[] = []
+    const db = makeDb({
+      tableCalls,
+      fromResults: {
+        invoices: { data: null, error: null },
+        audit_logs: { data: null, error: null },
+      },
+    })
+    const { createInvoiceService } = await freshInvoiceService()
+    await expect(
+      createInvoiceService(db).cancelInvoice("inv-missing"),
+    ).resolves.toBeUndefined()
+    // Only one .from() — the SELECT that found nothing.
+    expect(tableCalls).toEqual(["invoices"])
+  })
+
+  it("audit-write failure: AuditWriteFailedError surfaces and the UPDATE never runs", async () => {
+    const tableCalls: string[] = []
+    const db = makeDb({
+      tableCalls,
+      fromResults: {
+        invoices: { data: SAMPLE_INVOICE, error: null },
+        audit_logs: {
+          data: null,
+          error: { code: "23514", message: "violates audit_logs CHECK" },
+        },
+      },
+    })
+    const { createInvoiceService } = await freshInvoiceService()
+    await expect(
+      createInvoiceService(db).cancelInvoice("inv-1"),
+    ).rejects.toMatchObject({ code: "AUDIT_WRITE_FAILED" })
+    // SELECT happened, audit INSERT was attempted, UPDATE was NOT.
+    expect(tableCalls).toEqual(["invoices", "audit_logs"])
+  })
+
+  it("rethrows on DB error from the SELECT pre-fetch", async () => {
     const db = makeDb({
       fromResults: {
         invoices: {
           data: null,
-          error: { code: "P0001", message: "trigger refused cancel" },
+          error: { code: "P0001", message: "trigger refused read" },
         },
       },
     })

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@workspace/database/supabase.types"
 
 import { captureSupabaseRpcError } from "./shared/with-rpc"
+import { withAudit } from "./shared/with-audit"
 
 /**
  * Thrown when the `record_invoice_payment` RPC returned `error = null` but
@@ -311,17 +312,54 @@ export function createPaymentService(db: SupabaseClient) {
 
     async deletePayment(id: string): Promise<void> {
       if (isRelationMissing()) return
-      const { error } = await db
+
+      // Read the row first so the destructive audit-log entry carries
+      // a forensic before_state snapshot. If the row is already gone
+      // (already deleted, or a stale ID), short-circuit: nothing to
+      // audit, nothing to delete. Preserves the prior idempotent
+      // semantics for the no-op case.
+      const { data: row, error: readErr } = await db
         .from("invoice_payments")
-        .delete()
+        .select("*")
         .eq("id", id)
-      if (error) {
-        if (isMissingInvoicePaymentsRelation(error)) {
+        .maybeSingle()
+      if (readErr) {
+        if (isMissingInvoicePaymentsRelation(readErr)) {
           markRelationMissing()
           return
         }
-        throw error
+        throw readErr
       }
+      if (!row) return
+
+      // AUDIT-WRAPPED: every payment deletion produces exactly one
+      // audit_logs row before the destructive op runs. If the audit
+      // write fails, the delete never executes (fail-loud — no audit
+      // = no destruction). If the delete fails after the audit row is
+      // written, the audit row remains as a forensic "attempt"
+      // record. See packages/services/src/shared/with-audit.ts.
+      await withAudit(
+        db,
+        {
+          action: "payment_delete",
+          entityType: "payment",
+          entityId: id,
+          beforeState: row as Record<string, unknown>,
+        },
+        async () => {
+          const { error } = await db
+            .from("invoice_payments")
+            .delete()
+            .eq("id", id)
+          if (error) {
+            if (isMissingInvoicePaymentsRelation(error)) {
+              markRelationMissing()
+              return
+            }
+            throw error
+          }
+        },
+      )
     },
   }
 }

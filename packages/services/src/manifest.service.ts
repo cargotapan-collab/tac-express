@@ -3,6 +3,7 @@ import type { Manifest, ManifestSummary, ManifestFilters } from "@workspace/type
 import { ManifestStatus } from "@workspace/types"
 
 import { captureSupabaseRpcError, withRpc } from "./shared/with-rpc"
+import { withAudit } from "./shared/with-audit"
 
 export function createManifestService(db: SupabaseClient) {
   return {
@@ -122,12 +123,50 @@ export function createManifestService(db: SupabaseClient) {
     },
 
     async removeShipmentFromManifest(manifestId: string, awbNumber: string): Promise<void> {
-      const { error } = await db
+      // Read the join row first to capture the forensic before_state
+      // snapshot. The join row carries the manifest_id + awb_number +
+      // added_at + added_by — enough to reconstruct the association
+      // and identify the operator who added it. If the join row
+      // already doesn't exist (a stale request, double-click), short-
+      // circuit: nothing to audit, nothing to delete. Preserves the
+      // prior idempotent semantics for the no-op case.
+      const { data: row, error: readErr } = await db
         .from("manifest_shipments")
-        .delete()
+        .select("*")
         .eq("manifest_id", manifestId)
         .eq("awb_number", awbNumber)
-      if (error) throw error
+        .maybeSingle()
+      if (readErr) throw readErr
+      if (!row) return
+
+      // AUDIT-WRAPPED: every manifest-shipment removal produces
+      // exactly one audit_logs row before the destructive op runs.
+      // entityId is the join row's UUID; entityType is "manifest" (the
+      // parent record whose composition changed). The before_state
+      // payload includes both the join row and the awb_number/
+      // manifest_id pair as top-level fields for analyst readability.
+      // CHECK-constraint action value: manifest_shipment_remove
+      // (renamed from the placeholder 'manifest_revert' by migration
+      // 20260516000002 — see the migration header for the rationale).
+      await withAudit(
+        db,
+        {
+          action: "manifest_shipment_remove",
+          entityType: "manifest",
+          entityId: (row as { id: string }).id,
+          beforeState: row as Record<string, unknown>,
+          description: `Removed AWB ${awbNumber} from manifest ${manifestId}`,
+          metadata: { manifest_id: manifestId, awb_number: awbNumber },
+        },
+        async () => {
+          const { error } = await db
+            .from("manifest_shipments")
+            .delete()
+            .eq("manifest_id", manifestId)
+            .eq("awb_number", awbNumber)
+          if (error) throw error
+        },
+      )
     },
 
     async closeManifest(manifestId: string): Promise<void> {

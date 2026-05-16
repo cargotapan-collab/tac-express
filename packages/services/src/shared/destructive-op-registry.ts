@@ -96,12 +96,21 @@ export const DESTRUCTIVE_OP_REGISTRY: readonly DestructiveOpRegistryEntry[] = [
       "Transitions an invoice to CANCELLED status from DRAFT or ISSUED. Reverses billing intent; downstream payments and receivables require manual reconciliation.",
   },
   {
-    action: "manifest_revert",
+    // PR #134 reconciliation: this entry was 'manifest_revert' in PR
+    // #133, pointing at a method (revertManifest) that didn't exist in
+    // the codebase. PR #134's PHASE-0 reconciliation decided NOT to
+    // build that method — building destruction capability solely to
+    // give the audit system a hook is backwards. The real destructive
+    // op on manifest-shape state is removeShipmentFromManifest (hard-
+    // delete of a join row), which now carries the audit hook.
+    // Migration 20260516000002 renamed the CHECK constraint enum
+    // value to match.
+    action: "manifest_shipment_remove",
     entityType: "manifest",
     serviceFile: "manifest.service.ts",
-    methodName: "revertManifest",
+    methodName: "removeShipmentFromManifest",
     description:
-      "Reverts a manifest from a sealed status (CLOSED / DEPARTED) back to OPEN, freeing its shipments for re-routing. Method does not exist as of PR 1 — to be added in PR 2 alongside withAudit adoption.",
+      "Hard-deletes a row from manifest_shipments (the join table linking a manifest to one of its AWBs). Removes operational record of the shipment-manifest association; before_state forensic record carries the join row + the affected awb_number + manifest_id so the association can be reconstructed.",
   },
 ] as const
 

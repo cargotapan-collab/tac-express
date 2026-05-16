@@ -32,16 +32,17 @@ const ENTITIES = [
 ] as const
 
 // Action filter options. The destructive trio (payment_delete /
-// invoice_cancel / manifest_revert) is the canonical set added in the
-// audit-logs hardening (#102, migration 20260516000001). STATUS_CHANGE
-// and RESOLVED are the historical actions written by the existing
-// SECURITY DEFINER RPCs (update_shipment_status, resolve_exception).
-// Update audit.types.ts AuditAction in lock-step when adding more.
+// invoice_cancel / manifest_shipment_remove) is the canonical set
+// from the audit-logs hardening arc (#102 risk-rank #1; migrations
+// 20260516000001 + 20260516000002). STATUS_CHANGE and RESOLVED are
+// the historical actions written by the existing SECURITY DEFINER
+// RPCs (update_shipment_status, resolve_exception). Update
+// audit.types.ts AuditAction in lock-step when adding more.
 const ACTIONS = [
   "all",
   "payment_delete",
   "invoice_cancel",
-  "manifest_revert",
+  "manifest_shipment_remove",
   "STATUS_CHANGE",
   "RESOLVED",
 ] as const
@@ -240,7 +241,7 @@ function ActionBadge({ action }: { action: AuditLog["action"] }) {
   const variant: React.ComponentProps<typeof Badge>["variant"] =
     action === "payment_delete" ||
     action === "invoice_cancel" ||
-    action === "manifest_revert"
+    action === "manifest_shipment_remove"
       ? "destructive"
       : "secondary"
   return (
