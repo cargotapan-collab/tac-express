@@ -1,49 +1,48 @@
 # Next-Session Handoff — Start Here
 
-> **You are picking up TAC Express after the pre-Sprint-2 consolidation session.** Read this top-to-bottom before opening any other file. Designed to take 5 minutes and get you productive.
+> **You are picking up TAC Express after PR #133 (audit_logs infrastructure).** Read this top-to-bottom before opening any other file. Designed to take 5 minutes and get you productive.
 
-**Last commit on `main`:** `<post-PR-#132-merge>` — `test(services): shipment.service.ts unit-test floor + makeBuilderSpy extraction` (PR #132)
-**Date this doc was written:** 2026-05-16 (first substantive Sprint 2 session — PR #132)
-**Author of last session:** Claude Code (Opus 4.7) in PM-mode + Senior FSE + Big-Tech CTO + Designer
-
----
-
-## 0. REQUIRED PRE-READING (added by the consolidation session)
-
-Before writing ANY code in a session, load these three artifacts:
-
-1. **[`docs/patterns/coderabbit-catalog.md`](patterns/coderabbit-catalog.md)** — 9 entries × 4 categories. The accumulated test-pattern discipline from PRs #114/#117/#118/#120/#121/#123. Several are CodeRabbit long-term-memory learnings — writing the pattern correctly first time saves the round-trip.
-
-2. **[`docs/retros/2026-05-15-2026-05-16-two-day-arc.md`](retros/2026-05-15-2026-05-16-two-day-arc.md)** — chapter-level retro covering the 16-PR arc. § 1 (what survived), § 5 (cadence shift), § 8 (honest read) are the load-bearing sections.
-
-3. **[`docs/retros/2026-05-16-pre-sprint2-maximum-sweep.md`](retros/2026-05-16-pre-sprint2-maximum-sweep.md)** — session retro covering PRs #126/#127/#128. § 3 (bidirectional learnings: alternation-order grep + cast-comment = bug ticket), § 4 (cast-inventory drift), § 7 (honest read) are the load-bearing sections.
-
-Plus this file's § 1 (cadence pre-commit) below.
+**Last commit on `main`:** post-PR-#133 merge — `feat(audit): audit_logs destructive-op hardening — PR 1 infrastructure (#102)`
+**Date this doc was written:** 2026-05-16 (second substantive Sprint 2 session — PR #133)
+**Author of last session:** Claude Code (Opus 4.7) in PM-mode + Senior FSE + Big-Tech CTO + Designer + Security-architect
 
 ---
 
-## 1. CADENCE PRE-COMMIT (load-bearing — read FIRST)
+## 0. REQUIRED PRE-READING
 
-**Starting with the session after this one, the cadence shifts.**
+Before writing ANY code in a session, load these:
 
-The 2026-05-15 work pattern was multi-PR campaigns: 3-5 sequential PRs in one session, each 30-400 LoC, gated by per-PR owner-typed merge phrases. That cadence was right for the work-shape of those days — small enough that the per-PR overhead (branch + audit + commits + tests + retro + PR + CI + merge) was a non-trivial fraction of total time.
+1. **[`docs/patterns/coderabbit-catalog.md`](patterns/coderabbit-catalog.md)** — 9 entries × 4 categories. The accumulated test-pattern discipline. Several entries are CodeRabbit long-term-memory learnings — writing the pattern correctly first time saves the round-trip. Note: the prior handoff doc said "12 entries" — the actual count on disk is 9.
 
-**Sprint 2 is different.** The remaining service-test items are session-scale individually:
+2. **[`docs/retros/2026-05-16-audit-logs-pr1-infrastructure.md`](retros/2026-05-16-audit-logs-pr1-infrastructure.md)** — PR #133 retro. § 2 (PHASE-0 decision), § 3 (bailout trigger), § 4 (third cadence test), § 9 (honest read) are the load-bearing sections.
 
-| Sprint 2 item | Size | Session shape |
-|---|---|---|
-| `shipment.service.ts` test floor | ~9.2KB source, ~400-600 LoC tests | ONE PR per session |
-| `manifest.service.ts` test floor | ~7.3KB source, ~400-600 LoC tests | ONE PR per session |
-| `whatsapp.service.ts` test floor | ~18KB source, external integration, ~600-900 LoC tests | ONE PR per session, possibly TWO |
-| E2E flows (5 named in #102) | Each touches multiple route handlers + dashboard fixtures | ONE PR per flow, possibly stretched |
+3. **[`docs/decisions/2026-05-16-audit-logs-mechanism.md`](decisions/2026-05-16-audit-logs-mechanism.md)** — the audit-logs PHASE-0 decision doc. Required reading for the PR 2 follow-up (issue #134) and for any future audit-pattern work.
 
-**Pre-commit:** starting with the NEXT session, the pattern shifts:
-- **ONE PR per session, NOT 3-5.**
-- The per-PR retro IS the session retro — no separate campaign-level retro needed.
-- Mandatory context load expands to include the cumulative discipline observations from this two-day arc (see § 7 below).
-- The handoff doc each session produces should NAME the cadence explicitly if the agent finds itself wanting to spawn additional branches.
+4. **[`docs/retros/2026-05-16-shipment-service-tests.md`](retros/2026-05-16-shipment-service-tests.md)** — PR #132 retro (the prior session). Still load-bearing for the test-floor pattern that the Sprint 2 service tests follow.
 
-If the next session attempts a multi-PR campaign on Sprint 2 work, that's the signal this pre-commit didn't transfer. Failure mode: the agent reads "campaign retro" in prior docs and carries the multi-PR shape forward by inertia. **DO NOT.** A session that ships one disciplined ~500-LoC test floor is fully productive; spawning a second PR on top of that within the same session is the smell.
+5. **[`docs/retros/2026-05-15-2026-05-16-two-day-arc.md`](retros/2026-05-15-2026-05-16-two-day-arc.md)** — chapter-level retro covering the 16-PR arc that brought us here. § 5 (cadence shift), § 7.7 (cadence-rule status), § 8 (honest read) are still load-bearing.
+
+Plus this file's § 1 (cadence pre-commit, now four PRs old).
+
+---
+
+## 1. CADENCE PRE-COMMIT (load-bearing — now FOUR PRs old)
+
+**Status: HOLDS.** The cadence rule (one PR per Sprint 2 session, no bundling) has now survived four real tests:
+
+1. **First test (post-#129):** offered to bundle `regex-alternation gate` + `branded ServiceLevel` into the same session as the maximum-sweep analysis → DECLINED. Filed as #130 + #131.
+2. **Second test (PR #132):** offered to bundle three "while I'm here" expansions into the shipment.service test floor → DECLINED. All three deferred to their own sessions.
+3. **Third test (PR #132's session boundary):** the cadence rule survived the shipment-service-test floor's natural exit.
+4. **Fourth test (PR #133):** offered to bundle adoption of `deletePayment` + `cancelInvoice` in this PR alongside the infrastructure → DECLINED. PR 2's full adoption (incl. designing `revertManifest`) deferred to issue #134.
+
+The discipline survives because:
+- The handoff doc § 1 reminder fires at every session start
+- The feedback memory (`feedback_cadence_discipline_first_test`) fires inside the agent's reasoning loop
+- Each PR body's "while we're here" disclosure is empty by construction (the deferred items live in tracked issues, not in the PR)
+
+If a future session attempts to bundle, the failure mode is highly visible (PR body apologizing for "we'll fix [X] in a follow-up"). Audit visible PR bodies for this shape.
+
+**New observation worth codifying (from PR #133):** the bailout clause works best when the task prompt names the seam. When the prompt names the seam, the bailout call is mechanical: "is the work bigger than the cleanly-separable-along-that-seam scope?" → yes → split there. When the seam isn't named, the agent has to invent it AND defend it AND apply the cadence rule — three judgment calls instead of one. Recommend future task prompts continue naming bailout seams explicitly.
 
 ---
 
@@ -53,9 +52,9 @@ If the next session attempts a multi-PR campaign on Sprint 2 work, that's the si
 
 2. **Do NOT bump dependencies in feature PRs.** The `npm-audit` gate has been load-bearing since #108.
 
-3. **Do NOT add Sentry tag keys without updating all four artifacts** (the cross-package tag-emission contract — see § 3.1).
+3. **Do NOT add Sentry tag keys without updating all four artifacts** (the cross-package tag-emission contract — see § 5.2).
 
-4. **Do NOT run `scripts/sentry/create-alert-rules.mjs` from an agent session.** Owner runs it locally with the auth token (still pending — #94).
+4. **Do NOT run `scripts/sentry/create-alert-rules.mjs` from an agent session.** Owner runs it locally with the auth token (#94, still pending).
 
 5. **Do NOT regress to `console.*` in the three pino-migrated API routes.** Sentinel at `apps/dashboard/__tests__/api-routes-no-console.test.ts`.
 
@@ -66,20 +65,11 @@ If the next session attempts a multi-PR campaign on Sprint 2 work, that's the si
 ## 3. First 5 minutes — mandatory ramp
 
 ```bash
-# 1. Confirm you have the latest main
 git checkout main && git pull origin main
-
-# 2. Confirm quality gates pass on a clean main
 pnpm typecheck && pnpm lint && pnpm test
-# Expected: all green; 465 tests passing (post-#124 ci-watch fix)
-
-# 3. Confirm the load-bearing audit gate is clean
+# Expected: all green; 540 tests passing (post-#133)
 pnpm audit --prod --audit-level moderate
-# Expected: "No known vulnerabilities found"
-
-# 4. Confirm the alert-rule lint passes (6 rules)
 node scripts/sentry/lint-alert-rules.mjs
-# Expected: "✓ canonical-rules.mjs is valid (6 rules)."
 ```
 
 Then in your agent harness:
@@ -97,43 +87,36 @@ Then in your agent harness:
 
 ### Open PRs (0)
 
-Clean slate.
+Clean slate once #133 merges with this handoff write.
 
 ### Open Issues — short list
 
 | # | Title | Priority | Notes |
 |---|---|---|---|
-| [#94](https://github.com/cargotapan-collab/tac-express/issues/94) | Verify + wire Sentry alert-rule notification action | P2 | **5-min owner action.** Runbook § 5.3 has the 7-step procedure. Activates the full observability arc. |
-| [#25](https://github.com/cargotapan-collab/tac-express/issues/25) | Audit + migrate dialogs/forms to react-hook-form + zod | — | Sprint-scale |
-| [#102](https://github.com/cargotapan-collab/tac-express/issues/102) | Production-readiness backlog tracking | meta | ~13 sub-items remain (3 ticked this session) |
+| [#94](https://github.com/cargotapan-collab/tac-express/issues/94) | Verify + wire Sentry alert-rule notification action | P2 | 5-min owner action. Runbook § 5.3 has the 7-step procedure. |
+| [#102](https://github.com/cargotapan-collab/tac-express/issues/102) | Production-readiness backlog tracking | meta | Audit_logs infrastructure ticked by #133. Adoption is deferred to #134. |
+| [#130](https://github.com/cargotapan-collab/tac-express/issues/130) | Regex-alternation LAW gate | — | Own session. Do NOT bundle with #131. |
+| [#131](https://github.com/cargotapan-collab/tac-express/issues/131) | Branded `ServiceLevel` type | — | Own session. Updates PR #132's serviceLevel test assertions when it lands. Do NOT bundle with #130. |
+| [#134](https://github.com/cargotapan-collab/tac-express/issues/134) | audit_logs PR 2 — adopt withAudit + design revertManifest | P1 | NEW. Successor to #133. The infrastructure waits for its adoption. Do NOT bundle. |
 
-**Resolved during recent sessions:** #22, #110, #112, #115, #122, plus #102 sub-items: invoice.service test floor (#123), orphan UI archive (#127), scratchpad doc archive (#127), as-unknown-as casts (#128), **shipment.service test floor (#132)**.
-
-**New tracked issues filed post-#129:** [#130](https://github.com/cargotapan-collab/tac-express/issues/130) (regex-alternation LAW gate), [#131](https://github.com/cargotapan-collab/tac-express/issues/131) (branded `ServiceLevel` type). Reciprocal cross-links + explicit "do NOT bundle" markers. Each is its own focused session.
-
-### #102 checkboxes worth ticking (owner action)
-
-PR #132 ticked one Sprint 2 sub-item:
-- **Unit tests for `shipment.service.ts`** → DONE in PR #132. 50 cases; full RPC + chunked-fallback decision tree; extracts `makeBuilderSpy` helper at the third consumer.
-
-(Plus PR #127's three earlier ticks + PR #128's cast cleanups remain — see prior handoff versions for details.)
-
-Two STALE #102 lines remain explicitly renounced (not acted on) with written justification:
-- "7 dashboard cards" — cards are LIVE behind the `tac-design` v7 flag. Documented in `packages/ui/src/components/composed/_archive/2026-05-16/README.md`.
-- "Archive `NEXT-SESSION-HANDOFF.md`" — promoted to load-bearing cross-session protocol artifact. Documented in `docs/_archive/2026-05-14/README.md`.
-
-Three "while I'm here" expansions from PR #132 declined per cadence and filed:
-- Regex-alternation LAW gate → #130 (own session)
-- Branded `ServiceLevel` type → #131 (own session)
-- Source-file `as unknown as` casts at shipment.service.ts:203/260/276 → future cast-cleanup session
+**Resolved during recent sessions:** #22, #110, #112, #115, #122; #102 sub-items via #123, #127, #128, **#132 (shipment.service test floor), #133 (audit_logs infrastructure)**.
 
 ---
 
 ## 5. Critical context (the things that will trip you up)
 
-### 5.1. Cross-package tag-emission contract — three-level enforcement
+### 5.1 audit_logs schema + RLS state (post-#133)
 
-(Same as the post-#120 handoff — unchanged.)
+- Table: `audit_logs` with columns `id, entity_type, action, description, entity_id, user_id, metadata, before_state, created_at`.
+- `before_state` JSONB added by migration `20260516000001`. NULL for non-destructive actions.
+- CHECK constraint `audit_logs_destructive_action_check`: rows with `action IN (payment_delete, invoice_cancel, manifest_revert)` MUST have non-null `entity_id` AND `before_state`. Historical actions (`STATUS_CHANGE`, `RESOLVED` from existing RPCs) are unaffected.
+- RLS state: INSERT allowed for any authenticated user; SELECT MANAGER+; **NO UPDATE policy**, **NO DELETE policy** (default-deny → cannot mutate). The migration's own do$$ block re-asserts these properties at every apply.
+- Wrapper: `packages/services/src/shared/with-audit.ts` — audit-first / fail-loud. Adopt this for any new destructive op.
+- Registry: `packages/services/src/shared/destructive-op-registry.ts` — three pinned entries with compile-time `Exclude` exhaustiveness.
+- Sentinels: `destructive-op-registry-coverage.test.ts` (registry inventory) + `audit-logs-no-update-delete.test.ts` (no UPDATE/DELETE against audit_logs anywhere under `packages/`, `apps/`, `supabase/functions/`).
+- Application-layer bug-fix side effect: `audit.service.ts.logEvent` no longer references the four phantom columns (`old_values`, `new_values`, `ip_address`, `user_agent`). `audit-client.tsx` was reading the same phantom columns; now reads `beforeState`.
+
+### 5.2 Cross-package tag-emission contract — three-level enforcement (unchanged)
 
 | Level | Artifact |
 |---|---|
@@ -141,140 +124,108 @@ Three "while I'm here" expansions from PR #132 declined per cadence and filed:
 | Vitest sentinel | `apps/dashboard/__tests__/canonical-rules-tag-contract.test.ts` |
 | Runbook | `docs/runbooks/sentry-alert-rules.md § 4` |
 
-### 5.2. Shared mock-db helper now extracted
+PR #133 added `AUDIT_WRITE_TAG_KEYS` (audit.write_failed / audit.action / audit.entity_type) — these are emitted on audit-write failure. If a future PR adds a Sentry alert rule keyed off these tags, the canonical-rules-tag-contract sentinel must be extended to cover them.
 
-PR #118's inline `makeDb` was extracted to `packages/services/src/__tests__/helpers/make-db.ts` as commit 1 of this PR. **Use this helper for all new service tests.** The older `helpers/mock-db.ts` exposes a different (heavier) shape used by hub.service.test.ts and others — leave it alone.
+### 5.3 Shared mock-db helper extensions (new in #133)
 
-Distinction:
-- `makeDb` (new canonical shape) — focused `{ rpcResult, fromResults }` config; light surface; let withRpc + sentry-tagger run as real code. Use for new service tests.
-- `mockDb` (older) — DeepPartial<SupabaseClient> overrides with full client API. Use only if storage/auth surfaces are needed.
+`packages/services/src/__tests__/helpers/make-db.ts` and `helpers/make-builder-spy.ts` both now include `range` in their chain methods. Added for audit.service.ts's `listAuditLogs` pagination. Same pattern as the prior `makeBuilderSpy` extraction in PR #132 (extract / extend on second use, not first).
 
-### 5.3. Six CI gates load-bearing on main
+### 5.4 Six CI gates still load-bearing on main
 
-Unchanged: `registry-check`, `governance`, `migrations-fresh-apply`, `npm-audit`, `alert-rule-lint`, `bundle-size`.
+Unchanged: `registry-check`, `governance`, `migrations-fresh-apply`, `npm-audit`, `alert-rule-lint`, `bundle-size`. PR #133's migration was verified by `migrations-fresh-apply` in CI (the agent cannot apply to live DB — auto-mode classifier blocks that, correctly).
 
-### 5.4. invoice.service.ts has no Sentry instrumentation
+### 5.5 CodeRabbit pattern catalog (unchanged — 9 entries)
 
-Documented in the test file docstring as an explicit absence. If a future refactor adds `captureSupabaseRpcError` calls (e.g. wrapping a new RPC), the negative-assertion sentinel at the bottom of `invoice.service.test.ts` will fail, forcing the developer to update `EMITTED_TAG_KEYS` + the cross-package contract sentinel.
-
-### 5.5. CodeRabbit pattern catalog (carry-forward across all future PRs)
-
-Three patterns this codebase has now learned to preempt:
-
-| Pattern | Source PR | Rule |
-|---|---|---|
-| Multi-step `.from()` chains | PR #118 | Use `toHaveBeenNthCalledWith(1, ...), (2, ...)` + `toHaveBeenCalledTimes(N)`. Never bare `toHaveBeenCalledWith` on multi-step paths. |
-| Enum exhaustiveness (string-unions) | PR #118 | `satisfies readonly EnumType[]` + `Exclude<EnumType, (typeof list)[number]>`. Not `Object.values` for assertion matrices. |
-| Marker line numbers | PR #120 | NEVER hardcode line numbers in test assertions or marker comments. Use stable symbol references. |
-| File-level `toContain` | PR #120 | Too coarse. Use anchor-scoped ±N-char windows. |
-| `existsSync` for file invariants | PR #121 | Add `statSync(path).isFile()` — `existsSync` returns true for directories. |
-| Regex narrow to current data | PR #121 | Generalize. Don't hardcode `../../`-prefix when matching relative links. |
-| **Alternation-order grep miss** | **PR #128** | **When extracting a regex pattern, grep BOTH alternation orders OR each alternative independently. `/express\|priority/` and `/priority\|express/` are semantically identical but grep won't find each other.** |
-| **Cast-comment = bug ticket** | **PR #128** | **A cast with a "we have to do this because X is impossible to fix" comment IS a candidate for re-evaluation. The comment IS the bug ticket; nobody re-reads it because it reads as a permanent fact. proxy.ts's "duplicate-Next install" comment was fixable with 2 character edits in 2 package.json files.** |
-| **Dead defensive cast = real bug** | **PR #128** | **If a cast asserts a field shape, grep the data layer for the field. If the data layer doesn't supply it, the cast is hiding a bug, not defending against one. track/[awb]/page.tsx Mode column was ALWAYS rendering "Surface" because serviceLevel was never projected from the public-tracking SELECT.** |
+All 9 patterns in `docs/patterns/coderabbit-catalog.md`. PR #133 exercised patterns 1, 2, 5, 6, 7, 8, 9 proactively. The prior handoff said "12 entries" — that was wrong; the actual count is 9.
 
 ---
 
 ## 6. Your first task — recommended
 
-Per the cadence pre-commit (§ 1), pick ONE of these — not multiple in the same session:
+Per the cadence pre-commit (§ 1), pick ONE — not multiple in the same session. **Process note (carry-forward from PR #132's review):** momentum-vs-risk must be a named, auditable decision every session, never a silent default. If you pick something OTHER than risk-rank #1, name it in the PR body's "Handoff override note" section.
 
-### Option A — `manifest.service.ts` test floor (~one focused session) RECOMMENDED
+### Option A — Issue #134: audit_logs PR 2 (audit adoption) RECOMMENDED (risk-rank #1)
 
-The natural successor to PR #132. ~7.3KB source — slightly smaller than shipment.service. Mirror PR #132's structure verbatim: PHASE-A audit matrix first, then test file using the same `makeDb` + `makeBuilderSpy` helpers (both already extracted; reuse, don't fork), same `freshManifestService()` factory shape, same 12-entry CodeRabbit preempt sweep.
+Natural successor to PR #133. Wire `withAudit` in `deletePayment` + `cancelInvoice` + design + adopt `revertManifest`. Flip the registry-coverage sentinel from "wrapper contract" to "per-method adoption." Issue #134 has the full scope, sub-decisions for `revertManifest`, and acceptance criteria.
 
-Estimate: ~500-700 LoC test code, ~30-40 cases, one disciplined session.
+Estimate: ~600-900 LoC. One focused session.
 
-**Concrete starter:** manifest.service exercises `manifests` + `manifest_shipments` (join table) + status-transition logic via `ManifestStatus` enum (7 values). The dual-sentinel enum pattern from `ShipmentStatus` (PR #132) and `InvoiceStatus` (PR #123) applies verbatim. Check for any RPC calls — if present, the `withRpc` + `captureSupabaseRpcError` pattern from PR #132's `generateAwbNumber` test applies directly.
+**Risk-rank rationale:** the infrastructure shipped in #133 is inert until adoption lands — every day deferred is another day of unrecoverable destructive evidence. Highest-risk-remaining item.
 
-### Option B — Owner runs the #94 procedure (5 min, owner-only)
+### Option B — `manifest.service.ts` test floor (~one focused session) (risk-rank #6)
 
-Not an agent task. Flag explicitly so the owner can knock it out. After this, #94 closes and the observability arc is fully live.
+The momentum default from PR #132's handoff. ~7.3KB source. Mirror PR #132's structure. **Note:** if #134 is taken first (as recommended), this session will need to absorb the new `revertManifest` method's test surface — sequence #134 BEFORE this option.
+
+Estimate: ~500-700 LoC. One focused session.
 
 ### Option C — #130 (regex-alternation LAW gate) — small standalone tooling PR (~30 min)
 
-`scripts/check-regex-alternation.mjs` enforcing canonical-sorted regex alternation. ~30-50 LoC + architecture-gates.yml wiring. Forward infrastructure investment, NOT cleanup — but appropriately session-sized. If Option A doesn't fit the time window, this is a clean alternative. **Do NOT bundle with #131 — sibling-issue marker is in #130's body.**
+Forward infrastructure investment. **Do NOT bundle with #131.**
 
 ### Option D — #131 (branded `ServiceLevel` type) — structural type infrastructure (~45 min)
 
-The structural fix the PR #128 cast cleanup pointed at. Will require updating PR #132's `serviceLevel` test assertions as part of the work — flagged in PR #132's Designer note. **Do NOT bundle with #130.** Each is its own focused session.
+Will update PR #132's `serviceLevel` test assertions. **Do NOT bundle with #130.**
+
+### Option E — Owner runs the #94 procedure (5 min, owner-only)
+
+Not an agent task.
 
 ---
 
 ## 7. Cumulative discipline observations (carry-forward — required reading for Sprint 2)
 
-Distilled from the two-day arc (PRs #105 → this PR). These are the patterns that survived the bot-review loop, the bailout clause activations, and the per-PR retros. Next session's mandatory context load includes this section.
+Distilled from PRs #105 → #133. Next session's mandatory context load includes this section.
 
 ### 7.1. PHASE-A audit document IS the load-bearing artifact
 
-When a PR sweeps a pattern across many sites (PR #114) or covers a complex method tree (PR #118 + this PR), the method × branch × error matrix written BEFORE any test code is what keeps the work coherent. The matrix can live in the PR body or as a committed scratch doc. Either way: produce it first, commit it before the test code, treat it as the binding contract.
+Confirmed again in PR #133: the PHASE-0 decision doc + the PHASE-A matrix in the PR body together drove every subsequent code decision. The decision doc routes future PRs (issue #134's body cross-references it).
 
-### 7.2. Forcing-function sentinel pattern
+### 7.2. Forcing-function sentinel pattern (now 7 instances)
 
-Across PR #114 (BLOCK adoption), #117 (pino migration), #120 (silent-by-design), #121 (audit-doc references): every cross-cutting contract this codebase ships now has a sentinel test that fails loudly when the contract drifts. The pattern is:
-- A hardcoded list (or auto-extracted with a meta-sentinel asserting ≥1 element)
-- An assertion that each list item maps to source-of-truth (file/symbol/marker present)
-- A meta-sentinel pinning the list size — forcing conscious intent on additions/removals
+PR #133 added two more sentinels: `destructive-op-registry-coverage.test.ts` and `audit-logs-no-update-delete.test.ts`. Each ships with a hardcoded list / size-pin meta-sentinel that forces conscious intent on additions. This is the standard pattern.
 
-This is now standard. Every new contract should ship with its sentinel.
+### 7.3. Bailout fires at per-line, per-PR, AND per-mechanism granularity
 
-### 7.3. Bailout fires at per-line granularity, not just per-PR
+PR #133 fired the bailout at per-PR granularity (split infrastructure from adoption). The decision doc explicitly notes that individual destructive ops can also upgrade from Option C to Option A per-op — that's a per-mechanism bailout reserved for future PRs where atomicity needs are stricter.
 
-`SENTRY-SILENT-BY-DESIGN` (#115) is the bailout at a per-call-site level. Leaving an explicit marker + decision tree inline + follow-up issue is the right tradeoff when the surrounding sweep is otherwise mechanical and one site needs design judgment.
+### 7.4. CodeRabbit findings are signal, not friction (unchanged)
 
-### 7.4. CodeRabbit findings are signal, not friction
+### 7.5. Merge-phrase classifier is the system (unchanged)
 
-Five PRs in this arc shipped CodeRabbit-improved iterations (#118, #120, #121, plus two on prior PRs). Every Major finding was legitimate. The discipline: read findings carefully, fix the underlying issue, reply on the thread, push. Don't dismiss as noise.
+PR #133 also relied on the auto-mode classifier to BLOCK a direct live-DB migration apply (verified the classifier protects shared infra; the agent correctly fell back to the `migrations-fresh-apply` CI gate as the verification path).
 
-### 7.5. Merge-phrase classifier is the system
+### 7.6. Shared helpers extract on second use, not first (unchanged)
 
-Every merge across this arc required the owner to type `merge PR <N>` exactly. The friction is the feature.
+PR #133's `range` addition to `makeDb` + `makeBuilderSpy` follows the same pattern: extend on the second consumer's need.
 
-### 7.6. Shared helpers extract on second use, not first
+### 7.7. Cadence rule survives repeated tests (now FOUR PRs old — § 1)
 
-The `makeDb` was inline in PR #118. Extracted in PR #123 (commit 1) when needed for a second test file. The `makeBuilderSpy` was inline in PR #118 + repeated ~16 sites in PR #123 (extraction declined per the rule). Extracted in PR #132 (commit 1) at the THIRD consumer. Both extractions landed with zero behavior change.
+### 7.8. NEW: Schema-vs-service drift can be silent for unknown durations
 
-Pattern: extract when the next consumer materializes. NOT before (premature; constrains the API). NOT later (CodeRabbit-noise; bot will flag duplication).
+PR #133 surfaced an `audit.service.ts.logEvent` impl that inserted four columns that NEVER existed in the schema. Compile passed (`db.from("audit_logs").insert(...)` is untyped at the column level). Runtime would have thrown — but no caller existed, so the bug was orphaned. The lesson: **broken-but-orphaned code is a latent bug, not benign dead code.** A future schema audit should grep service files for column references and cross-check against the generated `database.types.ts`. Not in scope this PR; flag for whoever owns Sprint 3 hardening.
 
-### 7.7. Cadence rule survives repeated tests (now three PRs old)
+### 7.9. NEW: Task prompts naming the bailout seam are a force multiplier
 
-Codified post-#129 in [`feedback_cadence_discipline_first_test.md`](memory:feedback_cadence_discipline_first_test). The rule "one PR per Sprint 2 session, don't bundle plausible follow-ups" has now held across three real tests:
-
-1. **First test (post-#129):** offer to bundle `regex-alternation gate` + `branded ServiceLevel` into the same session as the maximum-sweep retro analysis → DECLINED. Filed as #130 + #131 with reciprocal cross-links.
-2. **Second test (PR #132):** offer to bundle three "while I'm here" expansions (#130, #131, source-file cast cleanups) into the shipment.service test floor → DECLINED. All three deferred to their own sessions.
-3. **Next test:** whatever surfaces during the manifest.service test floor.
-
-The agent-side internalization is working as designed. The discipline survives because:
-- The handoff doc § 1 reminder fires at every session start
-- The feedback memory fires inside the agent's reasoning loop
-- The PR body's "while I'm here" disclosure makes the deferral visible to reviewers
-
-If a future session attempts to bundle, the failure mode will be highly visible (test file ballooning beyond the matrix, PR body apologizing for "we'll fix [X] in a follow-up"). Audit visible PR bodies for this shape.
+PR #133's prompt named the seam ("PR 1: infrastructure; PR 2: adoption"). The bailout call was mechanical because the seam was prescribed. Recommend the pattern for future complex tasks.
 
 ---
 
 ## 8. Common commands
 
 ```bash
-# Quality gates
 pnpm typecheck && pnpm lint && pnpm test && pnpm audit --prod --audit-level moderate
-
-# Alert-rule lint
 node scripts/sentry/lint-alert-rules.mjs
-
-# Cross-package tag-contract sentinel
 pnpm vitest run apps/dashboard/__tests__/canonical-rules-tag-contract.test.ts
-
-# Service test floors (all passing)
-pnpm vitest run packages/services/src/__tests__/payment.service.test.ts    # 29 cases
-pnpm vitest run packages/services/src/__tests__/invoice.service.test.ts    # 40 cases
-pnpm vitest run packages/services/src/__tests__/silent-by-design.test.ts   # 11 cases
-
-# Audit-doc-references sentinel
-pnpm vitest run apps/dashboard/__tests__/audit-doc-references.test.ts      # 41 cases
-
-# Owner-runnable Sentry provisioning (NEVER in agent transcript)
-SENTRY_AUTH_TOKEN=<token> SENTRY_ALERT_NOTIFICATION_ACTION='<json>' node scripts/sentry/create-alert-rules.mjs
+pnpm vitest run packages/services/src/__tests__/payment.service.test.ts
+pnpm vitest run packages/services/src/__tests__/invoice.service.test.ts
+pnpm vitest run packages/services/src/__tests__/shipment.service.test.ts
+pnpm vitest run packages/services/src/__tests__/audit.service.test.ts      # 14 cases (rewrite in #133)
+pnpm vitest run packages/services/src/__tests__/with-audit.test.ts          # 9 cases (new in #133)
+pnpm vitest run packages/services/src/__tests__/destructive-op-registry-coverage.test.ts  # new in #133
+pnpm vitest run packages/services/src/__tests__/audit-logs-no-update-delete.test.ts        # new in #133
+pnpm vitest run packages/services/src/__tests__/silent-by-design.test.ts
+pnpm vitest run apps/dashboard/__tests__/audit-doc-references.test.ts
+node scripts/ci-watch-pr.mjs <pr-number>
 ```
 
 ---
@@ -284,29 +235,39 @@ SENTRY_AUTH_TOKEN=<token> SENTRY_ALERT_NOTIFICATION_ACTION='<json>' node scripts
 ```
 # Planning + retros
 docs/SESSION-RETRO-2026-05-15.md                       # May-15 CI-hardening retro
-docs/retros/2026-05-15-pm-sentry-track.md              # PR #111
-docs/retros/2026-05-15-pm-instrumentation-track.md     # PR #113
-docs/retros/2026-05-15-pm-pr112-adoption.md            # PR #114
-docs/retros/2026-05-15-pm-campaign-track.md            # 5-PR campaign retro
-docs/retros/2026-05-16-invoice-service-tests.md        # PR #123 retro
-docs/retros/2026-05-16-pre-sprint2-maximum-sweep.md    # PRs #126/#127/#128 retro
-docs/retros/2026-05-16-shipment-service-tests.md       # PR #132 retro (← latest)
+docs/retros/2026-05-16-invoice-service-tests.md        # PR #123
+docs/retros/2026-05-16-pre-sprint2-maximum-sweep.md    # PRs #126/#127/#128
+docs/retros/2026-05-16-shipment-service-tests.md       # PR #132
+docs/retros/2026-05-16-audit-logs-pr1-infrastructure.md # PR #133 (← latest)
+docs/decisions/2026-05-16-audit-logs-mechanism.md      # PR #133 PHASE-0 decision (← NEW)
 docs/NEXT-SESSION-HANDOFF.md                           # ← this file
 docs/runbooks/sentry-alert-rules.md                    # Sentry alert-rule playbook
 docs/audits/2026-05-15-rbac-denial-audit.md            # PHASE-A audit reference
 
-# Service test floors (the pattern)
-packages/services/src/__tests__/helpers/make-db.ts             # CANONICAL shared mock builder (extracted PR #123)
-packages/services/src/__tests__/helpers/make-builder-spy.ts    # CANONICAL recording spy (extracted PR #132)
-packages/services/src/__tests__/payment.service.test.ts        # template (29 cases, PR #118)
-packages/services/src/__tests__/invoice.service.test.ts        # second consumer (40 cases, PR #123)
-packages/services/src/__tests__/shipment.service.test.ts       # third consumer (50 cases, PR #132)
+# audit_logs infrastructure (NEW in #133)
+supabase/migrations/20260516000001_audit_logs_destructive_op_hardening.sql
+packages/services/src/shared/with-audit.ts                   # The wrapper
+packages/services/src/shared/destructive-op-registry.ts      # The pinned registry
+packages/services/src/__tests__/with-audit.test.ts           # Wrapper test floor
+packages/services/src/__tests__/destructive-op-registry-coverage.test.ts  # Registry sentinel
+packages/services/src/__tests__/audit-logs-no-update-delete.test.ts        # Tamper-evidence sentinel
+packages/services/src/audit.service.ts                       # Fixed (was broken)
+packages/types/src/audit.types.ts                            # AuditAction enum + DESTRUCTIVE_AUDIT_ACTIONS
 
-# Sentry observability — packages
+# Service test floors (the pattern)
+packages/services/src/__tests__/helpers/make-db.ts             # CANONICAL shared mock builder (+ range in #133)
+packages/services/src/__tests__/helpers/make-builder-spy.ts    # CANONICAL recording spy (+ range in #133)
+packages/services/src/__tests__/payment.service.test.ts        # template (29 cases, PR #118)
+packages/services/src/__tests__/invoice.service.test.ts        # 40 cases, PR #123
+packages/services/src/__tests__/shipment.service.test.ts       # 50 cases, PR #132
+packages/services/src/__tests__/audit.service.test.ts          # 14 cases, PR #133
+
+# Sentry observability
 packages/auth/src/sentry-tagger.ts
 packages/auth/src/rbac-instrumentation.ts
 packages/services/src/shared/sentry-tagger.ts
 packages/services/src/shared/with-rpc.ts
+packages/services/src/shared/with-audit.ts                # NEW in #133
 
 # Sentry observability — apps + scripts
 apps/dashboard/sentry-wire.ts
@@ -330,14 +291,16 @@ DESIGN_SYSTEM.md
 
 ## 10. The honest read
 
-Across the two-day arc + pre-Sprint-2 sweep + first Sprint 2 PR, the codebase has shipped 17 PRs (#105 → #132), grown tests from 252 → 515 (+263), added 5 canonical Sentry alert rules + 6 load-bearing CI gates + 5 sentinel test files + 2 canonical test helpers (`makeDb`, `makeBuilderSpy`) following the same forcing-function discipline.
+PR #133 (audit_logs infrastructure) is the 17th PR since the May 15 baseline. Tests are now at 540 (252 → 540 across the arc; +25 this PR). Five sentinel tests + 2 canonical test helpers + 1 wrapper + 1 registry + 1 migration + 1 hardening decision doc. The cadence rule held a fourth time.
 
-PR #132 closes the SECOND-largest service-test floor. The remaining Sprint 2 items (`manifest.service.ts` smaller; `whatsapp.service.ts` larger; 5 E2E flows session-sized each) are each a session by themselves. The cadence pre-commit in § 1 has now survived three real tests (see § 7.7).
+The PR #133 work was genuinely larger than budgeted (the "design + migration + service hook + tests in one PR" frame in the task prompt didn't match reality — the table existed, the service was broken, and one destructive op had no method). The bailout fired at the prescribed seam (infrastructure / adoption); PR 2 is issue #134.
 
-**Recommended one-line summary for the next session's prompt:** "Mirror PR #132's pattern verbatim for manifest.service.ts. ONE PR. Take the full session. Decline any 'while I'm here' expansion — file an issue instead."
+The remaining Sprint 2 items (audit_logs adoption via #134; `manifest.service.ts` and `whatsapp.service.ts` test floors; 5 E2E flows) are each a session by themselves.
+
+**Recommended one-line summary for the next session's prompt:** "Pick up audit_logs PR 2 from issue #134. ONE PR. Take the full session. Decline any 'while we're here' expansion — file an issue instead."
 
 ---
 
-**Load the skills. Re-read § 1 (cadence pre-commit) and § 7.7 (cadence-rule status). Pick a task from § 6. Ship one clean PR.**
+**Load the skills. Re-read § 1 (cadence pre-commit, now four PRs old). Pick a task from § 6. Ship one clean PR.**
 
 When you're done, update or replace this file with a fresh handoff.
