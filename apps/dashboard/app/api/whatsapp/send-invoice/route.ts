@@ -13,9 +13,9 @@ import {
   createAdminServerService,
   createCustomerServerService,
   createInvoiceServerService,
+  createTrackedWhatsAppServerService,
 } from "@workspace/services/server"
 import {
-  createWhatsAppServiceFromEnv,
   normalizePhone,
   buildHeaderMediaComponent,
   type WhatsAppTemplateComponent,
@@ -395,10 +395,16 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  /* ─── 4. Build the WhatsApp service from env ─── */
+  /* ─── 4. Build the tracked WhatsApp service from env ───
+   *
+   * Tracked = each sendMessage/sendTemplate call writes a row into
+   * public.whatsapp_sends (delivery audit) per the PHASE-0 contract in
+   * docs/decisions/2026-05-17-whatsapp-sends-mechanism.md. The wrapper
+   * is non-blocking on tracker failure (a tracker outage MUST NOT prevent
+   * the send) — see decision § E. */
   let svc
   try {
-    svc = createWhatsAppServiceFromEnv()
+    svc = createTrackedWhatsAppServerService(cookieStore)
   } catch (err) {
     return NextResponse.json(
       {
@@ -475,6 +481,10 @@ export async function POST(req: NextRequest) {
     "sending invoice via WhatsApp",
   )
 
+  // invoiceId + userId are forwarded to the tracked wrapper so the
+  // resulting whatsapp_sends row links back to the invoice + operator.
+  // The wrapper's tracker INSERT is non-blocking on failure (decision § E)
+  // so this never gates the underlying send.
   const result =
     parsed.mode === "template"
       ? await svc.sendTemplate({
@@ -488,12 +498,16 @@ export async function POST(req: NextRequest) {
             mediaKind: resolvedMediaKind,
             invoice,
           }),
+          invoiceId: parsed.invoiceId,
+          userId: user.id,
         })
       : await svc.sendMessage({
           phone,
           message: buildInvoiceMessage(invoice),
           header: `TAC Express · ${invoice.invoiceNumber}`,
           footer: "Reply to this message for queries.",
+          invoiceId: parsed.invoiceId,
+          userId: user.id,
         })
 
   if (!result.ok) {
