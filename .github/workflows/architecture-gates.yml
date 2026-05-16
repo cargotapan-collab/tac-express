@@ -44,6 +44,13 @@ on:
       - "pnpm-workspace.yaml"
       - ".github/dependabot.yml"
       - ".github/workflows/architecture-gates.yml"
+      # Authoritative production-readiness backlog. An edit-only PR to this
+      # file MUST trigger the backlog-refs-drift gate (added 2026-05-17 with
+      # the #136 sentinel) — without this entry, the workflow's paths filter
+      # would skip the entire run on a docs-only backlog edit, defeating the
+      # forcing function. The sentinel file itself lives under apps/dashboard
+      # and is already covered by the apps/** entry.
+      - "docs/backlog/**"
   push:
     branches: [main]
 
@@ -170,6 +177,43 @@ jobs:
           node-version: 22
       - name: Lint canonical alert rules (no network, no token)
         run: node scripts/sentry/lint-alert-rules.mjs
+
+  backlog-refs-drift:
+    name: Backlog references drift check
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    # LOAD-BEARING — gate failures BLOCK merge.
+    # Runs ONLY the backlog-drift sentinel (apps/dashboard/__tests__/
+    # backlog-refs-drift.test.ts). Verifies every code reference in
+    # docs/backlog/production-readiness.md still resolves on current main.
+    #
+    # Narrow on purpose — see PHASE-0 decision § E in
+    # docs/decisions/2026-05-17-backlog-drift-sentinel.md. We deliberately
+    # do NOT add a generic "pnpm test" CI gate in this PR — that would
+    # promote every existing unit test (including the four other sentinels
+    # which today run locally-only) to a merge-blocker, which is a
+    # separate policy decision. This job runs ONE test file so the failure
+    # message in the PR check list is unambiguous: "Backlog references
+    # drift check ❌".
+    #
+    # The sentinel guards docs/backlog/production-readiness.md, which is
+    # AUTHORITATIVE for the open production-readiness item list — #102-the-
+    # GitHub-issue is a human-facing pointer. See PHASE-0 § B.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify every backlog ref still exists on main
+        # Invoked from repo root via the root-level vitest config — the
+        # project has only ONE vitest config (./vitest.config.ts); the
+        # dashboard package does not have its own. Using the root-level
+        # config also ensures the test exclusion list (.claude/worktrees/**,
+        # node_modules/**, etc.) is honoured consistently.
+        run: pnpm test apps/dashboard/__tests__/backlog-refs-drift.test.ts
 
   bundle-size:
     name: Bundle size

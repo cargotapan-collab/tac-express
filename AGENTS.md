@@ -85,6 +85,14 @@ Adding a new skill OR a new trigger phrase REQUIRES a corresponding line in [`.c
 
 Mandatory pre-read when writing tests, mock-builders, sentinels, regex parsers, or marker comments: [`docs/patterns/coderabbit-catalog.md`](docs/patterns/coderabbit-catalog.md). 9 entries across 4 categories (test-assertion-strength, code-reference-stability, type-safety, abstraction-timing). Several are permanent CodeRabbit-memory learnings — writing the pattern correctly first time saves the review round.
 
+### Production-readiness backlog — authoritative file (NOT the GitHub issue)
+
+The open production-readiness item list lives at [`docs/backlog/production-readiness.md`](docs/backlog/production-readiness.md). **That file is AUTHORITATIVE.** [`#102`](https://github.com/cargotapan-collab/tac-express/issues/102)-the-GitHub-issue is a human-facing pointer + discussion surface. When picking the next session's task — derive the task from the repo file, never from the issue body. When closing an item — update the repo file's `**Status:**`, not the issue body.
+
+The repo file uses a fenced ```` ```refs ... ``` ```` block per item carrying `file:` / `symbol:` / `table:` / `rpc:` references to code artifacts. Drift is mechanically detected: the `backlog-refs-drift` CI gate (added in PR #<TBD-#136>) runs [`apps/dashboard/__tests__/backlog-refs-drift.test.ts`](apps/dashboard/__tests__/backlog-refs-drift.test.ts) on every PR touching `apps/`, `packages/`, `scripts/`, `supabase/`, or `docs/backlog/`. A renamed file, deleted symbol, dropped table, or removed RPC → CI fails with the item name and the rotted ref. Full design rationale: [`docs/decisions/2026-05-17-backlog-drift-sentinel.md`](docs/decisions/2026-05-17-backlog-drift-sentinel.md).
+
+**Pattern for future agents:** *"does every artifact our backlog names actually exist on main?"* is no longer a discipline question. It is a CI question. Treat the backlog file the same way you treat a test file — edit via PR, let the sentinel verify.
+
 ### Agent-side scaffolding scripts (PRs + CI watching)
 
 Use `scripts/ci-watch-pr.mjs` for ALL CI watching. **Do NOT write inline `until [ "$(gh pr view ... mergeStateStatus)" != "UNSTABLE" ]; do sleep 30; done` bash loops** — that pattern silently reported stale-sha CLEAN states across PRs #118/#120/#121/#123 (closed as #122).
