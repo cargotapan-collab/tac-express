@@ -1,42 +1,42 @@
 # Next-Session Handoff — Start Here
 
-> **You are picking up TAC Express after PR #<TBD> (whatsapp_sends delivery audit table + retry path).** Read this top-to-bottom before opening any other file. Designed to take 5 minutes and get you productive.
+> **You are picking up TAC Express after PR #<TBD> (#136 backlog-drift sentinel: repo-mirror + reference-existence CI gate).** Read this top-to-bottom before opening any other file. Designed to take 5 minutes and get you productive.
 
-**Last code commit on `main`:** post-PR-#<TBD> merge — `feat(whatsapp): whatsapp_sends delivery audit table + retry path (#102)`
-**Date this doc was written:** 2026-05-17 (fifth substantive Sprint 2 session — first new-table-and-wiring since the audit_logs arc; structurally PR #133/#135)
-**Author of last session:** Claude Code (Opus 4.7) in PM-mode + Senior FSE + Big-Tech CTO + Designer
-**#102 risk-rank #1 status:** DISCHARGED (audit_logs, PRs #133 + #135)
-**#102 risk-rank #2 status (whatsapp.service.ts test floor):** DISCHARGED (PR #138)
-**#102 risk-rank #2 status (whatsapp_sends audit table + retry path):** DISCHARGED (this PR)
-**Re-validation status:** [`docs/audits/2026-05-16-102-revalidation.md`](audits/2026-05-16-102-revalidation.md) is still the authoritative current accounting (updated below in § 4 with this session's deltas)
+**Last code commit on `main`:** post-PR-#<TBD> merge — `feat(ci): backlog-drift sentinel — repo-mirror + reference-existence CI gate (#136)`.
+**Date this doc was written:** 2026-05-17 (second substantive Sprint 2 session today — first was #141 whatsapp_sends in the morning).
+**Author of last session:** Claude Code (Opus 4.7) in PM-mode + Senior FSE + Big-Tech CTO + Designer.
+**#102 risk-rank #1 status:** DISCHARGED (audit_logs, PRs #133 + #135).
+**#102 risk-rank #2 status (whatsapp.service.ts test floor):** DISCHARGED (PR #138).
+**#102 risk-rank #2 status (whatsapp_sends audit table + retry path):** DISCHARGED (PR #141).
+**#136 backlog-drift sentinel status:** DISCHARGED (this PR).
 
----
-
-## 1. CADENCE PRE-COMMIT (load-bearing — SEVEN substantive PRs old)
-
-**Status: HOLDS.** Seven real tests across the arc (post-#129, PR #132, PR #132's session boundary, PR #133, PR #134/#135, PR #137 META, PR #138, PR #<TBD>). The whatsapp_sends session resisted FOUR specific bundle temptations enumerated in the brief itself:
-
-1. **`#139` WAMID-null redundant fallback fix** — sitting right there in `whatsapp.service.ts`, the file being wired into. Untouched.
-2. **`#140` BASE-URL empty-string fallback fix** — same shape; the bug-doc test was undisturbed.
-3. **Operator-facing retry UI** — "we just built a retry method; obviously it needs a button." Filed as a follow-up.
-4. **Automated background retry job** — "the retry capability has no automation; obviously it should." Filed as a follow-up.
-
-**New observation (this session):** the discipline now has a name pattern across both test-floor PRs (#138) and feature PRs (this one) — *"a feature PR exposes related fixable behavior; don't fix in the feature PR."* The carry-forward at § 7.14 from the prior handoff generalizes: it's not test-floor-specific; it's a property of every well-scoped PR. The rule scales.
-
-The PR body's "Discipline observations" section names all four resistances explicitly so the audit trail survives the merge. Same shape as PR #138.
+> **New convention as of this PR — read § 2 item 7 carefully.** The open production-readiness backlog is now at [`docs/backlog/production-readiness.md`](backlog/production-readiness.md). That file is AUTHORITATIVE; `#102`-the-GitHub-issue is a human-facing pointer. Drift is mechanically detected by the `backlog-refs-drift` CI gate. Derive task references from the repo file, not the GitHub issue.
 
 ---
 
-## 2. READ THIS FIRST — six things you must NOT do
+## 1. CADENCE PRE-COMMIT (load-bearing — EIGHT substantive PRs old)
 
-(Unchanged from prior handoff — see § 2 there. Item 5 updated to add the new sentinel candidate.)
+**Status: HOLDS.** Eight real tests across the arc (post-#129, PR #132, #132's session boundary, #133, #134/#135, #137 META, #138, #141, #<TBD>). This session resisted three named bundle temptations:
+
+1. **Re-curating the seed audit doc** — the strongest pull. Easy to "while I'm authoring this file, also tick everything that's actually done and re-renounce the stale items." Avoided. The DONE-BUT-UNTICKED set is an owner-action concern (`#102` issue body cleanup), not the open-backlog concern this file owns.
+2. **Extending the sentinel beyond reference-existence** — to verify done-ness, signatures, or RPC arguments. Avoided. The boundary `EXISTENCE ONLY` is recorded at the top of the sentinel + in PHASE-0 (D) of `docs/decisions/2026-05-17-backlog-drift-sentinel.md` so the next agent sees the rule before considering extension.
+3. **Promoting `pnpm test` to a generic CI gate** — tempting because the discovery that the four existing sentinels are NOT CI-gated today felt like a "while I'm in this area" fix. Avoided — that's a policy decision with bigger blast radius than this PR can responsibly make. Filed as a future-agent carry-forward in the retro § 7.3.
+
+**New observation (this session):** the seed audit doc `docs/audits/2026-05-16-102-revalidation.md` was 24 hours old and ALREADY required deltas (whatsapp_sends merged in #141; #142–#145 filed alongside). That IS the exact failure mode #136 exists to prevent. The forcing function self-validated mid-session.
+
+---
+
+## 2. READ THIS FIRST — seven things you must NOT do
+
+(Items 1–6 unchanged. Item 7 is NEW from this PR.)
 
 1. **Do NOT skip [`tac-express-onboarding`](.claude/skills/tac-express-onboarding/SKILL.md).** Mandatory per `CLAUDE.md § 0.5`.
 2. **Do NOT bump dependencies in feature PRs.** The `npm-audit` gate has been load-bearing since #108.
-3. **Do NOT add Sentry tag keys without updating all four artifacts** (the cross-package tag-emission contract — see § 5.2). The new `WHATSAPP_SEND_TAG_KEYS` set added this PR follows the same contract.
+3. **Do NOT add Sentry tag keys without updating all four artifacts** (the cross-package tag-emission contract — see § 5.2 of the prior handoff).
 4. **Do NOT run `scripts/sentry/create-alert-rules.mjs` from an agent session.** Owner runs it locally (#94, still pending).
-5. **Do NOT regress to `console.*` in the three pino-migrated API routes.** Sentinel at `apps/dashboard/__tests__/api-routes-no-console.test.ts`. **NEW (this PR's wrapper uses `console.error` deliberately for tracker-write-failure diagnostics — that file is NOT in the pino-migrated set; the sentinel exempts it.)**
+5. **Do NOT regress to `console.*` in the three pino-migrated API routes.** Sentinel at `apps/dashboard/__tests__/api-routes-no-console.test.ts`.
 6. **Do NOT attempt to merge from an agent session without typed per-PR authorization.** Owner types `merge PR <N>` exactly.
+7. **Do NOT derive task references from `#102`-the-GitHub-issue.** [`docs/backlog/production-readiness.md`](backlog/production-readiness.md) is authoritative. The issue body may be stale until the owner updates it; the repo file is current. The `backlog-refs-drift` CI gate verifies every code reference in the repo file resolves on main — drift fails CI. **Update the repo file when closing an item, not the issue body.**
 
 ---
 
@@ -45,9 +45,11 @@ The PR body's "Discipline observations" section names all four resistances expli
 ```bash
 git checkout main && git pull origin main
 pnpm typecheck && pnpm lint && pnpm test
-# Expected: all green; 636 tests passing (post-#<TBD>)
+# Expected: all green; 659 tests passing (post-#<TBD>)
 pnpm audit --prod --audit-level moderate
 node scripts/sentry/lint-alert-rules.mjs
+# NEW (this PR): the backlog-drift sentinel runs in pnpm test (file: apps/dashboard/__tests__/backlog-refs-drift.test.ts).
+# CI also runs it as its own dedicated job `backlog-refs-drift` in architecture-gates.yml.
 ```
 
 ---
@@ -56,29 +58,27 @@ node scripts/sentry/lint-alert-rules.mjs
 
 ### Open PRs (0 after #<TBD> merges)
 
-### Open Issues — short list
+### Open issues — derive from [`docs/backlog/production-readiness.md`](backlog/production-readiness.md)
 
-| # | Title | Priority | Notes |
+**The repo backlog file is authoritative.** This handoff lists tracker numbers for cross-reference convenience only.
+
+| Tracker | Title | In repo backlog as | Priority |
 |---|---|---|---|
-| [#94](https://github.com/cargotapan-collab/tac-express/issues/94) | Verify + wire Sentry alert-rule notification action | P2 | 5-min owner action. |
-| [#102](https://github.com/cargotapan-collab/tac-express/issues/102) | Production-readiness backlog tracking | meta | Re-validation authoritative; this session ticks the `whatsapp_sends` audit table + retry path item. |
-| [#130](https://github.com/cargotapan-collab/tac-express/issues/130) | Regex-alternation LAW gate | — | Own session. Do NOT bundle. |
-| [#131](https://github.com/cargotapan-collab/tac-express/issues/131) | Branded `ServiceLevel` type | — | Own session. Do NOT bundle. |
-| [#136](https://github.com/cargotapan-collab/tac-express/issues/136) | Backlog drift sentinel (forcing function for #102) | — | Own session. Do NOT bundle. |
-| [#139](https://github.com/cargotapan-collab/tac-express/issues/139) | WAMID-null redundant form-fallback fix | small | ~5 LoC source change in postSmart's shouldFallback + 2-3 test cases. Own session. Do NOT bundle. |
-| [#140](https://github.com/cargotapan-collab/tac-express/issues/140) | BASE-URL empty-string fallback | small | Bug-doc test exists in `whatsapp.service.test.ts`; flips to regression check when fix lands. Own session. Do NOT bundle. |
-| [#<TBD-RETRY-UI>](TBD) | Operator retry UI for failed WhatsApp sends | medium | NEW — filed this session. Service-layer method exists; UI is the missing piece. Own session. Do NOT bundle. |
-| [#<TBD-RETRY-AUTO>](TBD) | Automated background retry job for failed WhatsApp sends | large | NEW — filed this session. Multi-session build; needs PHASE-0 (pick job runner + retry policy). Do NOT bundle. |
-| [#<TBD-WA-WEBHOOK>](TBD) | WhatsApp delivery webhook callbacks (Meta delivered/read) | medium | NEW — filed this session. Adds `delivered` status to whatsapp_sends via webhook-written rows linked by wamid. Own session. Do NOT bundle. |
-| [#<TBD-WA-SENTINEL>](TBD) | Application-layer immutability sentinel for whatsapp_sends | small | NEW — filed this session. Asserts no code path outside the wrapper writes to whatsapp_sends. Same shape as `audit-logs-no-update-delete.test.ts`. Do NOT bundle. |
+| [#94](https://github.com/cargotapan-collab/tac-express/issues/94) | Sentry alert-rule notification action | **O3** | P2 (owner-runnable) |
+| [#102](https://github.com/cargotapan-collab/tac-express/issues/102) | Production-readiness backlog tracking | meta — body now pointer-only | meta |
+| [#130](https://github.com/cargotapan-collab/tac-express/issues/130) | Regex-alternation LAW gate | (not in repo backlog — tooling improvement) | own session |
+| [#131](https://github.com/cargotapan-collab/tac-express/issues/131) | Branded `ServiceLevel` type | (not in repo backlog — type-infra improvement) | own session |
+| [#136](https://github.com/cargotapan-collab/tac-express/issues/136) | Backlog-drift sentinel | DISCHARGED (this PR) | — |
+| [#139](https://github.com/cargotapan-collab/tac-express/issues/139) | WAMID-null redundant form-fallback fix | (not in repo backlog — small standalone bug) | own session |
+| [#140](https://github.com/cargotapan-collab/tac-express/issues/140) | BASE-URL empty-string fallback | (not in repo backlog — small standalone bug) | own session |
+| [#142](https://github.com/cargotapan-collab/tac-express/issues/142) | Operator retry UI for failed WhatsApp sends | **W2** | medium |
+| [#143](https://github.com/cargotapan-collab/tac-express/issues/143) | Automated background retry job | **W3** | low |
+| [#144](https://github.com/cargotapan-collab/tac-express/issues/144) | Meta delivery-callback webhook | **W4** | medium-low |
+| [#145](https://github.com/cargotapan-collab/tac-express/issues/145) | App-layer immutability sentinel (whatsapp_sends) | **W5** | low |
 
-**Recently resolved:** #134 (PR #135), audit_logs full discharge (#133+#135), #137 META re-validation, #138 whatsapp.service test floor.
+(`#130`, `#131`, `#139`, `#140` are repo-quality / bug items, not production-readiness items per the seed audit doc's scope.)
 
-### Re-validation deltas since PR #138
-
-Two #102 items go DONE-BUT-UNTICKED this session:
-- **`whatsapp_sends` audit table + retry path** → DONE in PR #<TBD>. Migration `20260517000001` + wrapper at `packages/services/src/whatsapp-tracked.service.ts` + 32 new test cases.
-- Sequencing: the future E2E payment-recording test is now UNBLOCKED (was waiting on `whatsapp_sends` per re-validation § 8 — the E2E asserts delivery state).
+**Recently resolved:** #134 (PR #135), audit_logs full discharge (#133+#135), #137 META re-validation, #138 whatsapp.service test floor, #141 whatsapp_sends table + retry path, #136 backlog-drift sentinel (this PR).
 
 ---
 
@@ -86,76 +86,71 @@ Two #102 items go DONE-BUT-UNTICKED this session:
 
 ### 5.1 audit_logs adoption (post-#135) — unchanged
 
-### 5.2 Cross-package tag-emission contract — UPDATED
+### 5.2 Cross-package tag-emission contract — unchanged (includes `WHATSAPP_SEND_TAG_KEYS` per #141)
 
-The contract now includes a fifth tag-key set: `WHATSAPP_SEND_TAG_KEYS` in `packages/types/src/whatsapp-send.types.ts`. Same shape as `AUDIT_WRITE_TAG_KEYS` from `with-audit.ts`. Emitted by `whatsapp-tracked.service.ts` on tracker-write failure (queued_insert or result_update phase). NO PII flows through Sentry — `phone`, `raw_response`, `wamid`, `error_message` are deterministically NOT tagged. Same posture as the audit-write tagging.
+### 5.3 Shared mock-db helpers — unchanged
 
-If you add Sentry alert rules keyed off any of these tag-key sets, update the four artifacts (rule definition, lint-alert-rules manifest, runbook procedure, the tag-key contract constant) — see PR #135's retro § 5.2 for the full pattern.
+### 5.4 Six CI gates still load-bearing — UPDATED — and a SEVENTH narrow one as of this PR
 
-### 5.3 Shared mock-db helpers — UPDATED
+The six are: `LAW gates` (`pnpm audit:governance`), `@tac registry sync + smoke`, `migrations apply on fresh DB`, `npm audit (production deps)`, `Sentry alert-rule structure lint`, `Bundle size`. Plus the e2e workflow's `visual + a11y` Playwright run.
 
-`packages/services/src/__tests__/whatsapp-tracked.service.test.ts` is the FIRST consumer that crosses BOTH the HTTP boundary (mocked via `vi.stubGlobal("fetch", ...)`) AND the Supabase boundary (mocked via `makeDb` + `makeBuilderSpyByTable`). If a future service-wrapper test also crosses both, mirror that file's shape. The pattern generalizes; no new helper was extracted (`mockFetchSequence` + `mockResponse` stayed inline as copies per catalog #9 — second use is the trigger, but extraction would force editing a tested file, which the bundling rule prevents until a THIRD consumer appears).
+**NEW this PR — a SEVENTH narrow job: `Backlog references drift check`** in `architecture-gates.yml`. Runs ONLY `apps/dashboard/__tests__/backlog-refs-drift.test.ts`. Failure name in the PR check list is unambiguous; failure message names the backlog item and the rotted ref.
 
-### 5.4 Six CI gates still load-bearing — unchanged
+**Important non-gate:** `pnpm test` (the full vitest suite) is STILL NOT a CI gate. The four existing sentinels (`rbac-block-adoption`, `api-routes-no-console`, `silent-by-design`, `audit-doc-references`, `audit-logs-no-update-delete`) plus the ~600 other unit tests run only locally. Whether to promote `pnpm test` to a generic gate is its own decision (see retro § 7.3).
 
-### 5.5 CodeRabbit pattern catalog (9 entries) — unchanged
+### 5.5 CodeRabbit pattern catalog (9 entries) — unchanged. PR #141 went through both bots clean on first pass. This PR aims for the same.
 
 ### 5.6 Test-pattern shift for audit-wrapped methods (from #135) — unchanged
 
 ### 5.7 Test-floor pattern for non-Supabase services (PR #138) — unchanged
 
-### 5.8 NEW: Service-wrapper pattern crossing both fetch + Supabase boundaries (this session)
+### 5.8 Service-wrapper pattern crossing fetch + Supabase (PR #141) — unchanged
 
-The wrapper-around-pure-HTTP-service pattern from this PR generalizes to any future tracking layer: the wrapper takes a Supabase client + the underlying service's config, exposes the same interface (optionally augmented), and writes tracking rows around the underlying calls. The pattern explicitly DOES NOT extend `DESTRUCTIVE_OP_REGISTRY` (this is not a destructive op). If the next surface needing tracking is also non-destructive, follow this PR's structure; if it's a NEW class of destructive op, extend the registry per `audit-logs-pr2-adoption.md`'s pattern.
+### 5.9 Queued-row-first / NEVER-blocking pattern (PR #141, decision doc § E) — unchanged
 
-### 5.9 NEW: The queued-row-first / NEVER-blocking pattern (this session, decision doc § E)
+### 5.10 NEW: Repo-mirror-plus-sentinel forcing-function pattern (this PR)
 
-Recorded here so a future agent doesn't see the wrapper and propose changing it to "block on tracker failure" without understanding the asymmetric-cost reasoning. Full text in `docs/decisions/2026-05-17-whatsapp-sends-mechanism.md § E`. Short form: blocking sends on tracker DB outage converts an observability outage into a delivery outage; the orphan-`queued`-row pattern is a strict improvement.
+The pattern: take a doc that drifts because it lives in a non-CI-checked surface (a GitHub issue body, an external wiki, etc.); mirror it into a repo file with a structured reference format; build a sentinel that verifies references on every PR. Applied here to the production-readiness backlog. Could be applied later to: the RBAC denial audit doc (already partially via PR #121's sentinel); the runbook page; etc. If a future doc surface starts drifting in the same shape, the answer is "mirror it + write a sentinel" — same playbook.
 
-This is the load-bearing inversion vs `withAudit`'s "no audit = no destruction." If a reviewer's intuition is "make it consistent with withAudit," the response is decision-doc § E — there's a defended asymmetry.
+The boundary discipline (EXISTENCE ONLY, never done-ness) is what makes the pattern maintainable. Without that boundary, every per-item rule becomes a special case and the sentinel becomes un-readable.
 
 ---
 
 ## 6. Your first task — recommended
 
-Per the cadence rule (§ 1) and the re-validation in `docs/audits/2026-05-16-102-revalidation.md § 6 / § 8` plus this session's new follow-ups.
+**The next-lead source of truth is now [`docs/backlog/production-readiness.md`](backlog/production-readiness.md), NOT this handoff. This § 6 is a curated pointer; the backlog file has the full picture with refs.**
 
-### Option A — `manifest.service.ts` full test floor (per re-validation rank #4) RECOMMENDED
+Per the new backlog file's risk-ranked open items:
 
-The audit_logs + whatsapp.service + whatsapp_sends arc is complete. The next test-floor in the # comfortable known-shape session is `manifest.service.ts`'s ~9 currently-uncovered methods (the narrow audit surface is covered by PR #135). Mirror PR #132's pattern. ~1 session.
+### Option A — O1: `manifest.service.ts` full test floor (rank #4) — RECOMMENDED
 
-**Pre-call:** PHASE-A bailout-seam candidate is the "RPC-backed close/depart/arrive" subset vs "plain query methods." Most likely one PR.
+The audit_logs + whatsapp.service test floor + whatsapp_sends + backlog-sentinel arc is complete. The next test-floor in the comfortable known-shape session is `manifest.service.ts`'s ~9 currently-uncovered methods (the narrow audit surface is covered by PR #135). Mirror PR #132's pattern. ~1 session.
 
-### Option B — #136 backlog-drift sentinel (forcing function)
+**Repo backlog refs:** `packages/services/src/manifest.service.ts`, `packages/services/src/__tests__/manifest.service.test.ts`, symbols `createManifestService` + `removeShipmentFromManifest`. Sentinel verifies these on every PR; when you complete the test floor, update the backlog refs to point at the new test cases.
 
-~500 LoC. Substantial. Reduces per-session re-validation burden for the rest of Sprint 2. The re-validation document explicitly recommended this (§ 9). Worth doing while the recent re-validation is fresh.
+### Option B — O2: Cleanup the remaining `as unknown as` cast at `apps/dashboard/app/api/public/invoice-pdf/route.ts` (rank #5)
 
-### Option C — #<TBD-RETRY-UI> Operator retry UI for failed WhatsApp sends (NEW from this session)
+~30 min standalone. Or fold into the next PDF-touching PR.
 
-Service-layer `retryWhatsappSend(...)` exists; the UI is missing. Permission gate: MANAGER+. Two design forks for PHASE-0:
-- A `/ops-console/whatsapp/failed-sends` page that lists `WHERE status = 'failed'` rows + a retry button per row.
-- A "Resend" button on the invoice detail page that finds the most recent failed send for that invoice + retries.
-~1 session. Includes a new `/api/whatsapp/retry-send` route. PHASE-0 fork is which UI surface.
+### Option C — W2 / W3 / W4 / W5 — the four whatsapp_sends follow-ups
 
-### Option D — #<TBD-WA-WEBHOOK> WhatsApp delivery webhook callbacks (NEW from this session)
+See backlog file for details + tracker numbers. W2 (operator retry UI) is the most actionable; W3 (automated retry) needs PHASE-0 first.
 
-Adds Meta's delivery-confirmation surface. Requires public webhook endpoint, HMAC signature verification, replay protection, a new `delivered` row written by the handler. Distinct surface from the retry path. PHASE-0 needed (where does the endpoint live? Vercel route? signature secret rotation?). ~1-2 sessions.
+### Option D — D1 / D2 / D3 / D5 — docs-only items
 
-### Option E — #139 OR #140 small standalone source fixes
+Each ~30 min to 1-2 hours. Good "between bigger items" sessions.
 
-Both small (~5-30 LoC + tests). Good "between bigger items" sessions. **Each is its own PR; do NOT bundle them together** (they're in the same file but the discipline rule applies regardless of file proximity).
+### Option E — #130 / #131 — small standalone tooling / type-infra
 
-### Option F — #94 (5-min owner-runnable Sentry provisioning)
+Each is its own session. Do NOT bundle. (Not in repo backlog — repo-quality items, not production-readiness.)
+
+### Option F — Promote `pnpm test` to a generic CI gate
+
+The decision the brief carried forward (retro § 7.3). Pros: every existing sentinel becomes CI-gated. Cons: every flaky test becomes a recurring merge-blocker; ~3-5 min added CI time. Needs PHASE-0.
+
+### Option G — #94 (5-min owner-runnable Sentry provisioning)
 
 Not an agent task.
-
-### Option G — #130 or #131 (small standalone tooling / type-infrastructure)
-
-Each is its own session. Do NOT bundle.
-
-### Option H — #<TBD-RETRY-AUTO> Automated background retry job (NEW from this session)
-
-Multi-session build. Needs PHASE-0 (pick job runner: Vercel Cron / Inngest / pg_cron) + retry policy (max attempts, exponential backoff, dedup keys). NOT recommended next — leave until a real operational pain point emerges; manual retry is sufficient for V1.
 
 ---
 
@@ -163,31 +158,17 @@ Multi-session build. Needs PHASE-0 (pick job runner: Vercel Cron / Inngest / pg_
 
 Distilled from PRs #105 → #<TBD>.
 
-### 7.1 - 7.13 (unchanged from prior handoff)
+### 7.1 - 7.17 (unchanged — see prior handoff)
 
-### 7.14 NEW (PR #138): Test floors expose fixable behavior; don't fix in the test PR
+### 7.18 NEW (this session): Authoritative-repo-file beats authoritative-GitHub-issue for sentinel-able artifacts
 
-(Already in the prior handoff — restating for continuity.)
+When a backlog / list / inventory is shared between humans (GitHub issue) and machines (CI), the repo file MUST be the source of truth. If the issue body is authoritative + the repo is a mirror, the mirror drifts (the original problem). If the repo is authoritative + the issue is a pointer, the sentinel works (the new pattern).
 
-### 7.15 NEW (PR #138): First-non-Supabase service-test floor establishes HTTP-mocking sub-pattern
+This generalizes beyond backlog files. Any time a future PR proposes a "mirror the GitHub state into a repo file for tracking," ask: which side is authoritative? If the answer is "the GitHub side" — the mirror will drift. Make the repo authoritative or don't bother.
 
-(Already in the prior handoff — restating for continuity.)
+### 7.19 NEW (this session): A forcing function that self-validates mid-build is a strong signal
 
-### 7.16 NEW (this session): Feature PRs expose related fixable behavior; don't fix in the feature PR (generalization of 7.14)
-
-The rule from PR #138 was specific to test floors. This session shows it generalizes to feature PRs. When wiring a new feature into existing code, the wiring surface tends to expose adjacent fixable smells (here: #139, #140 in `whatsapp.service.ts`; the "retry UI" and "retry automation" feature gravity). The discipline boundary is the same — the PR ships ONE thing; adjacent improvements get their own PHASE-0 and their own PR.
-
-The structural reason: a feature PR is reviewed against its PHASE-0 + its acceptance criteria. Adjacent fixes don't appear in either, so they're reviewed against nothing — meaning they're either auto-approved (no scrutiny) or block the feature on unrelated concerns (delayed shipping). Both failure modes are real.
-
-### 7.17 NEW (this session): The contract-inversion call (`withAudit` vs `tracked-whatsapp` failure-mode) needs explicit defence
-
-When a new feature shares structural shape with a recent precedent (audit_logs → whatsapp_sends), the reviewer's intuition is "make it consistent." When the consistency is wrong (because the failure-cost asymmetry is different), the PR body MUST state the inversion explicitly + name the reasoning. The decision doc at `docs/decisions/2026-05-17-whatsapp-sends-mechanism.md § E` is the artifact; the PR body's RLS/Transactionality sections point to it; the retro names it as a load-bearing decision.
-
-Lesson for future PRs: when you're tempted to mirror an existing pattern, ask "what's the failure cost on each side, and is it symmetric?" Asymmetric failure costs are the inversion signal.
-
-### 7.18 NEW (this session): Auto-mode classifier as a discipline backstop
-
-The MCP `apply_migration` call to live Supabase was denied by the auto-mode classifier mid-session. The denial was correct — bypassing the CI fresh-apply gate is exactly the discipline a feature PR shouldn't waive. The classifier's denial signal is useful: when it fires, treat it as "you forgot a constraint; back up and use the PR-gated path." Don't try to route around it.
+The seed audit doc was 24 hours old and ALREADY required deltas (whatsapp_sends + #142–#145). The PR being authored had to ACTIVELY reconcile those deltas, in writing, before the file could be written. That reconciliation step is exactly the discipline the sentinel exists to enforce. When the failure mode the forcing function targets shows up DURING the build of the forcing function — the design is correctly aimed.
 
 ---
 
@@ -200,7 +181,8 @@ pnpm vitest run packages/services/src/__tests__/payment.service.test.ts
 pnpm vitest run packages/services/src/__tests__/invoice.service.test.ts
 pnpm vitest run packages/services/src/__tests__/shipment.service.test.ts
 pnpm vitest run packages/services/src/__tests__/whatsapp.service.test.ts          # 47 cases (PR #138)
-pnpm vitest run packages/services/src/__tests__/whatsapp-tracked.service.test.ts  # 32 cases (this PR)
+pnpm vitest run packages/services/src/__tests__/whatsapp-tracked.service.test.ts  # 32 cases (PR #141)
+pnpm vitest run apps/dashboard/__tests__/backlog-refs-drift.test.ts               # 23 cases (this PR) — NEW
 pnpm vitest run packages/services/src/__tests__/audit.service.test.ts
 pnpm vitest run packages/services/src/__tests__/with-audit.test.ts
 pnpm vitest run packages/services/src/__tests__/destructive-op-registry-coverage.test.ts
@@ -215,43 +197,40 @@ node scripts/ci-watch-pr.mjs <pr-number>
 
 ## 9. Key file locations
 
-(Unchanged from prior handoff; two additions.)
+(Additions this PR marked NEW.)
 
 ```
-# Test floors (the pattern, plus the NEW wrapper variant)
-packages/services/src/__tests__/payment.service.test.ts                 # 29+ cases (PR #118)
-packages/services/src/__tests__/invoice.service.test.ts                 # 40+ cases (PR #123)
-packages/services/src/__tests__/shipment.service.test.ts                # 50 cases (PR #132)
-packages/services/src/__tests__/whatsapp.service.test.ts                # 47 cases (PR #138) — non-Supabase HTTP pattern
-packages/services/src/__tests__/whatsapp-tracked.service.test.ts        # 32 cases (PR #<TBD>) — NEW: wrapper crossing both fetch + Supabase
-packages/services/src/__tests__/manifest.service.test.ts                # narrow audit surface only (PR #135)
-packages/services/src/__tests__/audit.service.test.ts                   # 14 cases (PR #133)
+# Sentinel tests (FIVE in the family as of this PR)
+apps/dashboard/__tests__/rbac-block-adoption.test.ts                   # PR #114
+apps/dashboard/__tests__/api-routes-no-console.test.ts                 # PR #117
+packages/services/src/__tests__/silent-by-design.test.ts               # PR #120
+apps/dashboard/__tests__/audit-doc-references.test.ts                  # PR #121 (this PR's direct template)
+packages/services/src/__tests__/audit-logs-no-update-delete.test.ts    # PR #133
+apps/dashboard/__tests__/backlog-refs-drift.test.ts                    # PR #<TBD> (this PR) — NEW
 
-# Shared mock helpers
-packages/services/src/__tests__/helpers/make-db.ts                      # Supabase mock (canonical)
-packages/services/src/__tests__/helpers/make-builder-spy.ts             # Chainable builder spy
+# Authoritative backlog + supporting docs
+docs/backlog/production-readiness.md                                   # PR #<TBD> (this PR) — NEW, authoritative
+docs/decisions/2026-05-17-backlog-drift-sentinel.md                    # PR #<TBD> (this PR) — NEW
+docs/audits/2026-05-16-102-revalidation.md                             # seed for the backlog (now historical)
 
-# Service wrappers
-packages/services/src/shared/with-audit.ts                              # destructive-op wrapper (PR #133)
-packages/services/src/whatsapp-tracked.service.ts                       # delivery-tracking wrapper (PR #<TBD>) — NEW
-
-# Decision docs
-docs/decisions/2026-05-16-audit-logs-mechanism.md                       # audit_logs PHASE-0
-docs/decisions/2026-05-17-whatsapp-sends-mechanism.md                   # whatsapp_sends PHASE-0 (this PR) — NEW
+# Decision docs (cumulative)
+docs/decisions/2026-05-16-audit-logs-mechanism.md                      # audit_logs PHASE-0
+docs/decisions/2026-05-17-whatsapp-sends-mechanism.md                  # whatsapp_sends PHASE-0
+docs/decisions/2026-05-17-backlog-drift-sentinel.md                    # this PR's PHASE-0
 ```
 
 ---
 
 ## 10. The honest read
 
-Tests 604 → 636 (+32 cases on the new wrapper test floor). The audit_logs + whatsapp.service test floor + whatsapp_sends arc that started with PR #133 closes here. The full chain is now: every destructive op is audited (#133/#135); the WhatsApp surface is pinned (#138); every WhatsApp send is tracked + retriable (this PR).
+Tests 636 → 659 (+23 from the new sentinel). The backlog-drift forcing function shipped: 3 minutes of CI per PR for the rest of the project's life makes one entire class of failure (backlog references pointing at code that no longer exists) mechanically impossible. The decision-doc-first discipline produced a sentinel where the scope boundary (`EXISTENCE only`) is recorded at the top of every relevant file — a future agent who's tempted to extend it has the rule in their face.
 
-The session shipped ONE PR (no bailout needed); resisted four named bundle temptations (#139, #140, retry-UI, retry-automation); filed four follow-ups with `do not bundle` markers. The PHASE-0 decision doc was the most consequential artifact — § E (the never-blocking inversion) is the call most likely to be re-litigated in review, and recording the asymmetric-cost reasoning explicitly is what protects the decision from a well-meaning "make it consistent with withAudit" fix.
+Zero new dependencies. Zero items in the master backlog re-curated. Zero "while I'm here" expansion. Six gates green; the new seventh meta-validates on this same PR.
 
-**Recommended one-line summary for the next session's prompt:** "Pick up `manifest.service.ts` full test floor per `docs/audits/2026-05-16-102-revalidation.md § 6 rank #4`. Mirror PR #132. ONE PR. Decline any 'while we're here' expansion." (Or: option B / C / D / E from § 6 per owner priority.)
+**Recommended one-line summary for the next session's prompt:** "Pick up [`docs/backlog/production-readiness.md`](docs/backlog/production-readiness.md) item O1 — `manifest.service.ts` full test floor (rank #4). Mirror PR #132. ONE PR. Decline any 'while we're here' expansion." (Or one of options B–G in § 6 per owner priority.)
 
 ---
 
-**Load the skills. Re-read § 1 (cadence pre-commit, SEVEN substantive PRs old). Pick a task from § 6. Ship one clean PR.**
+**Load the skills. Re-read § 1 (cadence pre-commit, EIGHT substantive PRs old). Pick a task from § 6 — or better, from `docs/backlog/production-readiness.md` directly. Ship one clean PR.**
 
 When you're done, update or replace this file with a fresh handoff.
