@@ -69,6 +69,9 @@ export function makeDb(config: {
       "lte",
       "order",
       "limit",
+      // `range(from, to)` — Supabase's pagination terminal. See the
+      // matching note in make-builder-spy.ts for the rationale.
+      "range",
       "single",
       "maybeSingle",
     ]) {
