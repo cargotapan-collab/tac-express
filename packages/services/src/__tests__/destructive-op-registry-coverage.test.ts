@@ -14,8 +14,8 @@ import {
 /**
  * Sentinel — destructive-op registry coverage gate.
  *
- * What this enforces (PR 1 scope)
- * -------------------------------
+ * What this enforces (post-PR-#134 — all five contracts active)
+ * -------------------------------------------------------------
  * a. The registry is in sync with the AuditAction enum's destructive
  *    subset (compile-time exhaustiveness — re-asserted at runtime here
  *    for redundancy with destructive-op-registry.ts's own check).
@@ -25,23 +25,21 @@ import {
  * d. The registry size is pinned (meta-sentinel — adding / removing
  *    entries requires updating this test, forcing conscious intent
  *    per docs/patterns/coderabbit-catalog.md § 7.2).
+ * e. Each registry entry's serviceFile actually wraps its destructive
+ *    op with `withAudit({ action: "...", ... })`, AND the wrapped
+ *    call references the registry's canonical action literal — making
+ *    it impossible to wire a wrapper-call to the wrong op without
+ *    breaking this sentinel. Activated in PR #134 alongside the
+ *    three-op adoption.
  *
- * What this DOES NOT enforce yet (PR 2 scope)
- * -------------------------------------------
- * e. That each registry entry's serviceFile actually wraps its
- *    destructive op with withAudit({ action, ... }). The methods do
- *    not yet adopt the wrapper as of PR 1 (per the bailout-clause
- *    split in docs/decisions/2026-05-16-audit-logs-mechanism.md § 7);
- *    PR 2 wires adoption and flips this sentinel to assert the
- *    `withAudit(` reference paired with the registry action literal.
- *
- * (e) is intentionally absent in PR 1 to keep the contract honest:
- * the sentinel cannot pass-and-mean-it until adoption lands. If we
- * asserted withAudit-presence in PR 1, the assertion would either be
- * vacuous (no destructive ops yet adopted) or it would force PR 1 to
- * also include the adoption (defeating the bailout split). PR 2's
- * commit-1 task is to delete this block-comment and uncomment the
- * adoption-assertion block at the bottom of this file.
+ * History
+ * -------
+ * PR #133 shipped (a)–(d) only and left (e) as a block-commented
+ * scaffold at the bottom of this file. PR #134 wired all three
+ * destructive ops via `withAudit`, renamed the placeholder action
+ * 'manifest_revert' to 'manifest_shipment_remove' (the real op),
+ * shipped migration 20260516000002 to reconcile the CHECK constraint,
+ * and activated (e) here.
  */
 
 const SERVICES_SRC = resolve(__dirname, "..")
@@ -109,14 +107,6 @@ describe("destructive-op-registry coverage / file + method existence", () => {
         "m",
       )
 
-      // EXCEPTION: revertManifest is intentionally absent in PR 1 —
-      // it's PR 2 design surface (the manifest revert method has to
-      // be designed before it can be wired). Skip the file-presence
-      // check for it; PR 2 will tighten this when the method lands.
-      if (entry.action === "manifest_revert") {
-        return
-      }
-
       expect(
         asyncMethodRe.test(source),
         `Expected packages/services/src/${entry.serviceFile} to define a method ` +
@@ -128,34 +118,46 @@ describe("destructive-op-registry coverage / file + method existence", () => {
   )
 })
 
-/*
- * ===== PR 2 ADOPTION SENTINEL (currently disabled — see file header) =====
- *
- * When PR 2 wires the wrapper in payment.service.ts, invoice.service.ts,
- * and manifest.service.ts (the latter alongside adding revertManifest),
- * uncomment the block below and delete the block-comment in the file
- * header that explains why (e) is absent.
- *
- * describe("destructive-op-registry coverage / withAudit adoption", () => {
- *   it.each(DESTRUCTIVE_OP_REGISTRY.map((e) => [e.action, e] as const))(
- *     "%s: the service file wraps the destructive op via withAudit()",
- *     (_action: string, entry: DestructiveOpRegistryEntry) => {
- *       const source = readService(entry.serviceFile)
- *       // The wrapper call must reference the registry's action literal,
- *       // making it impossible to wire a wrapper-call to the wrong op
- *       // without breaking this sentinel.
- *       const wrapperRe = new RegExp(
- *         `withAudit\\([^)]*action:\\s*["']${entry.action}["']`,
- *         "s",
- *       )
- *       expect(
- *         wrapperRe.test(source),
- *         `Expected packages/services/src/${entry.serviceFile} to contain ` +
- *           `a withAudit({ action: "${entry.action}", ... }) call. The ` +
- *           `destructive op '${entry.methodName}' must be wrapped via ` +
- *           `withAudit per docs/decisions/2026-05-16-audit-logs-mechanism.md.`,
- *       ).toBe(true)
- *     },
- *   )
- * })
- */
+describe("destructive-op-registry coverage / withAudit adoption", () => {
+  it.each(DESTRUCTIVE_OP_REGISTRY.map((e) => [e.action, e] as const))(
+    "%s: the service file wraps the destructive op via withAudit()",
+    (_action: string, entry: DestructiveOpRegistryEntry) => {
+      const source = readService(entry.serviceFile)
+      // The wrapper call must reference the registry's action literal,
+      // making it impossible to wire a wrapper-call to the wrong op
+      // without breaking this sentinel. Multiline match: the action
+      // literal lives on a different line from the withAudit( opener
+      // in our adoption style (action: "…" is the first object key on
+      // its own line inside the options arg).
+      const wrapperRe = new RegExp(
+        `withAudit\\([\\s\\S]{0,400}?action:\\s*["']${entry.action}["']`,
+      )
+      expect(
+        wrapperRe.test(source),
+        `Expected packages/services/src/${entry.serviceFile} to contain ` +
+          `a withAudit({ action: "${entry.action}", ... }) call. The ` +
+          `destructive op '${entry.methodName}' must be wrapped via ` +
+          `withAudit per docs/decisions/2026-05-16-audit-logs-mechanism.md.`,
+      ).toBe(true)
+    },
+  )
+
+  it("the import line for withAudit is present in every adopting service file", () => {
+    // Defense-in-depth: the wrapperRe above could in principle match a
+    // comment or a string literal. An additional check that each file
+    // imports withAudit from the canonical path rules out the comment-
+    // only / string-only false positive.
+    const distinctFiles = Array.from(
+      new Set(DESTRUCTIVE_OP_REGISTRY.map((e) => e.serviceFile)),
+    )
+    for (const file of distinctFiles) {
+      const source = readService(file)
+      expect(
+        /from\s+["']\.\/shared\/with-audit["']/.test(source),
+        `Expected packages/services/src/${file} to import withAudit from ` +
+          `"./shared/with-audit". Registry adoption requires the canonical ` +
+          `import path so the wrapper resolution is unambiguous.`,
+      ).toBe(true)
+    }
+  })
+})

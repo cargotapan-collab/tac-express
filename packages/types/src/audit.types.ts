@@ -30,7 +30,13 @@ export type AuditAction =
   // Destructive (database-CHECK-constrained — require entity_id + before_state)
   | "payment_delete"
   | "invoice_cancel"
-  | "manifest_revert"
+  // PR #134: renamed from 'manifest_revert' (placeholder that pointed at a
+  // method that didn't exist) to 'manifest_shipment_remove' (the real
+  // destructive op — removeShipmentFromManifest). Migration
+  // 20260516000002 dropped the legacy value from the CHECK constraint
+  // pre-flight-verifying zero existing rows used it. See the migration
+  // header + the PR #134 PHASE-0 reconciliation for the full rationale.
+  | "manifest_shipment_remove"
   // Historical non-destructive (kept for back-compat with existing RPC inserts)
   | "STATUS_CHANGE"
   | "RESOLVED"
@@ -38,7 +44,7 @@ export type AuditAction =
 export const DESTRUCTIVE_AUDIT_ACTIONS = [
   "payment_delete",
   "invoice_cancel",
-  "manifest_revert",
+  "manifest_shipment_remove",
 ] as const satisfies readonly AuditAction[]
 
 export type DestructiveAuditAction = (typeof DESTRUCTIVE_AUDIT_ACTIONS)[number]

@@ -3,6 +3,8 @@ import type { TablesInsert } from "@workspace/database/database.types"
 import type { Invoice, InvoiceFilters } from "@workspace/types"
 import { InvoiceStatus } from "@workspace/types"
 
+import { withAudit } from "./shared/with-audit"
+
 /** Canonical insert shape for `invoices` rows, derived from generated DB types. */
 export type CreateInvoiceDbInput = TablesInsert<"invoices">
 
@@ -86,12 +88,47 @@ export function createInvoiceService(db: SupabaseClient) {
     },
 
     async cancelInvoice(id: string): Promise<void> {
-      const { error } = await db
+      // Read the row first so the audit row carries a forensic
+      // before_state snapshot. If the invoice doesn't exist, surface
+      // a clean noop (no audit, no update) — matches the prior
+      // behavior where the UPDATE would also affect zero rows.
+      const { data: row, error: readErr } = await db
         .from("invoices")
-        .update({ status: toDbInvoiceStatus(InvoiceStatus.CANCELLED) })
+        .select("*")
         .eq("id", id)
-        .in("status", [toDbInvoiceStatus(InvoiceStatus.DRAFT), toDbInvoiceStatus(InvoiceStatus.ISSUED)])
-      if (error) throw error
+        .maybeSingle()
+      if (readErr) throw readErr
+      if (!row) return
+
+      // AUDIT-WRAPPED: every invoice cancellation produces exactly
+      // one audit_logs row before the destructive op runs. The
+      // existing status guard (DRAFT or ISSUED) is preserved inside
+      // the wrapper. If the guard rejects the update (the invoice is
+      // in PAID / CANCELLED / OVERDUE), the destructive op completes
+      // with zero affected rows but the audit row is still committed
+      // — recording the operator's attempt. This is intentional
+      // forensic signal: a no-op cancellation attempt may be worth
+      // investigating (operator confusion, replayed request).
+      await withAudit(
+        db,
+        {
+          action: "invoice_cancel",
+          entityType: "invoice",
+          entityId: id,
+          beforeState: row as Record<string, unknown>,
+        },
+        async () => {
+          const { error } = await db
+            .from("invoices")
+            .update({ status: toDbInvoiceStatus(InvoiceStatus.CANCELLED) })
+            .eq("id", id)
+            .in("status", [
+              toDbInvoiceStatus(InvoiceStatus.DRAFT),
+              toDbInvoiceStatus(InvoiceStatus.ISSUED),
+            ])
+          if (error) throw error
+        },
+      )
     },
 
     async getOverdueCount(): Promise<number> {

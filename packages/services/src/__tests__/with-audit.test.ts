@@ -106,7 +106,7 @@ describe("withAudit / ordering", () => {
     const result = await withAudit(
       db,
       {
-        action: "manifest_revert",
+        action: "manifest_shipment_remove",
         entityType: "manifest",
         entityId: "man-1",
         beforeState: { id: "man-1", status: "DEPARTED" },
@@ -184,7 +184,7 @@ describe("withAudit / fail-loud on audit failure", () => {
       withAudit(
         db,
         {
-          action: "manifest_revert",
+          action: "manifest_shipment_remove",
           entityType: "manifest",
           entityId: "man-1",
           beforeState: { id: "man-1", secret: "PII-SHAPED" },
@@ -199,7 +199,7 @@ describe("withAudit / fail-loud on audit failure", () => {
     expect(emittedErr).toBeInstanceOf(AuditWriteFailedError)
     expect(tags).toEqual({
       [AUDIT_WRITE_TAG_KEYS.audit]: "true",
-      [AUDIT_WRITE_TAG_KEYS.action]: "manifest_revert",
+      [AUDIT_WRITE_TAG_KEYS.action]: "manifest_shipment_remove",
       [AUDIT_WRITE_TAG_KEYS.entityType]: "manifest",
     })
     // PII posture — before_state's "secret" must NOT appear in tag values.
@@ -260,12 +260,12 @@ describe("withAudit / destructive-action sweep", () => {
   // destructive-op-registry.ts ensures literals stay synchronized;
   // this runtime sweep verifies the wrapper's payload for each.
   const CASES: Array<{
-    action: "payment_delete" | "invoice_cancel" | "manifest_revert"
+    action: "payment_delete" | "invoice_cancel" | "manifest_shipment_remove"
     entityType: "payment" | "invoice" | "manifest"
   }> = [
     { action: "payment_delete", entityType: "payment" },
     { action: "invoice_cancel", entityType: "invoice" },
-    { action: "manifest_revert", entityType: "manifest" },
+    { action: "manifest_shipment_remove", entityType: "manifest" },
   ]
 
   for (const { action, entityType } of CASES) {

@@ -481,34 +481,155 @@ describe("recordPayment — PaymentMethod enum sentinel", () => {
   })
 })
 
-describe("deletePayment", () => {
-  it("calls db.from(invoice_payments).delete().eq on success", async () => {
-    const db = makeDb({
-      fromResults: { invoice_payments: { data: null, error: null } },
-    })
-    const { createPaymentService } = await freshPaymentService()
-    await expect(
-      createPaymentService(db).deletePayment("pay-1"),
-    ).resolves.toBeUndefined()
-    expect(db.from).toHaveBeenCalledWith("invoice_payments")
-  })
+describe("deletePayment (post-#134 withAudit-wrapped)", () => {
+  // Per the audit-logs PR-2 adoption (#134), deletePayment now:
+  //   1. SELECTs the row to be deleted (so the audit row carries a
+  //      forensic before_state).
+  //   2. If the row is gone, short-circuits — no audit, no delete.
+  //   3. Otherwise wraps the DELETE via withAudit (fail-loud audit
+  //      INSERT before DELETE; AuditWriteFailedError if audit
+  //      INSERT errors; audit row preserved if DELETE errors).
+  // The fromResults convention below: invoice_payments returns
+  // SAMPLE_ROW so SELECT finds it; audit_logs returns null/null so the
+  // audit INSERT succeeds. Override per-test for failure paths.
 
-  it("throws on generic db error", async () => {
+  const SAMPLE_ROW = {
+    id: "pay-1",
+    invoice_id: "inv-1",
+    amount: 250,
+    method: "CASH",
+    received_at: "2026-05-16T10:00:00Z",
+    notes: null,
+    reference: null,
+  }
+
+  it("reads the row, writes one audit row, then deletes — table-call ordering", async () => {
+    const tableCalls: string[] = []
     const db = makeDb({
+      tableCalls,
       fromResults: {
-        invoice_payments: { data: null, error: { code: "P0001", message: "trigger blocked delete" } },
+        invoice_payments: { data: SAMPLE_ROW, error: null },
+        audit_logs: { data: null, error: null },
       },
     })
     const { createPaymentService } = await freshPaymentService()
     await expect(
       createPaymentService(db).deletePayment("pay-1"),
-    ).rejects.toMatchObject({ code: "P0001" })
+    ).resolves.toBeUndefined()
+    // Read invoice_payments -> insert into audit_logs -> delete from
+    // invoice_payments. Audit-first ordering is the load-bearing
+    // tamper-evidence property; pinning the sequence in a sentinel
+    // protects it from accidental refactor.
+    expect(tableCalls).toEqual([
+      "invoice_payments", // SELECT
+      "audit_logs",       // audit INSERT
+      "invoice_payments", // DELETE
+    ])
   })
 
-  it("returns silently when relation-missing TTL is already active", async () => {
-    // Set up the TTL by triggering a relation-missing on listForInvoice
-    // first, then verify deletePayment short-circuits without calling
-    // db.from again.
+  it("no-double-audit: the audit_logs table is hit exactly once", async () => {
+    const tableCalls: string[] = []
+    const db = makeDb({
+      tableCalls,
+      fromResults: {
+        invoice_payments: { data: SAMPLE_ROW, error: null },
+        audit_logs: { data: null, error: null },
+      },
+    })
+    const { createPaymentService } = await freshPaymentService()
+    await createPaymentService(db).deletePayment("pay-1")
+    expect(tableCalls.filter((t) => t === "audit_logs")).toHaveLength(1)
+  })
+
+  it("short-circuits silently with no audit when the row is already gone", async () => {
+    const tableCalls: string[] = []
+    const db = makeDb({
+      tableCalls,
+      fromResults: {
+        invoice_payments: { data: null, error: null }, // no row found
+        audit_logs: { data: null, error: null },
+      },
+    })
+    const { createPaymentService } = await freshPaymentService()
+    await expect(
+      createPaymentService(db).deletePayment("pay-already-gone"),
+    ).resolves.toBeUndefined()
+    // Only one .from() — the SELECT that found nothing. NO audit row,
+    // NO delete attempt. Preserves the prior idempotent semantics.
+    expect(tableCalls).toEqual(["invoice_payments"])
+  })
+
+  it("throws on generic delete error AFTER the audit row is committed", async () => {
+    // To distinguish SELECT vs DELETE results we use mockImplementation
+    // — the per-table single-result default of makeDb returns the
+    // same shape for every call to the same table, so we cannot
+    // differentiate the SELECT (must return a row) from the DELETE
+    // (must return an error) without overriding.
+    const SAMPLE_ROW_LOCAL = { ...SAMPLE_ROW }
+    const tableCalls: string[] = []
+    const invoicePaymentsCalls: Array<{ data: unknown; error: unknown }> = [
+      { data: SAMPLE_ROW_LOCAL, error: null }, // SELECT
+      { data: null, error: { code: "P0001", message: "trigger blocked delete" } }, // DELETE
+    ]
+    let invoiceCallIdx = 0
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation((table: string) => {
+      tableCalls.push(table)
+      const result =
+        table === "invoice_payments"
+          ? invoicePaymentsCalls[invoiceCallIdx++]!
+          : { data: null, error: null }
+      const builder: Record<string, unknown> = {}
+      for (const m of [
+        "select", "insert", "update", "upsert", "delete",
+        "eq", "in", "or", "gte", "lte", "order", "limit", "range",
+        "single", "maybeSingle",
+      ]) {
+        builder[m] = vi.fn(() => builder)
+      }
+      ;(builder as { then: unknown }).then = (resolve: (v: unknown) => void) =>
+        Promise.resolve(result).then(resolve)
+      return builder as never
+    })
+
+    const { createPaymentService } = await freshPaymentService()
+    await expect(
+      createPaymentService(db).deletePayment("pay-1"),
+    ).rejects.toMatchObject({ code: "P0001" })
+    // Audit row WAS written before the delete failed — the audit
+    // table appears between the SELECT and the failed DELETE.
+    expect(tableCalls).toEqual([
+      "invoice_payments", // SELECT (returned row)
+      "audit_logs",       // audit INSERT (succeeded)
+      "invoice_payments", // DELETE (errored)
+    ])
+  })
+
+  it("audit-write failure: AuditWriteFailedError surfaces and the delete never runs", async () => {
+    const tableCalls: string[] = []
+    const db = makeDb({
+      tableCalls,
+      fromResults: {
+        invoice_payments: { data: SAMPLE_ROW, error: null },
+        audit_logs: {
+          data: null,
+          error: { code: "23514", message: "violates audit_logs CHECK" },
+        },
+      },
+    })
+    const { createPaymentService } = await freshPaymentService()
+    await expect(
+      createPaymentService(db).deletePayment("pay-1"),
+    ).rejects.toMatchObject({ code: "AUDIT_WRITE_FAILED" })
+    // SELECT happened, audit INSERT was attempted, DELETE was NOT.
+    // The fail-loud contract is the whole point.
+    expect(tableCalls).toEqual(["invoice_payments", "audit_logs"])
+  })
+
+  it("returns silently when relation-missing TTL is already active (no audit, no delete)", async () => {
+    // Trigger the TTL via listForInvoice's PGRST205 path, then verify
+    // deletePayment short-circuits without doing anything — including
+    // not writing an audit row for a no-op.
     const db = makeDb({
       fromResults: {
         invoice_payments: {
@@ -522,11 +643,10 @@ describe("deletePayment", () => {
     await svc.listForInvoice("inv-1") // triggers TTL set
     const callsBefore = vi.mocked(db.from).mock.calls.length
     await expect(svc.deletePayment("pay-1")).resolves.toBeUndefined()
-    // No additional .from calls — short-circuit fired.
     expect(vi.mocked(db.from).mock.calls.length).toBe(callsBefore)
   })
 
-  it("marks relation-missing on fresh detection from delete path", async () => {
+  it("marks relation-missing when the SELECT hits PGRST205 on a fresh deployment", async () => {
     const db = makeDb({
       fromResults: {
         invoice_payments: {
@@ -537,9 +657,9 @@ describe("deletePayment", () => {
     })
     const { createPaymentService } = await freshPaymentService()
     const svc = createPaymentService(db)
-    // First call detects relation-missing via .delete + returns silently.
+    // First call: SELECT errors with PGRST205 -> markRelationMissing + return.
     await expect(svc.deletePayment("pay-1")).resolves.toBeUndefined()
-    // Second call short-circuits without hitting db.
+    // Second call: TTL short-circuit -> no db.from call.
     await expect(svc.deletePayment("pay-2")).resolves.toBeUndefined()
     expect(db.from).toHaveBeenCalledTimes(1)
   })
