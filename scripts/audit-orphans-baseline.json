@@ -1,7 +1,6 @@
 {
-  "generatedAt": "2026-05-13T16:10:12.984Z",
+  "generatedAt": "2026-05-16T00:35:42.026Z",
   "paths": [
-    "packages/ui/src/components/composed/dashboard-header.tsx",
     "packages/ui/src/components/composed/dashboard/anomaly-detector-widget.tsx",
     "packages/ui/src/components/composed/dashboard/date-range-selector.tsx",
     "packages/ui/src/components/composed/dashboard/live-activity-feed.tsx",
@@ -9,7 +8,6 @@
     "packages/ui/src/components/composed/dashboard/quick-actions.tsx",
     "packages/ui/src/components/composed/dashboard/sla-monitor-card.tsx",
     "packages/ui/src/components/composed/dashboard/welcome-hero.tsx",
-    "packages/ui/src/components/composed/data-table.tsx",
     "packages/ui/src/components/composed/finance/aging-buckets.tsx",
     "packages/ui/src/components/composed/finance/finance-summary-cards.tsx",
     "packages/ui/src/components/composed/finance/invoice-status-badge.tsx",
@@ -17,7 +15,6 @@
     "packages/ui/src/components/composed/finance/rate-card-table.tsx",
     "packages/ui/src/components/composed/hub-context-switcher.tsx",
     "packages/ui/src/components/composed/inventory/hub-inventory-card.tsx",
-    "packages/ui/src/components/composed/lottie-hero.tsx",
     "packages/ui/src/components/composed/manifests/manifest-action-bar.tsx",
     "packages/ui/src/components/composed/manifests/manifest-card.tsx",
     "packages/ui/src/components/composed/manifests/manifest-shipments-table.tsx",
@@ -25,7 +22,6 @@
     "packages/ui/src/components/composed/manifests/scan-feedback.tsx",
     "packages/ui/src/components/composed/manifests/scan-log.tsx",
     "packages/ui/src/components/composed/maps/live-corridor-map.tsx",
-    "packages/ui/src/components/composed/marquee.tsx",
     "packages/ui/src/components/composed/notifications/channel-legend-card.tsx",
     "packages/ui/src/components/composed/notifications/notification-inbox.tsx",
     "packages/ui/src/components/composed/notifications/system-status-card.tsx",
@@ -41,7 +37,6 @@
     "packages/ui/src/components/composed/settings/system-info-card.tsx",
     "packages/ui/src/components/composed/shipments/shipment-columns.tsx",
     "packages/ui/src/components/composed/shipments/shipment-detail-tabs.tsx",
-    "packages/ui/src/components/composed/shipments/tracking-timeline.tsx",
-    "packages/ui/src/components/composed/text-matrix-rain.tsx"
+    "packages/ui/src/components/composed/shipments/tracking-timeline.tsx"
   ]
 }
