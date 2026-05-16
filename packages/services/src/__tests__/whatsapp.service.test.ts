@@ -924,18 +924,66 @@ describe("getWhatsAppConfig", () => {
     })
   })
 
-  it("returns baseUrl: undefined when WPBOX_BASE_URL is unset (defaulted later inside createWhatsAppService)", () => {
+  it("returns baseUrl: '' (empty string, NOT undefined) when WPBOX_BASE_URL is stubbed empty — pins actual behavior", () => {
+    // CodeRabbit-corrected: prior version of this test asserted
+    // `cfg.baseUrl === "" || cfg.baseUrl === undefined`, which was
+    // dishonestly permissive and masked a real source-behavior issue.
+    //
+    // vi.stubEnv("WPBOX_BASE_URL", "") sets process.env.WPBOX_BASE_URL
+    // to the empty string. The source `getWhatsAppConfig` reads it
+    // verbatim (no `??`, no `||`, no normalization) and returns it.
+    // The result is { baseUrl: "" }, NOT { baseUrl: undefined }.
+    //
+    // This matters because `createWhatsAppService`'s
+    // `config.baseUrl ?? "https://chat.leminai.com"` fallback uses the
+    // nullish-coalescing operator, which does NOT trigger on empty
+    // string. So an empty baseUrl propagates through and produces
+    // relative-URL fetch calls. See the next test for the
+    // bug-documenting demonstration, and the BASE-URL-EMPTY-FALLBACK
+    // follow-up issue for the source fix.
     vi.stubEnv("WPBOX_API_TOKEN", "tok-1")
     vi.stubEnv("WPBOX_USER_ID", "u-1")
     vi.stubEnv("WPBOX_BASE_URL", "")
     const cfg = getWhatsAppConfig()
     expect(cfg.token).toBe("tok-1")
     expect(cfg.userId).toBe("u-1")
-    // stubEnv "" presents as the empty string from process.env's perspective;
-    // the source's `process.env.WPBOX_BASE_URL` is "" which falsy-coerces in
-    // the createWhatsAppService factory's `?? "https://chat.leminai.com"`
-    // fallback. Pin both the env-read shape AND the constructor fallback.
-    expect(cfg.baseUrl === "" || cfg.baseUrl === undefined).toBe(true)
+    expect(cfg.baseUrl).toBe("")
+  })
+
+  it("LATENT BUG: empty-string baseUrl propagates to relative fetch URL (?? does not coalesce empty string)", async () => {
+    // Documents the bug surfaced by CodeRabbit's review of the prior
+    // overly-permissive baseUrl assertion. NOT fixed in this PR per
+    // the test-floor-PR-is-tests-only rule; filed as a follow-up.
+    //
+    // The source's `(config.baseUrl ?? "https://chat.leminai.com").replace(...)`
+    // expression yields the empty string when baseUrl is "" — because
+    // `??` only coalesces null/undefined, not falsy. The resulting
+    // `baseUrl` after the trailing-slash strip is also "", so the
+    // template literal `${baseUrl}${path}` produces just the path,
+    // and fetch is called with a relative URL.
+    //
+    // In production this would fail because fetch in Node requires an
+    // absolute URL. We pin the broken-but-current behavior here so the
+    // future fix has a target: the failing assertion in this test
+    // becomes a passing one once the source normalizes empty -> default.
+    const fetchMock = mockFetchSequence({
+      kind: "response",
+      response: mockResponse({
+        body: JSON.stringify({ status: "success", message_wamid: "w" }),
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    const svc = createWhatsAppService({
+      token: TEST_CONFIG.token,
+      userId: TEST_CONFIG.userId,
+      baseUrl: "",
+    })
+    await svc.sendMessage({ phone: "919876543210", message: "hi" })
+    const [url] = fetchMock.mock.calls[0]! as [string, RequestInit]
+    // BUG: relative URL, not absolute. Should be the default WPBox
+    // production hostname per the `?? "https://chat.leminai.com"`
+    // intent — but `??` does not trigger on "".
+    expect(url).toBe("/api/wpbox/sendmessage")
   })
 })
 
