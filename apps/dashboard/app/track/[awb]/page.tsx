@@ -53,11 +53,8 @@ export default async function PublicTrackingPage({ params }: PageProps) {
   // Sender/receiver names + addresses + phone are intentionally removed
   // before render to prevent leaking PII. Phase 6.5 will switch the
   // service to query the `public_shipment_tracking` view instead.
-  const ModeIcon = /express|priority/i.test(
-    shipment.serviceLevel ?? ""
-  )
-    ? RiPlaneLine
-    : RiTruckLine
+  const isAirService = /express|priority/i.test(shipment.serviceLevel ?? "")
+  const ModeIcon = isAirService ? RiPlaneLine : RiTruckLine
 
   return (
     <div className="space-y-6">
@@ -91,16 +88,7 @@ export default async function PublicTrackingPage({ params }: PageProps) {
           label="Weight"
           value={`${(shipment.chargeableWeight ?? 0).toFixed(1)} kg`}
         />
-        <Stat
-          label="Mode"
-          value={
-            /express|priority/i.test(
-              shipment.serviceLevel ?? ""
-            )
-              ? "Air"
-              : "Surface"
-          }
-        />
+        <Stat label="Mode" value={isAirService ? "Air" : "Surface"} />
         <Stat label="Created" value={fmtDate(shipment.createdAt)} />
         <Stat
           label="ETA"
