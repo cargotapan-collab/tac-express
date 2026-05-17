@@ -11,8 +11,8 @@
 > Each item has a fenced ```` ```refs ... ``` ```` block. Lines are `<kind>: <value>` where `<kind>` ∈ {`file`, `symbol`, `table`, `rpc`}. Items without code artifacts use `` `refs: none — not-sentinel-checked (reason)` `` to be explicit about why the sentinel skips them.
 
 **Date last refreshed:** 2026-05-17 (re-framing pass: launch-buckets added per [`docs/launch/definition-of-done.md`](../launch/definition-of-done.md))
-**Seed:** [`docs/audits/2026-05-16-102-revalidation.md`](audits/2026-05-16-102-revalidation.md) + the two known deltas since (whatsapp_sends DONE in #141; #142–#145 filed alongside #141).
-**Re-frame:** [`docs/audits/2026-05-17-launch-reframe-triage.md`](audits/2026-05-17-launch-reframe-triage.md) — reconciled every item against main; assigned a launch-bucket. **`**Bucket:**` lines below classify each item as SHIP-BLOCKER (gates launch — see DoD § 2), POST-LAUNCH (real work; not launch-gating), or WONTFIX-WATCH (CLAUDE.md § 6 deferral).**
+**Seed:** [`docs/audits/2026-05-16-102-revalidation.md`](../audits/2026-05-16-102-revalidation.md) + the two known deltas since (whatsapp_sends DONE in #141; #142–#145 filed alongside #141).
+**Re-frame:** [`docs/audits/2026-05-17-launch-reframe-triage.md`](../audits/2026-05-17-launch-reframe-triage.md) — reconciled every item against main; assigned a launch-bucket. **`**Bucket:**` lines below classify each item as SHIP-BLOCKER (gates launch — see DoD § 2), POST-LAUNCH (real work; not launch-gating), or WONTFIX-WATCH (CLAUDE.md § 6 deferral).**
 
 > **Tracker pointer hygiene:** the umbrella [#102](https://github.com/cargotapan-collab/tac-express/issues/102) issue is CLOSED on the tracker (intentionally; authority moved here per AGENTS.md § 0). The per-item `**Tracker:** #102` references below are historical pointers; the authoritative line item lives here. Per-item refs blocks (the `refs:` fenced blocks) remain the load-bearing identifiers checked by the backlog-refs-drift sentinel.
 
