@@ -111,23 +111,30 @@ These four items were filed yesterday as follow-ups to whatsapp_sends. They post
 ### W2 — Operator retry UI for failed WhatsApp sends
 
 **Risk:** approximate rank #5–6 (medium).
-**Status:** PARTIAL — PR 1 (visibility/read path) DONE in PR [#152](https://github.com/cargotapan-collab/tac-express/pull/152); PR 2 (retry action / write path) OPEN, filed as a separate follow-up issue (see "PR 2 scope" below). Per the brief's read/retry split — operators can now SEE failed sends; the retry-button + retry-API-route ship in PR 2.
-**Bucket:** SHIP-BLOCKER (the PR 2 half = `SB-1` in DoD; the PR 1 half is DONE). See [`docs/launch/definition-of-done.md#sb-1`](../launch/definition-of-done.md#sb-1--failed-send-retry-action-153).
-**Tracker:** [#142](https://github.com/cargotapan-collab/tac-express/issues/142) (PARTIAL — recommended close per DoD § 8 OWNER ACTIONS; let [#153](https://github.com/cargotapan-collab/tac-express/issues/153) carry the remainder under the one-feature-one-open-issue convention).
+**Status:** DONE — both halves shipped. PR 1 (visibility/read) in PR [#152](https://github.com/cargotapan-collab/tac-express/pull/152); PR 2 (retry action / write — SB-1) in the PR closing [#153](https://github.com/cargotapan-collab/tac-express/issues/153). MANAGER+ operators can now navigate to `/ops-console/whatsapp/failed-sends`, SEE failed WhatsApp sends in the last 7-day window, and RETRY any `sendmessage` failure via a pure `WhatsAppRetryButton` wired through the role-gated `POST /api/whatsapp/retry-send` route. Layered safety (PHASE-0 § E): service guards (status='failed' + endpoint match) + route guards (MANAGER+ + kill switch + rate-limit + invoice-linkage + sendmessage-only) + UI in-flight lock. The list query now filters out superseded rows (PHASE-0 § B) so a successfully-retried send drops off the list automatically.
+**Bucket:** N/A — DONE; shipped pre-launch. SB-1 closed in the DoD (4 → 3 ship-blockers remaining).
+**Tracker:** [#142](https://github.com/cargotapan-collab/tac-express/issues/142) + [#153](https://github.com/cargotapan-collab/tac-express/issues/153) — owner action: close both.
 
-**PR 1 (this session — visibility):** new page at `/ops-console/whatsapp/failed-sends`, role-gated MANAGER+. Lists failed WhatsApp sends in the last 7 days. Pure UI components in `packages/ui` (table + status-badge + page-shape view); apps/dashboard owns page composition + role-gating + the server-side data fetch directly from the service. New service method `listFailedWhatsappSends` lives in the existing tracked wrapper. Zero retry-related code in PR 1.
-
-**PR 2 (next session — retry action):** retry button on each row → `POST /api/whatsapp/retry-send` → existing `retryWhatsappSend` primitive (shipped in PR #141). In-flight state handling, post-retry refetch, optimistic UI decision. Filed as its own follow-up issue with do-not-bundle marker.
+**V1 scope cut:** template-message (`sendtemplatemessage`) retries are out of scope for V1 — template rows show a disabled retry button with explanatory tooltip ("Template retries: re-send from the invoice detail page."). Template retries need `templateLanguage` metadata not stored on `whatsapp_sends` today; a future POST-LAUNCH follow-up either persists that column or defaults it.
 
 ```refs
 file: apps/dashboard/app/ops-console/whatsapp/failed-sends/page.tsx
 file: apps/dashboard/app/ops-console/whatsapp/failed-sends/ops-whatsapp-failed-sends-live.tsx
+file: apps/dashboard/app/ops-console/whatsapp/failed-sends/ops-whatsapp-failed-sends-client.tsx
+file: apps/dashboard/app/api/whatsapp/retry-send/route.ts
+file: packages/services/src/whatsapp/invoice-replay-payload.ts
 file: packages/ui/src/components/composed/whatsapp/whatsapp-send-status-badge.tsx
 file: packages/ui/src/components/composed/whatsapp/failed-sends-table.tsx
+file: packages/ui/src/components/composed/whatsapp/whatsapp-retry-button.tsx
 file: packages/ui/src/components/composed/ops-console/pages/ops-whatsapp-failed-sends-view.tsx
 symbol: packages/services/src/whatsapp-tracked.service.ts::listFailedWhatsappSends
+symbol: packages/services/src/whatsapp-tracked.service.ts::getWhatsappSendById
+symbol: packages/services/src/whatsapp-tracked.service.ts::retryWhatsappSend
+symbol: packages/services/src/whatsapp/invoice-replay-payload.ts::buildInvoiceMessage
+symbol: packages/services/src/whatsapp/invoice-replay-payload.ts::buildInvoiceTemplateComponents
 symbol: packages/ui/src/components/composed/whatsapp/whatsapp-send-status-badge.tsx::WhatsAppSendStatusBadge
 symbol: packages/ui/src/components/composed/whatsapp/failed-sends-table.tsx::FailedSendsTable
+symbol: packages/ui/src/components/composed/whatsapp/whatsapp-retry-button.tsx::WhatsAppRetryButton
 symbol: packages/ui/src/components/composed/ops-console/pages/ops-whatsapp-failed-sends-view.tsx::OpsWhatsAppFailedSendsView
 symbol: packages/types/src/whatsapp-send.types.ts::FailedWhatsappSendRow
 ```

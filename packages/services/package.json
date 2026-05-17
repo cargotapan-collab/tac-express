@@ -50,6 +50,7 @@
         "./public-tracking.service": "./src/public-tracking.service.ts",
         "./whatsapp.service": "./src/whatsapp.service.ts",
         "./whatsapp-tracked.service": "./src/whatsapp-tracked.service.ts",
+        "./whatsapp/invoice-replay-payload": "./src/whatsapp/invoice-replay-payload.ts",
         "./invoice-draft.service": "./src/invoice-draft.service.ts",
         "./pdf/invoice-pdf": "./src/pdf/invoice-pdf.tsx",
         "./pdf/invoice-pdf-token": "./src/pdf/invoice-pdf-token.ts",

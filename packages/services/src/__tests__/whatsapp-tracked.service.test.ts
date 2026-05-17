@@ -809,6 +809,85 @@ const _typeOnlyAssertions = (): void => {
 }
 void _typeOnlyAssertions
 
+// ─── getWhatsappSendById (SB-1 / #153 — retry-route pre-flight reader) ──────
+
+describe("getWhatsappSendById", () => {
+  const ROW_ID = "ff111111-1111-1111-1111-111111111111"
+  const ROW = {
+    id: ROW_ID,
+    invoice_id: SAMPLE_INVOICE_ID,
+    original_send_id: null,
+    attempt_no: 1,
+    phone: SAMPLE_PHONE,
+    endpoint: "sendmessage",
+    template_name: null,
+    wamid: null,
+    status: "failed",
+    raw_response: null,
+    error_message: "WhatsApp rejected",
+    user_id: null,
+    queued_at: "2026-05-17T08:00:00Z",
+    completed_at: "2026-05-17T08:00:02Z",
+  }
+
+  it("returns a mapped row when the row exists + caller can read it", async () => {
+    const { fromImpl, spies } = makeBuilderSpyByTable({
+      whatsapp_sends: { data: ROW, error: null },
+    })
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation(fromImpl)
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    const row = await svc.getWhatsappSendById(ROW_ID)
+    expect(row).toMatchObject({
+      id: ROW_ID,
+      invoice_id: SAMPLE_INVOICE_ID,
+      attempt_no: 1,
+      phone: SAMPLE_PHONE,
+      endpoint: "sendmessage",
+      status: "failed",
+      error_message: "WhatsApp rejected",
+    })
+    const spy = spies.whatsapp_sends!
+    // Asserts the projection includes ALL fields (the retry route's pre-flight
+    // check needs invoice_id + endpoint + status; the returned row is full
+    // shape for future callers).
+    const selectArg = spy.firstCallArgs("select")?.[0] as string
+    expect(selectArg).toContain("invoice_id")
+    expect(selectArg).toContain("endpoint")
+    expect(selectArg).toContain("status")
+    expect(selectArg).toContain("raw_response")
+    expect(spy.calls.eq).toEqual([["id", ROW_ID]])
+  })
+
+  it("returns null when the row doesn't exist OR is RLS-hidden (no error)", async () => {
+    const { fromImpl } = makeBuilderSpyByTable({
+      whatsapp_sends: { data: null, error: null },
+    })
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation(fromImpl)
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    expect(await svc.getWhatsappSendById(ROW_ID)).toBeNull()
+  })
+
+  it("rethrows on DB error", async () => {
+    const { fromImpl } = makeBuilderSpyByTable({
+      whatsapp_sends: {
+        data: null,
+        error: { code: "P0001", message: "RLS denied" },
+      },
+    })
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation(fromImpl)
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    await expect(svc.getWhatsappSendById(ROW_ID)).rejects.toMatchObject({
+      code: "P0001",
+    })
+  })
+})
+
 // ─── listFailedWhatsappSends (backlog W2, PR 1: visibility/read path) ───────
 
 describe("listFailedWhatsappSends", () => {
@@ -826,7 +905,40 @@ describe("listFailedWhatsappSends", () => {
     completed_at: "2026-05-17T08:00:02Z",
   }
 
-  it("happy path: returns mapped rows from a .from('whatsapp_sends') select", async () => {
+  /**
+   * The implementation issues TWO `.from('whatsapp_sends')` calls — see
+   * PHASE-0 § B in `docs/decisions/2026-05-17-whatsapp-retry-action.md`:
+   *
+   *   call 1: candidates  — `.select(...).eq("status","failed").gte().order().limit(limit*2)`
+   *   call 2: descendants — `.select("original_send_id").in("original_send_id", candidateIds)`
+   *
+   * `makeBuilderSpyByTable` returns the SAME spy/builder for every call to
+   * `.from(table)`, so `spy.calls.*` accumulates BOTH invocations. Tests
+   * that care about WHICH query did what read the right index out of
+   * `calls[method]` (first call = candidates; second = descendants).
+   *
+   * For tests that need to distinguish OUTPUTS per query (e.g., a leaf-
+   * filtering test where the candidate query returns rows but the
+   * descendant query returns its own row set), use `sequentialBuilders`
+   * below — it stubs `db.from` to hand back DIFFERENT builders per call.
+   */
+  function sequentialBuilders(...results: Array<{ data: unknown; error: unknown }>) {
+    const built = results.map((r) => makeBuilderSpyByTable({
+      whatsapp_sends: r,
+    }))
+    const fromImpl = ((_table: string) => {
+      const next = built.shift()
+      if (!next) throw new Error("sequentialBuilders: more from() calls than expected")
+      return next.fromImpl(_table)
+    }) as (table: string) => never
+    return { fromImpl }
+  }
+
+  it("happy path: returns mapped rows + overfetches by 2× for leaf-filtering", async () => {
+    // Both queries return the same single-row data. The descendant query's
+    // `.in("original_send_id", [SAMPLE_FAILED_ROW.id])` returns this row,
+    // whose `original_send_id` is null → no candidate is superseded → the
+    // single row passes through to the mapped output.
     const { fromImpl, spies } = makeBuilderSpyByTable({
       whatsapp_sends: { data: [SAMPLE_FAILED_ROW], error: null },
     })
@@ -848,17 +960,27 @@ describe("listFailedWhatsappSends", () => {
       error_message: "WhatsApp rejected (message_wamid: null)",
     })
     const spy = spies.whatsapp_sends!
-    const selectArg = spy.firstCallArgs("select")?.[0] as string
-    expect(selectArg).toContain("id")
-    expect(selectArg).toContain("error_message")
-    expect(selectArg).toContain("completed_at")
-    expect(selectArg).not.toContain("raw_response")
+    // First .select() is the candidates query (full projection).
+    const candidateSelect = spy.calls.select[0]?.[0] as string
+    expect(candidateSelect).toContain("id")
+    expect(candidateSelect).toContain("error_message")
+    expect(candidateSelect).toContain("completed_at")
+    expect(candidateSelect).not.toContain("raw_response")
+    // Second .select() is the descendant query (only original_send_id).
+    const descendantSelect = spy.calls.select[1]?.[0] as string
+    expect(descendantSelect).toBe("original_send_id")
+    // The candidate query asserts status='failed'.
     expect(spy.calls.eq).toEqual([["status", "failed"]])
     expect(spy.firstCallArgs("order")).toEqual([
       "completed_at",
       { ascending: false },
     ])
-    expect(spy.argsFor("limit")).toEqual([50])
+    // .limit(50 * 2) — the implementation overfetches by 2× so that filtered-
+    // out non-leaves don't shrink the returned page below the requested cap.
+    expect(spy.argsFor("limit")).toEqual([100])
+    // The descendant query uses .in("original_send_id", candidateIds).
+    expect(spy.calls.in[0]?.[0]).toBe("original_send_id")
+    expect(spy.calls.in[0]?.[1]).toEqual([SAMPLE_FAILED_ROW.id])
   })
 
   it("default sinceDays = 7 → .gte('completed_at', <7-day cutoff ISO>)", async () => {
@@ -881,7 +1003,7 @@ describe("listFailedWhatsappSends", () => {
     expect(cutoffMs).toBeLessThanOrEqual(after - sevenDaysMs)
   })
 
-  it("custom limit + sinceDays passed through", async () => {
+  it("custom limit + sinceDays passed through (limit doubles for overfetch)", async () => {
     const { fromImpl, spies } = makeBuilderSpyByTable({
       whatsapp_sends: { data: [], error: null },
     })
@@ -891,7 +1013,8 @@ describe("listFailedWhatsappSends", () => {
     const svc = createTrackedWhatsAppService(db, CONFIG)
     await svc.listFailedWhatsappSends({ limit: 10, sinceDays: 30 })
     const spy = spies.whatsapp_sends!
-    expect(spy.argsFor("limit")).toEqual([10])
+    // limit: 10 → first query calls .limit(20) for the 2× overfetch.
+    expect(spy.argsFor("limit")).toEqual([20])
     const cutoffMs = new Date(spy.calls.gte[0]?.[1] as string).getTime()
     const expectedMin = Date.now() - 30 * 24 * 60 * 60 * 1000 - 5_000
     const expectedMax = Date.now() - 30 * 24 * 60 * 60 * 1000 + 5_000
@@ -911,7 +1034,7 @@ describe("listFailedWhatsappSends", () => {
     expect(rows).toEqual([])
   })
 
-  it("rethrows on DB error (RLS denied, network, etc.)", async () => {
+  it("rethrows on candidate-query DB error (RLS denied, network, etc.)", async () => {
     const { fromImpl } = makeBuilderSpyByTable({
       whatsapp_sends: {
         data: null,
@@ -924,6 +1047,94 @@ describe("listFailedWhatsappSends", () => {
     const svc = createTrackedWhatsAppService(db, CONFIG)
     await expect(svc.listFailedWhatsappSends()).rejects.toMatchObject({
       code: "P0001",
+    })
+  })
+
+  // ─── Leaf-filtering (PHASE-0 § B — money-flow correctness for retries) ───
+  //
+  // The append-only-per-attempt row model means a successful retry creates
+  // a NEW `sent` row pointing back at the failed row via `original_send_id`.
+  // The original failed row stays `failed` forever. The list MUST filter
+  // out failed rows whose id is referenced as `original_send_id` by ANY
+  // other row — otherwise the operator sees an already-retried failure and
+  // is invited to re-send the customer (a money-flow bug).
+
+  it("drops a failed row whose id is referenced as original_send_id by a descendant", async () => {
+    const SUPERSEDED = {
+      ...SAMPLE_FAILED_ROW,
+      id: "11111111-1111-1111-1111-111111111111",
+    }
+    // Candidate query returns 1 row; descendant query returns 1 row
+    // pointing at the SUPERSEDED row → it should be filtered out → 0 rows.
+    const { fromImpl } = sequentialBuilders(
+      { data: [SUPERSEDED], error: null },
+      { data: [{ original_send_id: SUPERSEDED.id }], error: null },
+    )
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation(fromImpl)
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    const rows = await svc.listFailedWhatsappSends()
+    expect(rows).toEqual([])
+  })
+
+  it("multi-attempt chain: only the LEAF failed row is shown (ancestors filtered)", async () => {
+    // Chain: A (failed) → B (failed) → C (failed) — C is the leaf.
+    // Descendant query returns rows pointing at A and at B (because B
+    // points at A and C points at B); C is referenced by nothing → leaf.
+    const A = { ...SAMPLE_FAILED_ROW, id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", attempt_no: 1, original_send_id: null }
+    const B = { ...SAMPLE_FAILED_ROW, id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", attempt_no: 2, original_send_id: A.id }
+    const C = { ...SAMPLE_FAILED_ROW, id: "cccccccc-cccc-cccc-cccc-cccccccccccc", attempt_no: 3, original_send_id: B.id }
+    const { fromImpl } = sequentialBuilders(
+      { data: [C, B, A], error: null }, // ordered most-recent-first per .order
+      { data: [{ original_send_id: A.id }, { original_send_id: B.id }], error: null },
+    )
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation(fromImpl)
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    const rows = await svc.listFailedWhatsappSends()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.id).toBe(C.id)
+    expect(rows[0]?.attempt_no).toBe(3)
+  })
+
+  it("enforces the limit cap AFTER leaf-filtering (small page even with many candidates)", async () => {
+    // 10 candidates; 5 are non-leaves (referenced by 5 descendants);
+    // limit=3 → returns 3 leaves (the first 3 by completed_at DESC).
+    const candidates = Array.from({ length: 10 }, (_, i) => ({
+      ...SAMPLE_FAILED_ROW,
+      id: `c${i}aaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa`,
+      completed_at: `2026-05-17T08:00:${String(i).padStart(2, "0")}Z`,
+    }))
+    // Five of them (the LAST five in the array — the oldest by sort order)
+    // have descendants → leaves are the first 5.
+    const descendants = candidates.slice(5).map((c) => ({ original_send_id: c.id }))
+    const { fromImpl } = sequentialBuilders(
+      { data: candidates, error: null },
+      { data: descendants, error: null },
+    )
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation(fromImpl)
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    const rows = await svc.listFailedWhatsappSends({ limit: 3 })
+    expect(rows).toHaveLength(3)
+    // First 3 candidates (= first 3 leaves once the last 5 are dropped).
+    expect(rows.map((r) => r.id)).toEqual(candidates.slice(0, 3).map((c) => c.id))
+  })
+
+  it("rethrows on descendant-query DB error too (defense-in-depth)", async () => {
+    const { fromImpl } = sequentialBuilders(
+      { data: [SAMPLE_FAILED_ROW], error: null },
+      { data: null, error: { code: "P0002", message: "descendant query failed" } },
+    )
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation(fromImpl)
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    await expect(svc.listFailedWhatsappSends()).rejects.toMatchObject({
+      code: "P0002",
     })
   })
 })

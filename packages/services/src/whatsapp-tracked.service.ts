@@ -150,6 +150,25 @@ export interface TrackedWhatsAppService {
     replayPayload: RetryReplayPayload,
   ): Promise<{ result: WhatsAppResult; newSendId: string | null }>
   /**
+   * Read a single whatsapp_sends row by id (RLS-checked). Returns null
+   * when the row doesn't exist OR isn't readable by the caller's role
+   * (same privacy posture as `retryWhatsappSend`'s internal lookup —
+   * "not found" and "RLS-hidden" are indistinguishable by design).
+   *
+   * Used by the retry route (SB-1 / #153) to pre-flight check the retry
+   * request — the route needs the row's `endpoint` + `invoice_id` to
+   * (a) reject template-endpoint retries (V1 supports `sendmessage` only;
+   * see decision § A) and (b) load the linked invoice to rebuild the
+   * replay payload. The service-layer guards in `retryWhatsappSend` still
+   * fire as defense-in-depth on the actual mutation call.
+   *
+   * The returned shape is the FULL `WhatsAppSendRow` so the caller can
+   * narrow as needed — narrower projections at this layer would force
+   * a new method per consumer.
+   */
+  getWhatsappSendById(id: string): Promise<WhatsAppSendRow | null>
+
+  /**
    * List recent FAILED WhatsApp sends for the operator triage view
    * (backlog item W2 — issue #142). Returns rows narrower than the full
    * `WhatsAppSendRow` (omits `raw_response` + `wamid` + `user_id` — the
@@ -660,6 +679,39 @@ export function createTrackedWhatsAppService(
       return { result, newSendId: newRowId }
     },
 
+    async getWhatsappSendById(id: string): Promise<WhatsAppSendRow | null> {
+      const { data, error } = await db
+        .from("whatsapp_sends")
+        .select(
+          "id, invoice_id, original_send_id, attempt_no, phone, endpoint, template_name, wamid, status, raw_response, error_message, user_id, queued_at, completed_at",
+        )
+        .eq("id", id)
+        .maybeSingle()
+      if (error) throw error
+      if (!data) return null
+      // Explicit field-by-field projection (no `as unknown as`) per the
+      // PR #150 retro's anti-pattern note. Mirrors listFailedWhatsappSends'
+      // mapper shape.
+      const r = data as Record<string, unknown>
+      return {
+        id: r.id as WhatsAppSendRow["id"],
+        invoice_id: (r.invoice_id as WhatsAppSendRow["invoice_id"]) ?? null,
+        original_send_id:
+          (r.original_send_id as WhatsAppSendRow["original_send_id"]) ?? null,
+        attempt_no: r.attempt_no as number,
+        phone: r.phone as string,
+        endpoint: r.endpoint as WhatsAppSendRow["endpoint"],
+        template_name: (r.template_name as string | null) ?? null,
+        wamid: (r.wamid as string | null) ?? null,
+        status: r.status as WhatsAppSendRow["status"],
+        raw_response: r.raw_response ?? null,
+        error_message: (r.error_message as string | null) ?? null,
+        user_id: (r.user_id as WhatsAppSendRow["user_id"]) ?? null,
+        queued_at: r.queued_at as string,
+        completed_at: (r.completed_at as string | null) ?? null,
+      }
+    },
+
     async listFailedWhatsappSends(
       filters?: { limit?: number; sinceDays?: number },
     ): Promise<FailedWhatsappSendRow[]> {
@@ -671,7 +723,26 @@ export function createTrackedWhatsAppService(
         Date.now() - sinceDays * 24 * 60 * 60 * 1000,
       ).toISOString()
 
-      const { data, error } = await db
+      // Two-query "leaf failed rows only" pattern — see PHASE-0 (B) in
+      // docs/decisions/2026-05-17-whatsapp-retry-action.md.
+      //
+      // The append-only-per-attempt row model (PR #141) means a successful
+      // retry creates a NEW `sent` row pointing back at the failed row via
+      // `original_send_id`. The original failed row stays `failed` forever.
+      // A naive `WHERE status='failed'` would therefore keep showing
+      // already-retried rows in the operator triage view — inviting the
+      // operator to retry AGAIN, double-sending the customer. That is a
+      // money-flow correctness bug surfaced by the SB-1 retry action.
+      //
+      // The fix: show only LEAF failed rows — a failed row whose `id` does
+      // NOT appear as `original_send_id` on any other row. PostgREST has no
+      // correlated NOT EXISTS subquery; two bounded queries:
+      //   1. Get candidate failed rows in the window (2× the limit to
+      //      absorb filtered-out non-leaves).
+      //   2. Find which candidate ids are referenced by other rows.
+      //   3. Filter candidates whose id is in that set, then cap to `limit`.
+      // Both queries return ≤ 2 × limit rows at the configured cap of 50.
+      const { data: candidateData, error: candidateError } = await db
         .from("whatsapp_sends")
         .select(
           "id, invoice_id, original_send_id, attempt_no, phone, endpoint, template_name, status, error_message, queued_at, completed_at",
@@ -679,28 +750,55 @@ export function createTrackedWhatsAppService(
         .eq("status", "failed")
         .gte("completed_at", sinceIso)
         .order("completed_at", { ascending: false })
-        .limit(limit)
+        .limit(limit * 2)
 
-      if (error) throw error
+      if (candidateError) throw candidateError
+      const candidates = candidateData ?? []
+      if (candidates.length === 0) return []
+
+      const candidateIds = candidates.map(
+        (r) => (r as Record<string, unknown>).id as string,
+      )
+
+      // Step 2: which of the candidate ids are referenced as
+      // `original_send_id` from any row? Those are NON-leaves — drop them.
+      const { data: descendantData, error: descendantError } = await db
+        .from("whatsapp_sends")
+        .select("original_send_id")
+        .in("original_send_id", candidateIds)
+
+      if (descendantError) throw descendantError
+      const supersededIds = new Set(
+        (descendantData ?? [])
+          .map((r) => (r as Record<string, unknown>).original_send_id as string | null)
+          .filter((id): id is string => id !== null),
+      )
+
       // Explicit field-by-field projection — avoids growing the
       // `as unknown as` cluster PR #150's inventory flagged for #131.
       // Pattern mirrors manifest.service.ts::mapManifestSummary's shape.
-      return (data ?? []).map((row): FailedWhatsappSendRow => {
-        const r = row as Record<string, unknown>
-        return {
-          id: r.id as FailedWhatsappSendRow["id"],
-          invoice_id: (r.invoice_id as FailedWhatsappSendRow["invoice_id"]) ?? null,
-          original_send_id: (r.original_send_id as FailedWhatsappSendRow["original_send_id"]) ?? null,
-          attempt_no: r.attempt_no as number,
-          phone: r.phone as string,
-          endpoint: r.endpoint as FailedWhatsappSendRow["endpoint"],
-          template_name: (r.template_name as string | null) ?? null,
-          status: r.status as FailedWhatsappSendRow["status"],
-          error_message: (r.error_message as string | null) ?? null,
-          queued_at: r.queued_at as string,
-          completed_at: (r.completed_at as string | null) ?? null,
-        }
-      })
+      return candidates
+        .filter((row) => {
+          const id = (row as Record<string, unknown>).id as string
+          return !supersededIds.has(id)
+        })
+        .slice(0, limit)
+        .map((row): FailedWhatsappSendRow => {
+          const r = row as Record<string, unknown>
+          return {
+            id: r.id as FailedWhatsappSendRow["id"],
+            invoice_id: (r.invoice_id as FailedWhatsappSendRow["invoice_id"]) ?? null,
+            original_send_id: (r.original_send_id as FailedWhatsappSendRow["original_send_id"]) ?? null,
+            attempt_no: r.attempt_no as number,
+            phone: r.phone as string,
+            endpoint: r.endpoint as FailedWhatsappSendRow["endpoint"],
+            template_name: (r.template_name as string | null) ?? null,
+            status: r.status as FailedWhatsappSendRow["status"],
+            error_message: (r.error_message as string | null) ?? null,
+            queued_at: r.queued_at as string,
+            completed_at: (r.completed_at as string | null) ?? null,
+          }
+        })
     },
   }
 }

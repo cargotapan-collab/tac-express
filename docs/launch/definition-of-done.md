@@ -4,6 +4,7 @@
 >
 > **Pair file:** [`docs/backlog/production-readiness.md`](../backlog/production-readiness.md) is the open-item backlog (engineering hygiene + post-launch enhancements). This file is the launch-gating subset of that backlog plus owner actions.
 
+**Version:** 1.1 — 2026-05-17, **SB-1 DONE** (W2 retry action shipped in the PR closing [#153](https://github.com/cargotapan-collab/tac-express/issues/153)). 4 → 3 ship-blockers remaining.
 **Version:** 1.0 — initial framing, 2026-05-17.
 **Authority chain:** AGENTS.md § 0 → this file → backlog. The backlog file remains the authoritative open-item list; this file is the launch-gating triage of it.
 
@@ -42,18 +43,22 @@ This test is intentionally ruthless. The SHIP-BLOCKER bucket is small by design.
 
 **Four items.** All four must be true before launch.
 
-### SB-1 — Failed-send retry action ([#153](https://github.com/cargotapan-collab/tac-express/issues/153))
+### SB-1 — Failed-send retry action ([#153](https://github.com/cargotapan-collab/tac-express/issues/153)) — **DONE 2026-05-17**
 
-**Why it gates launch:** Operators can SEE failed WhatsApp sends (shipped in PR #152) but cannot RETRY them from the UI. A WhatsApp invoice-send failure (common — WAMID-null silent rejection, recipient outside the 24h window, template-header mismatch) currently requires engineering intervention to recover. That breaks the money-flow operator journey — invoice delivery is the entire purpose of the WhatsApp surface, and the operator owning that delivery cannot complete recovery without an engineer.
+**Closed in:** the PR closing #153 (W2 PR 2 — retry action). PHASE-0 decision: [`docs/decisions/2026-05-17-whatsapp-retry-action.md`](../decisions/2026-05-17-whatsapp-retry-action.md). Retro: [`docs/retros/2026-05-17-whatsapp-retry-action.md`](../retros/2026-05-17-whatsapp-retry-action.md).
 
-**Testable DONE criterion:**
-- `POST /api/whatsapp/retry-send` route exists in `apps/dashboard/app/api/whatsapp/retry-send/route.ts`, role-gated MANAGER+, calls the existing `retryWhatsappSend(originalSendId)` primitive from PR #141.
-- A retry button renders in the `FailedSendsTable` column for MANAGER+ users.
-- Clicking the retry button on a failed row produces a new row in `whatsapp_sends` with `attempt_no = N+1` and the operator sees the updated state without engineer intervention.
-- Tests cover: happy path, role-deny, in-flight retry guard (no duplicate concurrent retries on same `original_send_id`), validation error, primitive throws.
+**What shipped:**
+- `POST /api/whatsapp/retry-send` route at [apps/dashboard/app/api/whatsapp/retry-send/route.ts](../../apps/dashboard/app/api/whatsapp/retry-send/route.ts) — MANAGER+ role-gated; calls `retryWhatsappSend` (PR #141 primitive).
+- Pure `WhatsAppRetryButton` in [packages/ui/.../whatsapp/whatsapp-retry-button.tsx](../../packages/ui/src/components/composed/whatsapp/whatsapp-retry-button.tsx).
+- `FailedSendsTable` extended with an opt-in `retryConfig` prop (Retry column visible only when MANAGER+ visits the page).
+- Client wrapper in apps/dashboard owns per-row in-flight state + `router.refresh()` on successful retry.
+- `listFailedWhatsappSends` query adjusted to filter superseded rows (leaf-only) — a successfully-retried send drops off the failed list automatically. Fix for the money-flow correctness bug surfaced by the retry action (PHASE-0 § B).
+- Layered safety (PHASE-0 § E): service guards (status='failed' + endpoint match) + route guards (MANAGER+ + kill switch + rate-limit + invoice-linkage + sendmessage-only) + UI in-flight lock.
+- Replay-payload builders extracted to [packages/services/src/whatsapp/invoice-replay-payload.ts](../../packages/services/src/whatsapp/invoice-replay-payload.ts) (catalog #9 — second-consumer pattern).
 
-**Estimate:** 1 session.
-**Pattern reuse:** PR #152's pure components + PR #141's primitive — both already on main.
+**V1 scope cut documented:** template-message retries (`sendtemplatemessage`) are disabled in V1 with an explanatory tooltip. The schema doesn't persist `templateLanguage` — a POST-LAUNCH follow-up either persists that column or defaults it.
+
+**Tests:** 749 → 762 (+13 net new: 4 leaf-filtering + 3 getWhatsappSendById + 7 retry-button + 4 retry-column in failed-sends-table; minor existing-test adjustments for the 2× overfetch).
 
 ---
 
@@ -110,13 +115,13 @@ This test is intentionally ruthless. The SHIP-BLOCKER bucket is small by design.
 
 | Ship-blocker | Status | Blocker |
 |---|---|---|
-| SB-1 — Failed-send retry action (#153) | OPEN | Not started; ~1 session of work |
+| SB-1 — Failed-send retry action (#153) | **DONE 2026-05-17** | — |
 | SB-2 — Sentry alert provisioning (#94 / O3) | OPEN | ~20 min owner-task; agent-untouchable |
 | SB-3 — PITR playbook (D1) | OPEN | Not started; ~1-2 hours of doc work |
 | SB-4 — Payment-recording E2E (E1 carve-out) | OPEN | Not started; ~1 session of work |
 
-**Open ship-blockers:** 4 of 4.
-**Realistic burn-down:** **3-4 sessions total** — SB-1 and SB-4 are 1 session each; SB-3 is half a session; SB-2 is owner-only and can run in parallel.
+**Open ship-blockers:** 3 of 4 remain.
+**Realistic burn-down:** **2-3 sessions remaining** — SB-4 is 1 session; SB-3 is half a session; SB-2 is owner-only and can run in parallel.
 
 After all 4 are DONE, the launch criteria are met. POST-LAUNCH work continues against the same backlog file, but **does not gate launch**.
 
@@ -124,12 +129,12 @@ After all 4 are DONE, the launch criteria are met. POST-LAUNCH work continues ag
 
 ## 4. Recommended burn-down order
 
-1. **SB-1 first** ([#153](https://github.com/cargotapan-collab/tac-express/issues/153)) — direct continuation of PR #152; pattern-reuses every primitive shipped in PR 1 + the `retryWhatsappSend` service method from PR #141. Smallest concrete unit; the existing W2 momentum and component vocabulary make this the lowest-friction next session.
-2. **SB-3 second** (D1 PITR playbook) — pure documentation work; isolates a serious tail-risk; the owner can review independently of any code change; reduces the launch-eve workload on the highest-risk item.
+1. ~~**SB-1 first** ([#153](https://github.com/cargotapan-collab/tac-express/issues/153)) — direct continuation of PR #152.~~ **DONE 2026-05-17.**
+2. **SB-3 next** (D1 PITR playbook) — pure documentation work; isolates a serious tail-risk; the owner can review independently of any code change; reduces the launch-eve workload on the highest-risk item.
 3. **SB-4 third** (payment-recording E2E) — requires the most setup (Playwright e2e wiring for an authenticated dashboard flow with form-state + DB cleanup); benefits from being last because by then the money-flow surface is fully exercised by the prior PRs and the failure modes are well-known.
 4. **SB-2 fourth** (owner Sentry provisioning) — owner-only; can run in parallel with any of the above; must be done before first real-user traffic.
 
-**Ordering reasoning:** sequenced so that the next agent session is unblocked (SB-1 = pure code work, well-scoped) and the highest-risk item (SB-3 = tail-risk on data loss) is documented early. SB-4 last lets the test inherit the maximum amount of prior money-flow context. SB-2 is owner-async and slots whenever the owner has 20 minutes.
+**Ordering reasoning:** unchanged from v1.0 except SB-1 is now closed. SB-3 (pure doc) is the next agent-actionable item — small, isolates DB-loss tail risk, low-friction.
 
 ---
 

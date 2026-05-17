@@ -8,12 +8,14 @@ import {
   createTrackedWhatsAppServerService,
 } from "@workspace/services/server"
 import { OpsAccessFallback } from "@workspace/ui/components/composed/ops-console"
-import { OpsWhatsAppFailedSendsView } from "@workspace/ui/components/composed/ops-console/pages"
 import { UserRole } from "@workspace/types"
+
+import { OpsWhatsAppFailedSendsClient } from "./ops-whatsapp-failed-sends-client"
 
 /**
  * Server-side wrapper for the WhatsApp failed-sends operator triage page
- * (backlog item W2 — issue #142, PR 1 of 2).
+ * (backlog item W2). PR #152 shipped the read half; PR #153 (SB-1) added
+ * the retry write half via the client wrapper rendered below.
  *
  * Responsibilities (LAW 5 — apps/ holds composition + data, NOT reusable
  * UI; the OpsWhatsAppFailedSendsView is pure in packages/ui):
@@ -27,12 +29,10 @@ import { UserRole } from "@workspace/types"
  *     "Not authorized" view (no PII, no row data).
  *  4. On allowed: call `listFailedWhatsappSends()` on the tracked-
  *     WhatsApp service directly (server component → service is the
- *     idiomatic Next.js 16 read path; an API route is reserved for
- *     PR 2's POST /retry-send mutation per the brief's read/retry split).
- *  5. Pass `rows` + `windowDays` to the pure view.
- *
- * Zero retry-related code in this PR (PR 2 adds the button + the POST
- * route + the in-flight state).
+ *     idiomatic Next.js 16 read path; the retry MUTATION goes through the
+ *     /api/whatsapp/retry-send route from the client wrapper).
+ *  5. Render the client wrapper with `initialRows` + `windowDays` +
+ *     `canRetry=true` (only role-allowed callers reach this branch).
  */
 
 const WINDOW_DAYS = 7
@@ -60,5 +60,11 @@ export async function OpsWhatsAppFailedSendsLive() {
   const svc = createTrackedWhatsAppServerService(cookieStore)
   const rows = await svc.listFailedWhatsappSends({ sinceDays: WINDOW_DAYS })
 
-  return <OpsWhatsAppFailedSendsView rows={rows} windowDays={WINDOW_DAYS} />
+  return (
+    <OpsWhatsAppFailedSendsClient
+      initialRows={rows}
+      windowDays={WINDOW_DAYS}
+      canRetry
+    />
+  )
 }
