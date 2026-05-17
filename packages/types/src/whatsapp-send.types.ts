@@ -127,6 +127,31 @@ export type WhatsAppSendRawResponseShape =
   | { truncated: true; head: string }
 
 /**
+ * Subset of WhatsAppSendRow surfaced to the failed-sends operator view
+ * (backlog item W2 — issue #142). Narrower than the full row to avoid
+ * leaking the unused `raw_response` PII shape into the UI props surface.
+ * `raw_response` (jsonb) is omitted here — it's verbose and PII-dense; a
+ * future per-row detail view can reach for the full row via a separate
+ * service method.
+ *
+ * Used by `listFailedWhatsappSends` in `whatsapp-tracked.service.ts` +
+ * by `FailedSendsTable` / `OpsWhatsAppFailedSendsView` in `packages/ui`.
+ */
+export interface FailedWhatsappSendRow {
+  id: UUID
+  invoice_id: UUID | null
+  original_send_id: UUID | null
+  attempt_no: number
+  phone: string
+  endpoint: WhatsAppSendEndpoint
+  template_name: string | null
+  status: WhatsAppSendStatus // always "failed" for this view, but typed as union for honesty
+  error_message: string | null
+  queued_at: ISOTimestamp
+  completed_at: ISOTimestamp | null
+}
+
+/**
  * Sentry-tag contract emitted by the wrapper on tracker-write failure.
  * Mirrors the AUDIT_WRITE_TAG_KEYS pattern from with-audit.ts so a future
  * cross-package sentinel can assert any Sentry alert rule keyed off these

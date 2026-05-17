@@ -55,3 +55,7 @@ export {
   OpsSettingsView,
   type OpsSettingsViewProps,
 } from "./ops-settings-view"
+export {
+  OpsWhatsAppFailedSendsView,
+  type OpsWhatsAppFailedSendsViewProps,
+} from "./ops-whatsapp-failed-sends-view"

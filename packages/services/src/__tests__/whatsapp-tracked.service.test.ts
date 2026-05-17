@@ -808,3 +808,122 @@ const _typeOnlyAssertions = (): void => {
   void _tpl
 }
 void _typeOnlyAssertions
+
+// ─── listFailedWhatsappSends (backlog W2, PR 1: visibility/read path) ───────
+
+describe("listFailedWhatsappSends", () => {
+  const SAMPLE_FAILED_ROW = {
+    id: "ff111111-1111-1111-1111-111111111111",
+    invoice_id: SAMPLE_INVOICE_ID,
+    original_send_id: null,
+    attempt_no: 1,
+    phone: SAMPLE_PHONE,
+    endpoint: "sendmessage",
+    template_name: null,
+    status: "failed",
+    error_message: "WhatsApp rejected (message_wamid: null)",
+    queued_at: "2026-05-17T08:00:00Z",
+    completed_at: "2026-05-17T08:00:02Z",
+  }
+
+  it("happy path: returns mapped rows from a .from('whatsapp_sends') select", async () => {
+    const { fromImpl, spies } = makeBuilderSpyByTable({
+      whatsapp_sends: { data: [SAMPLE_FAILED_ROW], error: null },
+    })
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation(fromImpl)
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    const rows = await svc.listFailedWhatsappSends()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      id: SAMPLE_FAILED_ROW.id,
+      invoice_id: SAMPLE_INVOICE_ID,
+      original_send_id: null,
+      attempt_no: 1,
+      phone: SAMPLE_PHONE,
+      endpoint: "sendmessage",
+      template_name: null,
+      status: "failed",
+      error_message: "WhatsApp rejected (message_wamid: null)",
+    })
+    const spy = spies.whatsapp_sends!
+    const selectArg = spy.firstCallArgs("select")?.[0] as string
+    expect(selectArg).toContain("id")
+    expect(selectArg).toContain("error_message")
+    expect(selectArg).toContain("completed_at")
+    expect(selectArg).not.toContain("raw_response")
+    expect(spy.calls.eq).toEqual([["status", "failed"]])
+    expect(spy.firstCallArgs("order")).toEqual([
+      "completed_at",
+      { ascending: false },
+    ])
+    expect(spy.argsFor("limit")).toEqual([50])
+  })
+
+  it("default sinceDays = 7 → .gte('completed_at', <7-day cutoff ISO>)", async () => {
+    const { fromImpl, spies } = makeBuilderSpyByTable({
+      whatsapp_sends: { data: [], error: null },
+    })
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation(fromImpl)
+
+    const before = Date.now()
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    await svc.listFailedWhatsappSends()
+    const after = Date.now()
+
+    const gteCall = spies.whatsapp_sends!.calls.gte[0]
+    expect(gteCall?.[0]).toBe("completed_at")
+    const cutoffMs = new Date(gteCall?.[1] as string).getTime()
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000
+    expect(cutoffMs).toBeGreaterThanOrEqual(before - sevenDaysMs)
+    expect(cutoffMs).toBeLessThanOrEqual(after - sevenDaysMs)
+  })
+
+  it("custom limit + sinceDays passed through", async () => {
+    const { fromImpl, spies } = makeBuilderSpyByTable({
+      whatsapp_sends: { data: [], error: null },
+    })
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation(fromImpl)
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    await svc.listFailedWhatsappSends({ limit: 10, sinceDays: 30 })
+    const spy = spies.whatsapp_sends!
+    expect(spy.argsFor("limit")).toEqual([10])
+    const cutoffMs = new Date(spy.calls.gte[0]?.[1] as string).getTime()
+    const expectedMin = Date.now() - 30 * 24 * 60 * 60 * 1000 - 5_000
+    const expectedMax = Date.now() - 30 * 24 * 60 * 60 * 1000 + 5_000
+    expect(cutoffMs).toBeGreaterThanOrEqual(expectedMin)
+    expect(cutoffMs).toBeLessThanOrEqual(expectedMax)
+  })
+
+  it("returns empty array when data is null (no failed sends in window)", async () => {
+    const { fromImpl } = makeBuilderSpyByTable({
+      whatsapp_sends: { data: null, error: null },
+    })
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation(fromImpl)
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    const rows = await svc.listFailedWhatsappSends()
+    expect(rows).toEqual([])
+  })
+
+  it("rethrows on DB error (RLS denied, network, etc.)", async () => {
+    const { fromImpl } = makeBuilderSpyByTable({
+      whatsapp_sends: {
+        data: null,
+        error: { code: "P0001", message: "RLS denied" },
+      },
+    })
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation(fromImpl)
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    await expect(svc.listFailedWhatsappSends()).rejects.toMatchObject({
+      code: "P0001",
+    })
+  })
+})

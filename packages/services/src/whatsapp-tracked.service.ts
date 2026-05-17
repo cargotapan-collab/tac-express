@@ -68,6 +68,7 @@
 
 import type { SupabaseClient } from "@workspace/database/supabase.types"
 import type {
+  FailedWhatsappSendRow,
   WhatsAppSendEndpoint,
   WhatsAppSendRawResponseShape,
   WhatsAppSendRow,
@@ -148,6 +149,32 @@ export interface TrackedWhatsAppService {
     originalSendId: string,
     replayPayload: RetryReplayPayload,
   ): Promise<{ result: WhatsAppResult; newSendId: string | null }>
+  /**
+   * List recent FAILED WhatsApp sends for the operator triage view
+   * (backlog item W2 — issue #142). Returns rows narrower than the full
+   * `WhatsAppSendRow` (omits `raw_response` + `wamid` + `user_id` — the
+   * verbose / PII-heavy fields that the list view doesn't need; a future
+   * per-row detail view can fetch the full row via a separate method).
+   *
+   * RLS: the underlying `whatsapp_sends` SELECT policy restricts reads to
+   * `SUPER_ADMIN / ADMIN / MANAGER`. A caller without that role gets an
+   * empty array (not an error) — defense-in-depth alongside the page-
+   * layer role gate.
+   *
+   * Filters:
+   *  - `status='failed'` (hardcoded — the view is the failed-sends view)
+   *  - `completed_at >= now() - sinceDays * 24h` (default 7d; mirrors the
+   *    migration header's documented retry-window query)
+   *  - Ordered `completed_at DESC` (most-recent failures surface first)
+   *  - Limit: 50 (operator-triage view; pagination is a future enhancement)
+   *
+   * The retry action that operates on a row in this list ships in PR 2
+   * (the brief's read/retry split) — this method is the read half.
+   */
+  listFailedWhatsappSends(filters?: {
+    limit?: number
+    sinceDays?: number
+  }): Promise<FailedWhatsappSendRow[]>
 }
 
 // ─── Implementation ──────────────────────────────────────────────────────────
@@ -631,6 +658,49 @@ export function createTrackedWhatsAppService(
       }
 
       return { result, newSendId: newRowId }
+    },
+
+    async listFailedWhatsappSends(
+      filters?: { limit?: number; sinceDays?: number },
+    ): Promise<FailedWhatsappSendRow[]> {
+      // Defaults match the migration header's documented retry-window
+      // query: 7-day window, 50-row cap. Operator triage view sizing.
+      const limit = filters?.limit ?? 50
+      const sinceDays = filters?.sinceDays ?? 7
+      const sinceIso = new Date(
+        Date.now() - sinceDays * 24 * 60 * 60 * 1000,
+      ).toISOString()
+
+      const { data, error } = await db
+        .from("whatsapp_sends")
+        .select(
+          "id, invoice_id, original_send_id, attempt_no, phone, endpoint, template_name, status, error_message, queued_at, completed_at",
+        )
+        .eq("status", "failed")
+        .gte("completed_at", sinceIso)
+        .order("completed_at", { ascending: false })
+        .limit(limit)
+
+      if (error) throw error
+      // Explicit field-by-field projection — avoids growing the
+      // `as unknown as` cluster PR #150's inventory flagged for #131.
+      // Pattern mirrors manifest.service.ts::mapManifestSummary's shape.
+      return (data ?? []).map((row): FailedWhatsappSendRow => {
+        const r = row as Record<string, unknown>
+        return {
+          id: r.id as FailedWhatsappSendRow["id"],
+          invoice_id: (r.invoice_id as FailedWhatsappSendRow["invoice_id"]) ?? null,
+          original_send_id: (r.original_send_id as FailedWhatsappSendRow["original_send_id"]) ?? null,
+          attempt_no: r.attempt_no as number,
+          phone: r.phone as string,
+          endpoint: r.endpoint as FailedWhatsappSendRow["endpoint"],
+          template_name: (r.template_name as string | null) ?? null,
+          status: r.status as FailedWhatsappSendRow["status"],
+          error_message: (r.error_message as string | null) ?? null,
+          queued_at: r.queued_at as string,
+          completed_at: (r.completed_at as string | null) ?? null,
+        }
+      })
     },
   }
 }
