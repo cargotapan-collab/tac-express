@@ -104,17 +104,18 @@ export async function GET(req: NextRequest) {
 
   /* ─── 2. Load the header banner ─── */
   const headerBuffer = await loadHeaderImage()
-  // THIRD-PARTY-TYPE-GAP: @react-pdf/renderer's <Image src> type omits the
-  // `{ data: Buffer, format: "png" | "jpg" }` variant that the package
-  // accepts at runtime for in-memory binary images. We need the binary
-  // variant because the header banner is loaded from disk into a Buffer
-  // (see loadHeaderImage); passing a URL string would force a second
-  // HTTP fetch from the rendering child process. Cast at the boundary;
-  // the runtime contract is verified by the invoice-pdf E2E (when it
-  // lands — see #102 Sprint 2). Re-evaluate when @react-pdf/renderer
-  // widens the type or we switch PDF engines.
+  // The service `renderInvoicePdfToBuffer` already accepts the binary
+  // variant — its `headerImageSrc?` parameter is typed
+  // `string | { data: Buffer; format: "png" | "jpg" }`. Backlog item O2
+  // pre-#149 the cast at this site was `as unknown as string`, which
+  // was hiding nothing — it widened a perfectly-typed object to a
+  // string the service didn't need. Removed. The genuine library-side
+  // @react-pdf/renderer type-gap (Image src declared as string-only)
+  // is handled INSIDE the service's JSX at packages/services/src/pdf/
+  // invoice-pdf.tsx, where it belongs — the route just passes the
+  // typed union through.
   const headerImageSrc = headerBuffer
-    ? ({ data: headerBuffer, format: "png" } as unknown as string)
+    ? { data: headerBuffer, format: "png" as const }
     : undefined
 
   /* ─── 3. Generate QR (optional — degrades gracefully if it fails) ─── */
