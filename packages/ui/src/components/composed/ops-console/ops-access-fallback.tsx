@@ -36,7 +36,7 @@ function OpsAccessFallback({
       data-slot="ops-access-fallback"
       data-reason={reason}
       role="status"
-      className={cn("p-6 text-sm text-muted-foreground", className)}
+      className={cn("p-6 t-data text-muted-foreground", className)}
     >
       <p className="font-medium text-foreground">{copy.headline}</p>
       <p className="mt-1">{body}</p>
