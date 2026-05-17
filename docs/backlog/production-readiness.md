@@ -261,8 +261,8 @@ Useful if a manual-release event becomes possible (currently continuous deploy).
 ### E1 — E2E flows (5 grouped items)
 
 **Risk:** rank #11 per re-validation § 6 (grouped; aggregate scope is large but per-flow per-day risk is moderate).
-**Status:** OPEN — none of the 5 flows have specs.
-**Bucket:** MIXED. **Payment-recording = SHIP-BLOCKER (carve-out)** = `SB-4` in DoD — see [`docs/launch/definition-of-done.md#sb-4`](../launch/definition-of-done.md#sb-4--payment-recording-e2e-backlog-e1-carve-out). **Other 4 flows (shipment wizard, manifest wizard, RBAC RLS isolation, exception lifecycle) = POST-LAUNCH** — pending owner decision OD-2 (could promote any). Unit tests + manual QA + SB-2 alerting is defensible for the 4 non-money flows.
+**Status:** PARTIAL — payment-recording (the SB-4 carve-out) DONE 2026-05-17 via [`apps/dashboard/e2e/payment-recording.spec.ts`](../../apps/dashboard/e2e/payment-recording.spec.ts) + helper [`apps/dashboard/e2e/_helpers/payment-fixture.ts`](../../apps/dashboard/e2e/_helpers/payment-fixture.ts). The other 4 flows (shipment wizard, manifest wizard, RBAC RLS isolation, exception lifecycle) remain OPEN as POST-LAUNCH.
+**Bucket:** MIXED. **Payment-recording carve-out = DONE** (was SB-4 in DoD). **Other 4 flows = POST-LAUNCH** — pending owner decision OD-2. Unit tests + manual QA + SB-2 alerting is defensible for the 4 non-money flows.
 **Tracker:** none on GitHub (#102 umbrella closed); authoritative entry is this file.
 
 Five flows: payment recording (POST + assert), full shipment creation wizard (steps 2–4), full manifest creation with bulk shipment select, role-based RLS isolation (warehouse cross-hub), exception lifecycle (create / escalate / resolve). Each ~1 session; cumulative is the biggest unticked-item bucket.
