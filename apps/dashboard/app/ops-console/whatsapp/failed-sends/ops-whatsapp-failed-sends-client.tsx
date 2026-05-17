@@ -61,6 +61,13 @@ export function OpsWhatsAppFailedSendsClient({
   canRetry,
 }: OpsWhatsAppFailedSendsClientProps) {
   const router = useRouter()
+  // Synchronous in-flight lock — checked + mutated WITHOUT awaiting React
+  // state. Catches the double-click race the state-based guard cannot:
+  // two rapid clicks before React commits state both see the same (empty)
+  // `inflightIds` Set, so a Set-state check would let both fire. CodeRabbit
+  // #156 / Macroscope #156 finding. The ref-locked Set is the SoT for
+  // "may this fire?"; `inflightIds` state mirrors it for the render.
+  const inflightLock = React.useRef<Set<UUID>>(new Set())
   const [inflightIds, setInflightIds] = React.useState<Set<UUID>>(
     () => new Set(),
   )
@@ -99,9 +106,11 @@ export function OpsWhatsAppFailedSendsClient({
 
   const onRetry = React.useCallback(
     async (row: FailedWhatsappSendRow) => {
-      // Defense-in-depth: double-click while in-flight is a no-op even
-      // though the button is disabled — per PHASE-0 § E.
-      if (inflightIds.has(row.id)) return
+      // SYNCHRONOUS guard — checked + mutated before any await. React state
+      // updates are async; using the state-based check here would let two
+      // rapid clicks both pass (both see the empty Set in the closure).
+      if (inflightLock.current.has(row.id)) return
+      inflightLock.current.add(row.id)
 
       setInflightIds((prev) => {
         const next = new Set(prev)
@@ -130,13 +139,17 @@ export function OpsWhatsAppFailedSendsClient({
           ok: false,
           error: err instanceof Error ? err.message : "Network error",
         }
+      } finally {
+        // Release the lock + clear the in-flight state in lockstep so the
+        // button re-enables on response (or error). Symmetric with the
+        // synchronous lock acquisition above.
+        inflightLock.current.delete(row.id)
+        setInflightIds((prev) => {
+          const next = new Set(prev)
+          next.delete(row.id)
+          return next
+        })
       }
-
-      setInflightIds((prev) => {
-        const next = new Set(prev)
-        next.delete(row.id)
-        return next
-      })
 
       if (httpOk && body?.ok === true) {
         // Success — server-side leaf-filtering will drop the now-superseded
@@ -155,7 +168,7 @@ export function OpsWhatsAppFailedSendsClient({
         return next
       })
     },
-    [inflightIds, router],
+    [router],
   )
 
   const retryConfig: FailedSendsTableRetryConfig = React.useMemo(

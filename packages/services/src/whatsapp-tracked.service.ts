@@ -621,6 +621,50 @@ export function createTrackedWhatsAppService(
         }
       }
 
+      // Pre-INSERT existing-attempt guard (concurrency hardening for the
+      // money-flow surface — added in PR #156 after Macroscope HIGH finding).
+      //
+      // The original row's `status` is APPEND-ONLY and stays `'failed'`
+      // forever (per decision § A — retry creates a NEW row, never mutates
+      // the original). That means the status guard ABOVE does NOT block
+      // concurrent retries: two POSTs in flight against the same original
+      // both read `status='failed'`, both pass, both INSERT, both send.
+      //
+      // This pre-INSERT check narrows that race window: if ANY in-flight
+      // (`queued`) OR already-succeeded (`sent`) descendant already exists
+      // for this original, the retry is refused. The window between this
+      // SELECT and the INSERT below is TOCTOU-narrow (microseconds) — for
+      // TRUE cross-process safety a UNIQUE PARTIAL INDEX
+      // `(original_send_id) WHERE status IN ('queued','sent')` or a
+      // `pg_advisory_xact_lock(hash(original_send_id))` is the right
+      // architecture. Filed as a POST-LAUNCH follow-up.
+      //
+      // Defense layering today: this DB-level check + the per-user Upstash
+      // rate-limit on the route + the UI ref-locked in-flight guard. The
+      // single remaining surface — two operators clicking the SAME row
+      // within microseconds of each other — is the post-launch concern.
+      const { data: existingAttempt, error: existingErr } = await db
+        .from("whatsapp_sends")
+        .select("id, status")
+        .eq("original_send_id", origRow.id)
+        .in("status", ["queued", "sent"])
+        .limit(1)
+        .maybeSingle()
+      if (existingErr) throw existingErr
+      if (existingAttempt) {
+        const ex = existingAttempt as { id: string; status: WhatsAppSendStatus }
+        return {
+          result: {
+            ok: false,
+            error:
+              ex.status === "queued"
+                ? "A retry of this send is already in flight — wait for it to complete."
+                : "This send has already been retried successfully — refresh the page.",
+          },
+          newSendId: null,
+        }
+      }
+
       const templateName =
         replayPayload.endpoint === "sendtemplatemessage"
           ? replayPayload.input.templateName

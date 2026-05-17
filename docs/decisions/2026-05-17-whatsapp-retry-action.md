@@ -141,9 +141,38 @@ The new POST /api/whatsapp/retry-send route adds:
 - **In-flight lock per row** (PHASE-0 C). Double-click during in-flight is a no-op at the client wrapper.
 - **`canRetry=false` rows** show a disabled button with `title="Retry not available"` — purely cosmetic; the server is the trust boundary.
 
+### Pre-INSERT existing-attempt guard (CORRECTED — added in response to Macroscope HIGH on PR #156)
+
+**The original analysis was wrong.** The first draft of § E claimed "the second POST sees the first INSERT's effects" via the `status='failed'` guard on the ORIGINAL row. That is INCORRECT — the original row's status is APPEND-ONLY (per § A) and stays `'failed'` FOREVER. The retry creates a new row; the original is never mutated. So two concurrent POSTs both read the same original (`status='failed'`), both pass the status guard, both INSERT new attempts, both call `svc.sendMessage()` — **a real double-send to the customer.** Macroscope flagged this; the analysis was a correctness bug, not just a documentation gap.
+
+**The corrected guard (this PR):** `retryWhatsappSend` now runs a pre-INSERT SELECT against `whatsapp_sends WHERE original_send_id = origRow.id AND status IN ('queued', 'sent')`. If any descendant matches, the retry is refused with a clear error ("already in flight" or "already retried"). This narrows the race window from "all-the-time" to TOCTOU-narrow (microseconds between the check and the INSERT).
+
+**What this guard covers:**
+- Browser network-retry of the POST (the first attempt is `queued` within microseconds of the INSERT; the second POST sees the queued descendant and refuses).
+- Two operators clicking the same row seconds (or more) apart (the first attempt is `queued` or `sent` by then).
+- Any subsequent retry attempt after a successful retry (the `sent` descendant is found; the retry is refused).
+
+**What this guard does NOT cover (the remaining TOCTOU window):**
+- Two POSTs arriving within microseconds of each other, where neither has reached the INSERT yet. The first SELECT sees no existing attempt; both proceed to INSERT; double-send. This is a real but narrow surface.
+
+**For true cross-process concurrency safety** (POST-LAUNCH follow-up, filed alongside this PR):
+- Option A: `UNIQUE PARTIAL INDEX (original_send_id) WHERE status IN ('queued', 'sent')` on `whatsapp_sends`. The second concurrent INSERT fails with a unique-constraint violation; the service catches it and returns the "already in flight" response.
+- Option B: `pg_advisory_xact_lock(hashtextextended(original_send_id::text, 0))` in a SECURITY DEFINER RPC. The second concurrent call blocks on the lock until the first transaction commits.
+
+Either option closes the TOCTOU gap completely. Both require a migration; that's POST-LAUNCH per Convention A (default POST-LAUNCH for follow-ups; the interim guard is sufficient at the operator-volume the V1 launch will see).
+
+**Defense layering for V1:**
+
+| Layer | Catches |
+|---|---|
+| UI ref-locked in-flight Set | Same-browser double-click race (synchronous, pre-await) |
+| Per-user Upstash rate-limit | Bursts from a single user |
+| Service pre-INSERT existing-attempt guard | Browser network-retry; cross-operator clicks ≥ microseconds apart |
+| (POST-LAUNCH) Partial unique index or pg advisory lock | True simultaneous double-INSERT |
+
 ### What is explicitly NOT in scope this PR
 
-- **No idempotency-key store.** The natural idempotency key here is `original_send_id` itself; the service uses it as a relational identifier. A true cross-request idempotency-key store (e.g., Redis-backed deduplication across HTTP retries from the operator's browser) is not required because the service-layer "status must be failed" guard fires deterministically — a SECOND retry against the SAME `original_send_id` succeeds with a NEW attempt only when the previous attempt is genuinely failed. The case "operator clicks retry, network blip, browser retries the POST" produces at most ONE additional send (the second POST sees the first INSERT's effects: either the first attempt is in-flight → still `queued` → second POST is rejected by the next-retry guard, or first completed → status reflects outcome → second retry behaves correctly). The combination of the in-flight UI lock + service-layer status guard covers this. A genuine idempotency-key store is POST-LAUNCH if double-send incidents are observed in production.
+- **No true cross-process idempotency-key store** — see the POST-LAUNCH note above. The remaining surface (microsecond-scale TOCTOU window between SELECT and INSERT) is acknowledged + tracked.
 - **No "max retries per send" cap.** The service allows unbounded retry chains. An operational policy (e.g., "max 3 retries") is a POST-LAUNCH enhancement; for V1 the operator's judgment is the policy.
 - **No multi-row "retry all".** One row, one retry. The button is per-row.
 
@@ -164,11 +193,11 @@ The operator NEVER sees a silent failure. Every rejection produces a structured 
 
 ---
 
-## Bailout check
+## Bailout check (re-evaluated after Macroscope HIGH on PR #156)
 
 The brief's bailout conditions:
 
-- **(E) idempotency requires infrastructure that doesn't exist?** NO — the layered defense above is sufficient for V1. The combination of service-layer status guard + UI in-flight lock prevents the realistic attack surface (double-click, network-blip browser retry). An idempotency-key store is a POST-LAUNCH enhancement contingent on observed pain. Bailout does not fire.
+- **(E) idempotency requires infrastructure that doesn't exist?** Initial answer was NO; re-evaluated as **PARTIAL YES after Macroscope correctly flagged the append-only-status concurrency gap.** The interim defense (pre-INSERT existing-attempt guard + UI ref-locked in-flight + per-user rate-limit) is sufficient for V1's solo-operator-volume traffic; the remaining TOCTOU-narrow window is documented + a POST-LAUNCH issue is filed for the partial unique index / advisory lock. Bailout does NOT fire because the interim guard is correct for the expected V1 surface, but the original "no infrastructure needed" claim was wrong and the corrected doc reflects that. **Lesson: when a money-flow PR's safety analysis depends on a model invariant, re-prove the invariant — don't assume it.**
 - **(B) list query needs more than a contained adjustment?** NO — the two-query "leaf failed rows only" approach is a bounded change to `listFailedWhatsappSends` (one method on one service). Bailout does not fire.
 - **PR #152 read query MUST be adjusted in scope.** Confirmed; adjustment is contained.
 - **CodeRabbit catalog growth?** Not yet — finishing the PR before assessing.

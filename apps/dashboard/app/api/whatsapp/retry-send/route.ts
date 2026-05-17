@@ -133,10 +133,26 @@ export async function POST(req: NextRequest) {
   }
 
   // ─── 4. Pre-flight check on the failed row ──────────────────────────
+  // Distinguish true "not found" (null result) from DB errors (thrown).
+  // CodeRabbit #156 — a blanket `.catch(() => null)` would mask a Supabase
+  // outage as a 404, misleading incident triage.
   const trackedSvc = createTrackedWhatsAppServerService(cookieStore)
-  const failedRow = await trackedSvc
-    .getWhatsappSendById(parsed.originalSendId)
-    .catch(() => null)
+  let failedRow: Awaited<ReturnType<typeof trackedSvc.getWhatsappSendById>>
+  try {
+    failedRow = await trackedSvc.getWhatsappSendById(parsed.originalSendId)
+  } catch (err) {
+    log.error(
+      {
+        originalSendId: parsed.originalSendId,
+        errorMsg: err instanceof Error ? err.message : String(err),
+      },
+      "getWhatsappSendById threw — surfacing as 500",
+    )
+    return NextResponse.json(
+      { error: "Internal error reading failed-send record." },
+      { status: 500 },
+    )
+  }
 
   if (!failedRow) {
     return NextResponse.json(

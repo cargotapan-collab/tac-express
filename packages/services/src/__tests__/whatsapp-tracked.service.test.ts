@@ -609,11 +609,18 @@ describe("retryWhatsappSend", () => {
   it("Row 10: retries a failed row — inserts new attempt with attempt_no=2 and original_send_id link, succeeds", async () => {
     vi.stubGlobal("fetch", mockFetchSequence(mockResponse({ status: 200, body: SUCCESS_BODY })))
 
-    // Two .from() calls: SELECT to read original; then trackedSend pattern
-    // (INSERT + UPDATE).
+    // FOUR .from() calls now:
+    //   1. SELECT to read original
+    //   2. SELECT existing-attempt guard (added in PR #156 — Macroscope HIGH
+    //      finding on concurrent-retry double-send). Returns null = no existing.
+    //   3. INSERT new attempt row
+    //   4. UPDATE the new row with the result
     let fromCalls = 0
     const selectBuilder = makeBuilderSpyByTable({
       whatsapp_sends: { data: FAILED_ORIGINAL, error: null },
+    })
+    const existingGuardBuilder = makeBuilderSpyByTable({
+      whatsapp_sends: { data: null, error: null }, // no existing attempt → proceed
     })
     const insertBuilder = makeBuilderSpyByTable({
       whatsapp_sends: { data: { id: "new-row-1" }, error: null },
@@ -625,7 +632,8 @@ describe("retryWhatsappSend", () => {
     vi.mocked(db.from).mockImplementation((table: string) => {
       fromCalls++
       if (fromCalls === 1) return selectBuilder.fromImpl(table)
-      if (fromCalls === 2) return insertBuilder.fromImpl(table)
+      if (fromCalls === 2) return existingGuardBuilder.fromImpl(table)
+      if (fromCalls === 3) return insertBuilder.fromImpl(table)
       return updateBuilder.fromImpl(table)
     })
 
@@ -652,6 +660,100 @@ describe("retryWhatsappSend", () => {
       invoice_id: SAMPLE_INVOICE_ID,
       user_id: SAMPLE_USER_ID,
     })
+    // Existing-attempt guard fired with the right filter shape.
+    const guardSpy = existingGuardBuilder.spies.whatsapp_sends!
+    expect(guardSpy.calls.eq).toContainEqual(["original_send_id", "orig-1"])
+    expect(guardSpy.calls.in[0]?.[0]).toBe("status")
+    expect(guardSpy.calls.in[0]?.[1]).toEqual(["queued", "sent"])
+  })
+
+  // ─── Pre-INSERT concurrency guard (Macroscope HIGH on PR #156) ─────────
+  //
+  // The original row's status stays `'failed'` forever (append-only model),
+  // so two concurrent retries against the same original would both pass the
+  // status guard above. The new pre-INSERT check refuses if any descendant
+  // is already `queued` or `sent`. Race window is TOCTOU-narrow only.
+
+  it("refuses when an in-flight (queued) attempt already exists for the original", async () => {
+    let fromCalls = 0
+    const selectBuilder = makeBuilderSpyByTable({
+      whatsapp_sends: { data: FAILED_ORIGINAL, error: null },
+    })
+    const existingGuardBuilder = makeBuilderSpyByTable({
+      whatsapp_sends: { data: { id: "in-flight-attempt", status: "queued" }, error: null },
+    })
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation((table: string) => {
+      fromCalls++
+      if (fromCalls === 1) return selectBuilder.fromImpl(table)
+      return existingGuardBuilder.fromImpl(table)
+    })
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    const { result, newSendId } = await svc.retryWhatsappSend("orig-X", {
+      endpoint: "sendmessage",
+      input: { phone: SAMPLE_PHONE, message: SAMPLE_MESSAGE },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(newSendId).toBeNull()
+    expect("error" in result ? result.error : "").toContain("already in flight")
+    // No INSERT happened — only the two SELECTs.
+    expect(fromCalls).toBe(2)
+  })
+
+  it("refuses when a successfully-retried (sent) attempt already exists for the original", async () => {
+    let fromCalls = 0
+    const selectBuilder = makeBuilderSpyByTable({
+      whatsapp_sends: { data: FAILED_ORIGINAL, error: null },
+    })
+    const existingGuardBuilder = makeBuilderSpyByTable({
+      whatsapp_sends: { data: { id: "succeeded-attempt", status: "sent" }, error: null },
+    })
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation((table: string) => {
+      fromCalls++
+      if (fromCalls === 1) return selectBuilder.fromImpl(table)
+      return existingGuardBuilder.fromImpl(table)
+    })
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    const { result, newSendId } = await svc.retryWhatsappSend("orig-Y", {
+      endpoint: "sendmessage",
+      input: { phone: SAMPLE_PHONE, message: SAMPLE_MESSAGE },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(newSendId).toBeNull()
+    expect("error" in result ? result.error : "").toContain("already been retried")
+    expect(fromCalls).toBe(2)
+  })
+
+  it("rethrows on existing-attempt-guard DB error (defense-in-depth)", async () => {
+    let fromCalls = 0
+    const selectBuilder = makeBuilderSpyByTable({
+      whatsapp_sends: { data: FAILED_ORIGINAL, error: null },
+    })
+    const existingGuardBuilder = makeBuilderSpyByTable({
+      whatsapp_sends: {
+        data: null,
+        error: { code: "P0003", message: "guard query failed" },
+      },
+    })
+    const db = makeDb({})
+    vi.mocked(db.from).mockImplementation((table: string) => {
+      fromCalls++
+      if (fromCalls === 1) return selectBuilder.fromImpl(table)
+      return existingGuardBuilder.fromImpl(table)
+    })
+
+    const svc = createTrackedWhatsAppService(db, CONFIG)
+    await expect(
+      svc.retryWhatsappSend("orig-Z", {
+        endpoint: "sendmessage",
+        input: { phone: SAMPLE_PHONE, message: SAMPLE_MESSAGE },
+      }),
+    ).rejects.toMatchObject({ code: "P0003" })
   })
 
   it("Row 11a: refuses when original row status is 'queued'", async () => {
