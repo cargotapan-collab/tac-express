@@ -219,6 +219,14 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # CodeRabbit PR #149 hardening: pin GITHUB_TOKEN to least-privilege
+    # (read-only contents) at job scope so a future repo/org default change
+    # cannot silently widen token access during test execution. Only this
+    # job carries the explicit block today; the other architecture-gates
+    # jobs inherit the GitHub default. Converging them is its own cleanup
+    # PR (outside this PR's "wire the gate" scope).
+    permissions:
+      contents: read
     # LOAD-BEARING — gate failures BLOCK merge. Added by PR #<TBD> as the
     # explicit policy decision PR #146's backlog-drift sentinel deferred:
     #
