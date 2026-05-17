@@ -3,15 +3,15 @@ import { randomUUID } from "node:crypto"
 /**
  * Service-role test fixture for the payment-recording E2E spec (SB-4 / E1).
  *
- * WHY raw fetch (not @supabase/supabase-js):
- * The dashboard does NOT depend on `@supabase/supabase-js` directly (it
- * uses `@workspace/database`'s `@supabase/ssr` cookie-based clients).
- * Adding the JS client just for this E2E fixture would introduce a new
- * direct dep — explicitly forbidden by the SB-4 brief. Supabase's
- * PostgREST API is fully usable via Node 22's built-in `fetch`; the
- * three primitives this fixture needs (INSERT, SELECT-by-eq, DELETE-by-
- * eq) are bounded enough that a JS client is overkill. CI runs on Node
- * 22 per the e2e workflow.
+ * WHY raw fetch (not a JS client):
+ * The dashboard does NOT depend on the Supabase JS SDK directly (it uses
+ * @workspace/database's `@supabase/ssr` cookie-based clients). Adding
+ * that SDK just for this E2E fixture would introduce a new direct dep —
+ * explicitly forbidden by the SB-4 brief. Supabase's PostgREST API is
+ * fully usable via Node 22's built-in `fetch`; the three primitives
+ * this fixture needs (INSERT, SELECT-by-eq, DELETE-by-eq) are bounded
+ * enough that a JS client is overkill. CI runs on Node 22 per the e2e
+ * workflow.
  *
  * WHY service-role auth:
  * The spec creates an `invoices` row + asserts an `invoice_payments` row
