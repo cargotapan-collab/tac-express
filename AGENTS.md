@@ -93,6 +93,27 @@ The repo file uses a fenced ```` ```refs ... ``` ```` block per item carrying `f
 
 **Pattern for future agents:** *"does every artifact our backlog names actually exist on main?"* is no longer a discipline question. It is a CI question. Treat the backlog file the same way you treat a test file — edit via PR, let the sentinel verify.
 
+### CI test-gating policy
+
+**Every vitest unit test in the repo runs on CI on every architecture-gates-triggering PR**, as the `Unit tests` job in [`.github/workflows/architecture-gates.yml`](.github/workflows/architecture-gates.yml). Added by PR #<TBD-CI-GATING> after PR #146's deferred-policy carry-forward.
+
+This includes the six sentinel tests:
+
+| Sentinel | Location | What it guards |
+|---|---|---|
+| `rbac-block-adoption` | `apps/dashboard/__tests__/rbac-block-adoption.test.ts` | Every BLOCK site calls `captureRbacDenial` with a registered surface tag (PR #114) |
+| `api-routes-no-console` | `apps/dashboard/__tests__/api-routes-no-console.test.ts` | The three pino-migrated routes have zero `console.*` calls (PR #117) |
+| `silent-by-design` | `packages/services/src/__tests__/silent-by-design.test.ts` | The `SENTRY-SILENT-BY-DESIGN` marker is at the canonical site (PR #120) |
+| `audit-doc-references` | `apps/dashboard/__tests__/audit-doc-references.test.ts` | The 2026-05-15 RBAC-denial audit doc's file/RPC/route references resolve (PR #121) |
+| `audit-logs-no-update-delete` | `packages/services/src/__tests__/audit-logs-no-update-delete.test.ts` | No code path UPDATEs or DELETEs `audit_logs` (PR #133) |
+| `backlog-refs-drift` | `apps/dashboard/__tests__/backlog-refs-drift.test.ts` | Every code reference in `docs/backlog/production-readiness.md` resolves (PR #146) |
+
+**`backlog-refs-drift` ALSO runs as its own narrow CI job** with the same name — PR #146's precedent. It runs twice on most PRs (once standalone, once inside the `Unit tests` job). The narrow job is retained for two reasons: (1) failure-message clarity in the PR check list on backlog-edit PRs; (2) the workflow's `paths:` filter explicitly includes `docs/backlog/**` so a backlog-only edit triggers the narrow job specifically.
+
+**Failure surface:** vitest's standard FAIL output names the failing test by file + describe > it chain (e.g., `FAIL packages/services/src/__tests__/silent-by-design.test.ts > silent-by-design sentinel > marker is at canonical site`). The CI check NAME is generic ("Unit tests") but the OUTPUT is precise.
+
+**Rule for adding new sentinels:** put them under `__tests__/` in the right package; the `Unit tests` job picks them up automatically — no workflow edit needed. If a new sentinel needs the same name-level CI surface that `backlog-refs-drift` has (e.g., it lives in a docs path the broader `paths:` filter doesn't cover, or it's so load-bearing that a buried failure would mislead reviewers), add a dedicated narrow job mirroring `backlog-refs-drift`. Otherwise, do NOT add per-sentinel narrow jobs — PR check list noise is a real cost; vitest's output diagnoses the failure clearly.
+
 ### Agent-side scaffolding scripts (PRs + CI watching)
 
 Use `scripts/ci-watch-pr.mjs` for ALL CI watching. **Do NOT write inline `until [ "$(gh pr view ... mergeStateStatus)" != "UNSTABLE" ]; do sleep 30; done` bash loops** — that pattern silently reported stale-sha CLEAN states across PRs #118/#120/#121/#123 (closed as #122).
