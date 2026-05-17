@@ -124,6 +124,18 @@ export type WhatsAppResult<T = unknown> =
       rawResponse?: string
       /** Which body format produced this failure. Helps diagnose schema issues. */
       attemptedFormats?: Array<"json" | "form">
+      /**
+       * SEMANTIC failure marker (#139). When true, the failure is NOT a
+       * transport-format mismatch — it is a deliberate rejection by the
+       * upstream API (e.g., HTTP 200 + `message_wamid: null` = WhatsApp
+       * accepted the request but refused the send). `postSmart` checks
+       * this BEFORE computing shouldFallback so the form-encoded retry is
+       * skipped — retrying a semantic rejection produces an identical
+       * rejection AND an extra outbound API call per send. Currently set
+       * only by the WAMID-null guard in `attemptPost`; extend if other
+       * semantic-failure shapes emerge.
+       */
+      semanticFailure?: boolean
     }
 
 export interface WhatsAppService {
@@ -162,6 +174,17 @@ export function createWhatsAppService(config: WhatsAppConfig): WhatsAppService {
     /* ── First attempt: JSON body ── */
     const jsonResult = await attemptPost<T>(path, payload, "json")
     if (jsonResult.ok) return { ...jsonResult, format: "json" }
+
+    /* ── #139: Bypass the form-encoded fallback when the JSON attempt's
+     * failure is a SEMANTIC rejection (e.g., HTTP 200 + message_wamid:
+     * null). A semantic rejection is not a transport-format mismatch —
+     * the body parsed fine; WhatsApp simply refused the send. Retrying
+     * as form-encoded produces an identical rejection AND a redundant
+     * outbound API call per send. Network-error (status 0) and 4xx /
+     * 200-without-WAMID-null cases below are unaffected.                */
+    if (jsonResult.semanticFailure) {
+      return { ...jsonResult, attemptedFormats: ["json"] }
+    }
 
     /* ── Determine if a fallback is worth attempting ──
      * Network errors / 5xx don't get a fallback (transport problem).
@@ -296,6 +319,12 @@ export function createWhatsAppService(config: WhatsAppConfig): WhatsAppService {
             "WhatsApp rejected the message (message_wamid: null). The template likely requires a HEADER component, the recipient isn't reachable, or the template is unapproved.",
           status: res.status,
           rawResponse: text.slice(0, 1000),
+          // #139: mark this as a SEMANTIC failure so postSmart skips the
+          // form-encoded fallback. The body parsed cleanly and WhatsApp
+          // returned an unambiguous null WAMID — retrying as form-encoded
+          // would just produce the same rejection and double the outbound
+          // API call count per send. See WhatsAppResult.semanticFailure.
+          semanticFailure: true,
         }
       }
     }
