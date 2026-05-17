@@ -152,7 +152,7 @@ export async function teardownTestInvoice(
   // counting after is impossible (rows are gone). PostgREST's exact-count
   // is opt-in via the Prefer header; HEAD-method skips returning rows.
   const countRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/invoice_payments?invoice_id=eq.${invoiceId}&select=id`,
+    `${SUPABASE_URL}/rest/v1/invoice_payments?invoice_id=eq.${encodeURIComponent(invoiceId)}&select=id`,
     {
       method: "HEAD",
       headers: postgrestHeaders({ Prefer: "count=exact" }),
@@ -168,7 +168,7 @@ export async function teardownTestInvoice(
   )
 
   const deleteRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/invoices?id=eq.${invoiceId}`,
+    `${SUPABASE_URL}/rest/v1/invoices?id=eq.${encodeURIComponent(invoiceId)}`,
     {
       method: "DELETE",
       headers: postgrestHeaders({ Prefer: "count=exact,return=minimal" }),
@@ -207,7 +207,7 @@ export async function findPaymentsForTestInvoice(
   assertEnv()
   const url =
     `${SUPABASE_URL}/rest/v1/invoice_payments` +
-    `?invoice_id=eq.${invoiceId}` +
+    `?invoice_id=eq.${encodeURIComponent(invoiceId)}` +
     `&select=id,invoice_id,amount,method,received_at` +
     `&order=created_at.asc`
   const res = await fetch(url, {
@@ -220,6 +220,19 @@ export async function findPaymentsForTestInvoice(
     )
   }
   const rows = (await res.json()) as Array<Record<string, unknown>>
+  // Fail-fast guard — `amount` is numeric NOT NULL on the schema, so a
+  // null/undefined here would indicate either a schema drift OR a wrong
+  // SELECT projection. `Number(undefined)` produces NaN which would
+  // silently propagate to the spec's amount assertion as a confusing
+  // failure. Clearer error message saves debug time.
+  for (const r of rows) {
+    if (r.amount === null || r.amount === undefined) {
+      throw new Error(
+        `findPaymentsForTestInvoice: row ${String(r.id ?? "<no-id>")} ` +
+          `has null/undefined amount — schema drift or wrong projection?`,
+      )
+    }
+  }
   return rows.map((row): PaymentRow => ({
     id: row.id as string,
     invoice_id: row.invoice_id as string,
