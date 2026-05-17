@@ -152,7 +152,14 @@ export interface WhatsAppService {
  * route handlers / server actions.
  */
 export function createWhatsAppService(config: WhatsAppConfig): WhatsAppService {
-  const baseUrl = (config.baseUrl ?? "https://chat.leminai.com").replace(/\/+$/, "")
+  // #140: `||` not `??` — `??` only coalesces null/undefined, so an empty-
+  // string baseUrl (the actual case when WPBOX_BASE_URL="" or unset in
+  // production env) passed straight through and `fetch(`${baseUrl}${path}`)`
+  // built relative URLs (/api/wpbox/...) that Node's fetch rejects as
+  // non-absolute. baseUrl is `string | undefined`; the only falsy strings
+  // are "" and undefined (already covered), so `||` is safe — no other
+  // falsy value can legitimately be a base URL.
+  const baseUrl = (config.baseUrl || "https://chat.leminai.com").replace(/\/+$/, "")
 
   /**
    * POST a payload to the WPBox API with automatic format fallback.

@@ -969,22 +969,27 @@ describe("getWhatsAppConfig", () => {
     expect(cfg.baseUrl).toBe("")
   })
 
-  it("LATENT BUG: empty-string baseUrl propagates to relative fetch URL (?? does not coalesce empty string)", async () => {
-    // Documents the bug surfaced by CodeRabbit's review of the prior
-    // overly-permissive baseUrl assertion. NOT fixed in this PR per
-    // the test-floor-PR-is-tests-only rule; filed as a follow-up.
+  it("empty-string baseUrl resolves to the default WPBox base URL (#140 regression check)", async () => {
+    // Originally documented as a LATENT BUG by CodeRabbit's review of the
+    // PR #138 test floor: the source's pre-fix
+    // `(config.baseUrl ?? "https://chat.leminai.com")` used `??`, which
+    // only coalesces null/undefined, so baseUrl="" passed straight through
+    // and fetch was called with a relative URL (`/api/wpbox/sendmessage`).
+    // Node's fetch rejects non-absolute URLs in production.
     //
-    // The source's `(config.baseUrl ?? "https://chat.leminai.com").replace(...)`
-    // expression yields the empty string when baseUrl is "" — because
-    // `??` only coalesces null/undefined, not falsy. The resulting
-    // `baseUrl` after the trailing-slash strip is also "", so the
-    // template literal `${baseUrl}${path}` produces just the path,
-    // and fetch is called with a relative URL.
+    // #140 fix: changed `??` to `||` in createWhatsAppService. Since
+    // baseUrl is `string | undefined` and the only falsy strings are ""
+    // (which we want to coalesce) and undefined (already covered), `||`
+    // is the minimal correct change. Fixed at the consumer layer
+    // (createWhatsAppService), NOT at getWhatsAppConfig, so the
+    // WhatsAppConfig type stays honest about what `baseUrl: ""` means
+    // (treated as "use default").
     //
-    // In production this would fail because fetch in Node requires an
-    // absolute URL. We pin the broken-but-current behavior here so the
-    // future fix has a target: the failing assertion in this test
-    // becomes a passing one once the source normalizes empty -> default.
+    // This test was previously titled "LATENT BUG: ..." and asserted
+    // `expect(url).toBe("/api/wpbox/sendmessage")` (the buggy relative
+    // URL). Flipped here to assert the fixed behavior: the URL is the
+    // default base + path. A regression that reverts `||` back to `??`
+    // makes this assertion fail.
     const fetchMock = mockFetchSequence({
       kind: "response",
       response: mockResponse({
@@ -999,10 +1004,7 @@ describe("getWhatsAppConfig", () => {
     })
     await svc.sendMessage({ phone: "919876543210", message: "hi" })
     const [url] = fetchMock.mock.calls[0]! as [string, RequestInit]
-    // BUG: relative URL, not absolute. Should be the default WPBox
-    // production hostname per the `?? "https://chat.leminai.com"`
-    // intent — but `??` does not trigger on "".
-    expect(url).toBe("/api/wpbox/sendmessage")
+    expect(url).toBe("https://chat.leminai.com/api/wpbox/sendmessage")
   })
 })
 
