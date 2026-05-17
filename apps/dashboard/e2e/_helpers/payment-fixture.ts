@@ -98,6 +98,28 @@ export interface SeededInvoice {
 }
 
 /**
+ * Thrown by `seedTestInvoice` when the PostgREST INSERT throws or returns
+ * non-OK AFTER the row may have committed (timeout post-commit, network
+ * reset post-commit). The caller MUST attempt best-effort cleanup with
+ * the surfaced `seededId` — even though the helper threw, the row may
+ * exist on the server and would otherwise leak.
+ *
+ * Catalog #1 — value contract: a generic `Error` would lose the id; the
+ * typed shape surfaces the id at the failure boundary.
+ */
+export class SeedTestInvoiceError extends Error {
+  readonly seededId: string
+  readonly seededInvoiceNumber: string
+
+  constructor(message: string, seeded: { id: string; invoiceNumber: string }) {
+    super(message)
+    this.name = "SeedTestInvoiceError"
+    this.seededId = seeded.id
+    this.seededInvoiceNumber = seeded.invoiceNumber
+  }
+}
+
+/**
  * Create a fresh test invoice in `public.invoices` with status='ISSUED'
  * and balance>0 (the precondition for the "Record Payment" button to
  * appear at ops-invoice-detail-live.tsx:651-661). Returns the seeded ids.
@@ -113,32 +135,46 @@ export async function seedTestInvoice(): Promise<SeededInvoice> {
   const totalAmount = 100
   const balance = 100
 
-  const res = await postgrestFetch(`${SUPABASE_URL}/rest/v1/invoices`, {
-    method: "POST",
-    headers: postgrestHeaders({ Prefer: "return=minimal" }),
-    body: JSON.stringify({
-      id,
-      invoice_number: invoiceNumber,
-      status: "ISSUED",
-      customer_name: "E2E Payment-Recording Test (auto-deleted)",
-      payment_mode: "TO_PAY",
-      base_freight: totalAmount,
-      total_amount: totalAmount,
-      balance,
-      advance_paid: 0,
-      issued_at: new Date().toISOString(),
-      customer_id: null,
-      shipment_id: null,
-      awb_number: null,
-    }),
-  })
+  // EVERY failure path below surfaces the generated id+invoiceNumber via
+  // SeedTestInvoiceError so the caller can attempt best-effort cleanup —
+  // PostgREST may have committed the row before the throw fired
+  // (timeout-post-commit, network-reset-post-commit) and a plain Error
+  // would leak the row across CI runs.
+  let res: Response
+  try {
+    res = await postgrestFetch(`${SUPABASE_URL}/rest/v1/invoices`, {
+      method: "POST",
+      headers: postgrestHeaders({ Prefer: "return=minimal" }),
+      body: JSON.stringify({
+        id,
+        invoice_number: invoiceNumber,
+        status: "ISSUED",
+        customer_name: "E2E Payment-Recording Test (auto-deleted)",
+        payment_mode: "TO_PAY",
+        base_freight: totalAmount,
+        total_amount: totalAmount,
+        balance,
+        advance_paid: 0,
+        issued_at: new Date().toISOString(),
+        customer_id: null,
+        shipment_id: null,
+        awb_number: null,
+      }),
+    })
+  } catch (err) {
+    throw new SeedTestInvoiceError(
+      `seedTestInvoice fetch threw: ${err instanceof Error ? err.message : String(err)}`,
+      { id, invoiceNumber },
+    )
+  }
 
   if (!res.ok) {
     // Surface code + status WITHOUT echoing the response body (Supabase
     // PostgREST error responses can include column values that violated
     // a constraint — keep PII / data shapes out of test logs).
-    throw new Error(
+    throw new SeedTestInvoiceError(
       `seedTestInvoice failed: HTTP ${res.status} ${res.statusText}`,
+      { id, invoiceNumber },
     )
   }
 
@@ -171,22 +207,35 @@ export async function teardownTestInvoice(
   // Count cascade-deleted payments BEFORE the DELETE — once cascade fires,
   // counting after is impossible (rows are gone). PostgREST's exact-count
   // is opt-in via the Prefer header; HEAD-method skips returning rows.
-  const countRes = await postgrestFetch(
-    `${SUPABASE_URL}/rest/v1/invoice_payments?invoice_id=eq.${encodeURIComponent(invoiceId)}&select=id`,
-    {
-      method: "HEAD",
-      headers: postgrestHeaders({ Prefer: "count=exact" }),
-    },
-  )
-  if (!countRes.ok) {
-    throw new Error(
-      `teardownTestInvoice (count) failed: HTTP ${countRes.status}`,
+  //
+  // BEST-EFFORT: the count is observability, NOT cleanup. A transient
+  // count failure must NOT block the DELETE — that would leak the
+  // seeded invoice into the test DB across CI runs. Capture the count
+  // error, always attempt the DELETE, surface the count failure (if any)
+  // ONLY if the DELETE itself succeeded.
+  let paymentsCount = 0
+  let countError: Error | null = null
+  try {
+    const countRes = await postgrestFetch(
+      `${SUPABASE_URL}/rest/v1/invoice_payments?invoice_id=eq.${encodeURIComponent(invoiceId)}&select=id`,
+      {
+        method: "HEAD",
+        headers: postgrestHeaders({ Prefer: "count=exact" }),
+      },
     )
+    if (!countRes.ok) {
+      throw new Error(
+        `teardownTestInvoice (count) failed: HTTP ${countRes.status}`,
+      )
+    }
+    paymentsCount = parseContentRangeTotal(
+      countRes.headers.get("content-range"),
+    )
+  } catch (err) {
+    countError = err instanceof Error ? err : new Error(String(err))
   }
-  const paymentsCount = parseContentRangeTotal(
-    countRes.headers.get("content-range"),
-  )
 
+  // The DELETE is the LOAD-BEARING cleanup. It always runs.
   const deleteRes = await postgrestFetch(
     `${SUPABASE_URL}/rest/v1/invoices?id=eq.${encodeURIComponent(invoiceId)}`,
     {
@@ -202,6 +251,16 @@ export async function teardownTestInvoice(
   const invoiceCount = parseContentRangeTotal(
     deleteRes.headers.get("content-range"),
   )
+
+  // DELETE succeeded — but if the upstream count failed, surface that
+  // now (preserves observability without blocking the cleanup that ran).
+  if (countError) {
+    throw new Error(
+      `teardownTestInvoice deleted ${invoiceCount} invoice row(s) but the ` +
+        `pre-delete payments-count probe failed: ${countError.message}`,
+      { cause: countError },
+    )
+  }
 
   return {
     invoiceDeleted: invoiceCount,

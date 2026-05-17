@@ -6,6 +6,7 @@ import {
   findPaymentsForTestInvoice,
   hasServiceRoleEnv,
   seedTestInvoice,
+  SeedTestInvoiceError,
   teardownTestInvoice,
   type SeededInvoice,
 } from "./_helpers/payment-fixture"
@@ -54,7 +55,22 @@ test.describe("Payment recording — money-flow E2E", () => {
     if (!hasAuthSession() || !hasServiceRoleEnv()) {
       return
     }
-    seeded = await seedTestInvoice()
+    try {
+      seeded = await seedTestInvoice()
+    } catch (err) {
+      // Best-effort cleanup: SeedTestInvoiceError surfaces the generated
+      // id so we can attempt teardown even if the seed threw post-commit
+      // (timeout-post-commit, network-reset-post-commit). Without this,
+      // a transient failure would leak the seeded row across CI runs.
+      if (err instanceof SeedTestInvoiceError) {
+        await teardownTestInvoice(err.seededId).catch(() => {
+          // Silent — the cleanup itself failing on a row that may not
+          // exist is acceptable; the rethrow below surfaces the original
+          // cause for the test result.
+        })
+      }
+      throw err
+    }
   })
 
   test.afterAll(async () => {
