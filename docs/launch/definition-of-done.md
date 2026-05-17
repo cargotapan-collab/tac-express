@@ -4,6 +4,8 @@
 >
 > **Pair file:** [`docs/backlog/production-readiness.md`](../backlog/production-readiness.md) is the open-item backlog (engineering hygiene + post-launch enhancements). This file is the launch-gating subset of that backlog plus owner actions.
 
+**Version:** 1.3 — 2026-05-17, **launch-readiness reconciliation pass.** SB-1/SB-3/SB-4 DONE on tracker + repo. **SB-2 remains the sole ship-blocker** — independently verified via Sentry MCP (project exists; zero `api/diagnostics` synthetic events ever recorded; zero unresolved Sentry issues in last 30 days = no evidence the SB-2 script has been run). Verdict: **1 GATE REMAINING — SB-2 (~20-min owner task).**
+**Version:** 1.2 — 2026-05-17, **SB-4 DONE** (payment-recording E2E shipped in PR #160). 2 → 1 ship-blockers remaining.
 **Version:** 1.1 — 2026-05-17, **SB-1 DONE** (W2 retry action shipped in the PR closing [#153](https://github.com/cargotapan-collab/tac-express/issues/153)). 4 → 3 ship-blockers remaining.
 **Version:** 1.0 — initial framing, 2026-05-17.
 **Authority chain:** AGENTS.md § 0 → this file → backlog. The backlog file remains the authoritative open-item list; this file is the launch-gating triage of it.
@@ -62,7 +64,15 @@ This test is intentionally ruthless. The SHIP-BLOCKER bucket is small by design.
 
 ---
 
-### SB-2 — Sentry alert-rule notification action ([#94](https://github.com/cargotapan-collab/tac-express/issues/94) — owner-runnable; backlog [O3](../backlog/production-readiness.md#o3--sentry-alert-rule-notification-action-owner-runnable-provisioning))
+### SB-2 — Sentry alert-rule notification action ([#94](https://github.com/cargotapan-collab/tac-express/issues/94) — owner-runnable; backlog [O3](../backlog/production-readiness.md#o3--sentry-alert-rule-notification-action-owner-runnable-provisioning)) — **OPEN; THE LAUNCH GATE**
+
+**Status (verified 2026-05-17 via Sentry MCP):**
+- ✅ Project `tapan-cargo-az/javascript-nextjs` on `de.sentry.io` exists and is accessible (`find_projects`).
+- ❌ Zero `api/diagnostics` issues have EVER been recorded (`search_issues`) — the SB-2 verification procedure in [`docs/runbooks/sentry-alert-rules.md § 5.3 Step 5`](../runbooks/sentry-alert-rules.md) requires a `POST /api/diagnostics/sentry` to throw a tagged exception that would create a new Sentry issue. **No such issue exists.**
+- ❌ Zero unresolved Sentry issues in the last 30 days. The 5 issues in the project are all dev-side errors from 3-5 days ago, all marked `ignored` or `resolved`. None match the SB-2 synthetic-event pattern.
+- ⚠️ MCP limitation: the Sentry MCP exposes `find_projects` / `search_issues` / `search_events` but does NOT expose `GET /api/0/projects/{org}/{project}/rules/`. Alert-rule existence cannot be enumerated from the MCP alone — but rule-firing IS visible (a fired rule produces a new issue + visible event stream).
+
+**Verdict:** SB-2 has not been run. No issue-stream evidence of the script's execution, and no synthetic event from the verification procedure.
 
 **Why it gates launch:** Sentry events are captured today but no notification fires. A solo-owner production app without alerting means a money-flow error (failed payment, silent invoice rejection, RBAC breach attempt) can fire in Sentry and the owner never learns about it until a customer complains. That is the canonical silent-incident shape.
 
@@ -118,9 +128,23 @@ This test is intentionally ruthless. The SHIP-BLOCKER bucket is small by design.
 | Ship-blocker | Status | Blocker |
 |---|---|---|
 | SB-1 — Failed-send retry action (#153) | **DONE 2026-05-17** | — |
-| SB-2 — Sentry alert provisioning (#94 / O3) | OPEN | ~20 min owner-task; agent-untouchable |
-| SB-3 — PITR playbook (D1) | **DONE 2026-05-17** | Owner-pending: P1–P4 prerequisite confirmation against the Supabase dashboard (see runbook § 2) |
+| SB-2 — Sentry alert provisioning (#94 / O3) | **OPEN — THE LAUNCH GATE** | ~20-min owner-task; Sentry MCP confirms no evidence the script has been run (zero `api/diagnostics` events ever); see SB-2 verification trail above |
+| SB-3 — PITR playbook (D1) | **DONE 2026-05-17** | Owner-pending: P1–P4 prerequisite confirmation against the Supabase dashboard (see runbook § 2) — flagged still-pending in this reconciliation pass |
 | SB-4 — Payment-recording E2E (E1 carve-out) | **DONE 2026-05-17** | — |
+
+## 3a. LAUNCH VERDICT (evidenced)
+
+> **LAUNCH STATUS: 1 GATE REMAINING — SB-2.**
+>
+> **Evidence:** Sentry MCP query against `tapan-cargo-az/javascript-nextjs` returned ZERO `api/diagnostics`-tagged issues across the entire project lifetime, and ZERO unresolved issues in the last 30 days. The SB-2 verification procedure ([sentry-alert-rules.md § 5.3 Step 5](../runbooks/sentry-alert-rules.md)) requires the synthetic event to produce exactly such an issue. The script has not been run.
+>
+> **Additional owner-pending items (not launch-gating; recorded honestly):**
+> - SB-3 PREREQUISITES P1–P4 (Pro plan / PITR enabled + retention / daily backups / Owner role) — not provided in this reconciliation session; runbook § 2 fill-in block remains blank.
+> - OD-1 (#154 RBAC sweep promotion?) — not stated; lean POST-LAUNCH stands.
+> - OD-2 (other 4 E1 flows promotion?) — not stated; lean payment-only-sufficient stands.
+> - #94 reopen-or-accept — issue remains CLOSED on tracker; SB-2 work surfaces here as a tracker-less DoD item.
+>
+> After SB-2 ships AND an `api/diagnostics` synthetic event is visible in the Sentry MCP issue stream, this verdict flips to **LAUNCH-READY**.
 
 **Open ship-blockers:** 1 of 4 remains (**SB-2 only**).
 **Realistic burn-down:** **~20 minutes of owner work.** No agent work gates launch. The owner runs `scripts/sentry/create-alert-rules.mjs`, verifies one rule fires end-to-end, and the launch criteria are met.
