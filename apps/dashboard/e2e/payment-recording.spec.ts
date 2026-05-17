@@ -168,10 +168,17 @@ test.describe("Payment recording — money-flow E2E", () => {
     // ALSO contains `₹0.01`, and the dialog may remain mounted (just
     // hidden) after submit. CodeRabbit #160 caught this; the scoped
     // lookup is the catalog-#7 (anchor-scoped windows) shape.
+    // The CI run on commit 8c54371 surfaced a real strict-mode ambiguity
+    // INSIDE the data-slot scope: the timeline's section-header text is
+    // `Received ₹0.01 · 1 record` which substring-matches `₹0.01`, in
+    // addition to the row's own `<span>₹0.01</span>`. Adding
+    // `{ exact: true }` matches only the row span (the header has
+    // surrounding text). This is the same value-contract discipline as
+    // catalog #1 — assert the EXACT payment row, not a substring.
     await expect(
       page
         .locator('[data-slot="payment-timeline"]')
-        .getByText("₹0.01"),
+        .getByText("₹0.01", { exact: true }),
     ).toBeVisible({ timeout: 10_000 })
 
     // ─── 5. DB assertions (A3 + A4) — the money-flow guarantee ────────────
