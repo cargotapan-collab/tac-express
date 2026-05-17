@@ -61,7 +61,9 @@
                                            "E2E_MANIFEST_ID",
                                            "E2E_SEED_DB_OK",
                                            "BOOTSTRAP_BASELINE",
-                                           "AXE_FAIL_ON_VIOLATIONS"
+                                           "AXE_FAIL_ON_VIOLATIONS",
+                                           "SUPABASE_SERVICE_ROLE_KEY",
+                                           "NEXT_PUBLIC_SUPABASE_URL"
                                        ]
                            },
                   "format":  {

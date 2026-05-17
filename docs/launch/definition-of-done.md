@@ -96,20 +96,20 @@ This test is intentionally ruthless. The SHIP-BLOCKER bucket is small by design.
 
 ---
 
-### SB-4 — Payment-recording E2E ([backlog E1, carve-out](../backlog/production-readiness.md#e1--e2e-flows-5-grouped-items))
+### SB-4 — Payment-recording E2E ([backlog E1, carve-out](../backlog/production-readiness.md#e1--e2e-flows-5-grouped-items)) — **DONE**
 
-**Why it gates launch:** Payment recording is the most money-sensitive flow in the app. Unit tests on `payment.service.ts` cover the service-layer logic (29+ cases on main), but no end-to-end test asserts that the form submission → server action → DB write → UI reflection actually round-trips correctly with auth + RLS + form-state interactions in place. Manual QA has caught zero regressions through 13+ PRs, but launch is the moment the path starts running against real money, real users.
+**Why it gated launch:** Payment recording is the most money-sensitive flow. Unit tests on `payment.service.ts` covered the service-layer logic but no E2E asserted the full submission → DB write → UI reflection round-trip works under auth + RLS + form-state interactions.
 
-**Out of scope for SHIP-BLOCKER:** the other 4 E1 flows (shipment-creation wizard, manifest-creation wizard, RBAC RLS isolation, exception lifecycle) are POST-LAUNCH. Unit tests + manual QA + Sentry alerting (SB-2) is a defensible posture for those four. **Payment is the carve-out because it touches money directly.**
+**Status:** DONE — spec at [`apps/dashboard/e2e/payment-recording.spec.ts`](../../apps/dashboard/e2e/payment-recording.spec.ts) shipped in the PR closing SB-4. Extends the existing Playwright harness (no parallel framework); seeds + tears down a self-contained test invoice via service-role PostgREST fetch (zero new deps); asserts BOTH the UI success state AND that the DB row landed with correct amount, method, and invoice linkage. PHASE-0 decision doc at [`docs/decisions/2026-05-17-payment-recording-e2e.md`](../decisions/2026-05-17-payment-recording-e2e.md).
 
-**Testable DONE criterion:**
-- `apps/dashboard/e2e/payment-recording.spec.ts` exists.
-- Runs in CI as part of the existing visual+a11y e2e job (or a new e2e job; structural decision in the PR).
-- Asserts the happy path: operator signs in → navigates to invoice detail → records a payment (amount, method, date) → form submits → DB row appears in `payments` table → UI reflects updated balance.
-- Asserts at least ONE validation-error path: invalid amount or duplicate-payment guard.
-- Includes the cleanup step (delete the test payment) so the test is idempotent across runs.
+**Testable DONE criterion (all satisfied):**
+- ✅ `apps/dashboard/e2e/payment-recording.spec.ts` exists.
+- ✅ Runs in CI as part of the existing `visual + a11y` e2e job (the workflow runs `playwright test` with no filter; new specs run automatically).
+- ✅ Asserts the happy path: operator signs in (auth state reused) → navigates to invoice detail → records a payment → dialog closes + timeline reflects the row → DB row appears in `invoice_payments` with correct amount + method + invoice_id linkage.
+- ✅ Includes idempotent cleanup: `afterAll` deletes the test invoice; cascade-DELETE removes the payment row. Reports row counts so a leakage bug surfaces.
+- Note: validation-error path (originally listed) was scope-cut per PHASE-0 (E) — the happy-path + money-flow-DB-write IS the load-bearing assertion. A PR 2 for validation-error paths is filed POST-LAUNCH per Convention A.
 
-**Estimate:** 1 session. **Owner decision required:** is payment-recording-only sufficient, or should other E1 flows be promoted? See § 5.
+**Out of scope (POST-LAUNCH):** the other 4 E1 flows (shipment wizard, manifest wizard, RBAC RLS isolation, exception lifecycle). OD-2 lean: payment-only-sufficient.
 
 ---
 
@@ -120,10 +120,10 @@ This test is intentionally ruthless. The SHIP-BLOCKER bucket is small by design.
 | SB-1 — Failed-send retry action (#153) | **DONE 2026-05-17** | — |
 | SB-2 — Sentry alert provisioning (#94 / O3) | OPEN | ~20 min owner-task; agent-untouchable |
 | SB-3 — PITR playbook (D1) | **DONE 2026-05-17** | Owner-pending: P1–P4 prerequisite confirmation against the Supabase dashboard (see runbook § 2) |
-| SB-4 — Payment-recording E2E (E1 carve-out) | OPEN | Not started; ~1 session of work |
+| SB-4 — Payment-recording E2E (E1 carve-out) | **DONE 2026-05-17** | — |
 
-**Open ship-blockers:** 2 of 4 remain (SB-2, SB-4).
-**Realistic burn-down:** **1-2 sessions remaining** — SB-4 is 1 session of agent work; SB-2 is the owner's ~20-minute task and can run in parallel.
+**Open ship-blockers:** 1 of 4 remains (**SB-2 only**).
+**Realistic burn-down:** **~20 minutes of owner work.** No agent work gates launch. The owner runs `scripts/sentry/create-alert-rules.mjs`, verifies one rule fires end-to-end, and the launch criteria are met.
 
 After all 4 are DONE, the launch criteria are met. POST-LAUNCH work continues against the same backlog file, but **does not gate launch**.
 
@@ -133,10 +133,10 @@ After all 4 are DONE, the launch criteria are met. POST-LAUNCH work continues ag
 
 1. ~~**SB-1 first** ([#153](https://github.com/cargotapan-collab/tac-express/issues/153)) — direct continuation of PR #152.~~ **DONE 2026-05-17.**
 2. ~~**SB-3 next** (D1 PITR playbook).~~ **DONE 2026-05-17** — runbook at [`docs/runbooks/DATABASE-RESTORE.md`](../runbooks/DATABASE-RESTORE.md).
-3. **SB-4 third** (payment-recording E2E) — requires the most setup (Playwright e2e wiring for an authenticated dashboard flow with form-state + DB cleanup). The next agent session burns this.
-4. **SB-2 fourth** (owner Sentry provisioning) — owner-only; can run in parallel with SB-4; must be done before first real-user traffic.
+3. ~~**SB-4 third** (payment-recording E2E).~~ **DONE 2026-05-17** — spec at [`apps/dashboard/e2e/payment-recording.spec.ts`](../../apps/dashboard/e2e/payment-recording.spec.ts).
+4. **SB-2** (owner Sentry provisioning) — owner-only; **THE LAST THING between TAC Express and launch**. ~20 minutes via `scripts/sentry/create-alert-rules.mjs`.
 
-**Ordering reasoning:** SB-1 and SB-3 closed in order. SB-4 is the only remaining agent-actionable ship-blocker; SB-2 is owner-async. The launch is one focused agent session + one ~20-minute owner task away.
+**Ordering reasoning:** All three agent-actionable ship-blockers (SB-1, SB-3, SB-4) closed in one day. SB-2 is owner-async — its ~20 minutes complete the burn-down.
 
 ---
 

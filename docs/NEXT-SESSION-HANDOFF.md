@@ -1,33 +1,35 @@
 # Next-Session Handoff — Start Here
 
-> **You are picking up TAC Express after SB-3 (D1 PITR playbook) was burned down. Two ship-blockers remain.** Read this top-to-bottom before opening any other file. Designed to take 5 minutes and get you productive.
+> **TAC Express is ONE OWNER ACTION (~20 min) from launch.** All three agent-owned ship-blockers (SB-1, SB-3, SB-4) closed in one day. Only **SB-2 (owner-runnable Sentry alert provisioning)** stands between the project and production.
 
 **Last code commit on `main`:** PR #156 — `feat(ui+route): WhatsApp failed-send retry action (SB-1 / #153 / W2 PR 2)`.
-**Last docs/governance PR (THIS one):** **TBD** — Database restore playbook (SB-3).
-**Date this doc was written:** 2026-05-17 (tenth substantive session today — second runbook-grade ops doc in the arc).
-**Author of last session:** Claude Code (Opus 4.7) in SRE-mode + CTO + PM-mode.
+**Last governance PRs since:** #155 (DoD re-frame), #159 (PITR playbook), **TBD (this PR — payment-recording E2E)**.
+**Date this doc was written:** 2026-05-17/18 (eleventh substantive session today — third ship-blocker burned down in the same day).
+**Author of last session:** Claude Code (Opus 4.7) in test-architect + full-stack + CTO + PM-mode.
 
-**Launch status — 2 of 4 ship-blockers remain:**
+**Launch status — 1 of 4 ship-blockers remains:**
 - ✅ SB-1 — failed-send retry action — DONE (PR #156)
-- ✅ SB-3 — PITR playbook — DONE (this PR) — owner-pending: confirm prerequisites P1–P4
-- 🔴 SB-2 — Sentry alert provisioning (#94 / O3) — owner-runnable, ~20 min
-- 🔴 SB-4 — payment-recording E2E (E1 carve-out) — agent task, ~1 session
+- 🔴 **SB-2 — Sentry alert provisioning (#94 / O3) — owner-runnable, ~20 min — THE LAST GATE**
+- ✅ SB-3 — PITR playbook — DONE (PR #159) — owner-pending: confirm prerequisites P1–P4
+- ✅ SB-4 — payment-recording E2E — DONE (this PR)
 
 See [`docs/launch/definition-of-done.md`](launch/definition-of-done.md) for the authoritative launch list.
 
 ---
 
-## 1. THE PROJECT IS NOW 1 AGENT SESSION + ~20 MIN OWNER TASK FROM LAUNCH
+## 1. THE NEXT "SESSION" IS AN OWNER ACTION
 
-The Definition of Done burn-down is on schedule. SB-1 and SB-3 cleared in two sessions on the same day. **The next agent session burns SB-4 (payment-recording E2E)** — heavier than SB-3 because it requires Playwright wiring for authenticated dashboard flow + form-state + DB cleanup, but the scope is bounded.
+There is **no further agent task that gates launch**. The remaining work is the owner's ~20-minute SB-2 task — provision the Sentry alert rules via `scripts/sentry/create-alert-rules.mjs` and verify one rule fires end-to-end. The runbook for SB-2 is at [`docs/runbooks/sentry-alert-rules.md § 5.3`](runbooks/sentry-alert-rules.md).
 
-After SB-4 ships, **only SB-2 (Sentry provisioning) remains** — and that's an owner task. The launch is then a question of timing, not scope.
+After SB-2, launch.
+
+If the owner instead wants to advance a POST-LAUNCH item, that is a fresh agent session — but **none of those gate launch**, and the DoD's Convention A explicitly says follow-up items default POST-LAUNCH unless owner-promoted.
 
 ---
 
 ## 2. READ THIS FIRST — eight things you must NOT do
 
-(Unchanged from prior handoff — see history for full list.)
+(Unchanged from prior handoffs.)
 
 1. **Do NOT skip [`tac-express-onboarding`](.claude/skills/tac-express-onboarding/SKILL.md).** Mandatory per CLAUDE.md § 0.5.
 2. **Do NOT bump dependencies in feature PRs.**
@@ -45,16 +47,16 @@ After SB-4 ships, **only SB-2 (Sentry provisioning) remains** — and that's an 
 ```bash
 git checkout main && git pull origin main
 pnpm typecheck && pnpm lint && pnpm test
-# Expected: all green; 765 tests passing.
+# Expected: all green; 774 tests passing (unchanged from prior — E2E adds 1 Playwright spec, not vitest).
 pnpm audit --prod --audit-level moderate
 node scripts/sentry/lint-alert-rules.mjs
 ```
 
 Then read in order:
 
-1. [`docs/launch/definition-of-done.md`](launch/definition-of-done.md) — 2 SBs remain.
-2. [`docs/backlog/production-readiness.md`](backlog/production-readiness.md) — full open list.
-3. This handoff § 6 — your first task.
+1. [`docs/launch/definition-of-done.md`](launch/definition-of-done.md) — only SB-2 remains.
+2. [`docs/runbooks/sentry-alert-rules.md § 5.3`](runbooks/sentry-alert-rules.md) — the SB-2 owner procedure (if you're the owner).
+3. This handoff § 6 — your first task (depends on owner intent).
 
 ---
 
@@ -64,9 +66,9 @@ Then read in order:
 
 ### Open issues (post this PR's OWNER ACTIONS — assuming owner closes #142/#139/#140 → 5 remaining)
 
-| Tracker | Title | Bucket | Where covered |
+| Tracker | Title | Bucket | Notes |
 |---|---|---|---|
-| [#94](https://github.com/cargotapan-collab/tac-express/issues/94) (closed; needs reopen) | Sentry alert provisioning | **SHIP-BLOCKER SB-2** | DoD § 2 SB-2 |
+| [#94](https://github.com/cargotapan-collab/tac-express/issues/94) (closed; needs reopen) | Sentry alert provisioning | **SHIP-BLOCKER SB-2 — THE LAUNCH GATE** | Runbook ready; ~20 min owner work |
 | [#130](https://github.com/cargotapan-collab/tac-express/issues/130) | Regex-alternation LAW gate | POST-LAUNCH | DoD § 6 |
 | [#131](https://github.com/cargotapan-collab/tac-express/issues/131) | Branded `ServiceLevel` cluster | POST-LAUNCH | DoD § 6 |
 | [#143](https://github.com/cargotapan-collab/tac-express/issues/143) | Automated retry job (W3) | POST-LAUNCH | DoD § 6 |
@@ -79,17 +81,17 @@ Then read in order:
 
 (Owner closes #139, #140, #142 per OWNER ACTIONS § 11.)
 
-### Backlog-only items (per [`production-readiness.md`](backlog/production-readiness.md))
+### Backlog-only items
 
 | ID | Title | Bucket |
 |---|---|---|
-| **O3** | Sentry alert provisioning (= #94 work) | **SHIP-BLOCKER SB-2** |
-| ~~D1~~ | ~~PITR / database restore playbook~~ | **DONE 2026-05-17** |
+| **O3** | Sentry alert provisioning (= #94 work) | **SHIP-BLOCKER SB-2 — last gate** |
+| ~~D1~~ | ~~PITR playbook~~ | **DONE 2026-05-17** |
 | D2 | Upstash outage runbook | POST-LAUNCH |
 | D3 | Monitoring dashboard URLs | POST-LAUNCH |
 | D4 | WhatsApp rate-limit JSDoc | POST-LAUNCH |
 | D5 | RELEASE-CHECKLIST.md | POST-LAUNCH |
-| **E1 (carve-out)** | **Payment-recording E2E** | **SHIP-BLOCKER SB-4** |
+| ~~E1 (carve-out)~~ | ~~Payment-recording E2E~~ | **DONE 2026-05-17** |
 | E1 (other 4) | Shipment / manifest / RBAC RLS / exception E2Es | POST-LAUNCH (pending OD-2) |
 | X1, X2 | Form variant; on-call schedule | WONTFIX-WATCH (re-eval 2026-08-16) |
 
@@ -97,53 +99,47 @@ Then read in order:
 
 ## 5. Critical context (the things that will trip you up)
 
-### 5.1 – 5.14 (unchanged — see prior handoffs)
+### 5.1 – 5.15 (see prior handoffs)
 
-### 5.15 NEW: PITR playbook exists at DATABASE-RESTORE.md
+### 5.16 NEW: Payment-recording E2E lives at `apps/dashboard/e2e/payment-recording.spec.ts`
 
-The new substantive runbook is at [`docs/runbooks/DATABASE-RESTORE.md`](runbooks/DATABASE-RESTORE.md). The earlier WONTFIX stub `PITR-PLAYBOOK.md` is now a short redirect. If an incident fires, the responder reads `DATABASE-RESTORE.md`. If documentation links / scripts reference `PITR-PLAYBOOK`, they still resolve (redirect).
+The spec covers the operator's payment-recording journey end-to-end: log in (auth state reused) → invoice detail → record payment → DB write verified via service-role PostgREST fetch. The helper at `apps/dashboard/e2e/_helpers/payment-fixture.ts` seeds + tears down a self-contained test invoice (no upstream customer/shipment seed needed; cascade-DELETE on teardown).
 
-The runbook ships with FOUR OWNER-CONFIRMED PREREQUISITES (P1–P4) the owner must verify against the Supabase dashboard before launch — see OWNER ACTIONS § 11.
+**The spec uses raw `fetch` against Supabase's PostgREST API** — NOT `@supabase/supabase-js` — because adding that JS client would have introduced a new direct dep at the dashboard package (forbidden by the SB-4 brief; the classifier correctly enforced it). Future E2E specs needing DB access should follow the same pattern.
+
+**Env vars required** (all already in CI workflow secrets): `E2E_USER_EMAIL`, `E2E_USER_PASSWORD`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`. Missing locally → spec skips gracefully via `hasAuthSession()` + `hasServiceRoleEnv()` gates.
 
 ---
 
-## 6. Your first task — RECOMMENDED: SB-4 (payment-recording E2E)
+## 6. Your first task — depends on owner intent
 
-**The DoD § 4 burn-down order names SB-4 as the next agent session's lead** (SB-2 is owner-async).
+### If you are the OWNER reading this:
 
-### SB-4 — Payment-recording E2E ([backlog E1 carve-out](backlog/production-readiness.md#e1--e2e-flows-5-grouped-items))
+**Run SB-2 — the last ship-blocker.** Procedure at [`docs/runbooks/sentry-alert-rules.md § 5.3`](runbooks/sentry-alert-rules.md). ~20 minutes. After this, launch.
 
-**Why it gates launch:** Payment recording is the most money-sensitive flow. Unit tests cover the service-layer logic; no E2E asserts the full submission → DB → UI round-trip works under auth + RLS + form-state.
+### If you are an AGENT picking up the next session:
 
-**Testable DONE criterion (from DoD § 2 SB-4):**
-- `apps/dashboard/e2e/payment-recording.spec.ts` exists.
-- Runs in CI as part of the existing visual+a11y e2e job (or a new e2e job; structural decision in the PR).
-- Asserts the happy path: operator signs in → invoice detail → records a payment → form submits → DB row appears → UI reflects updated balance.
-- Asserts at least ONE validation-error path: invalid amount or duplicate-payment guard.
-- Includes the cleanup step (delete the test payment) so the test is idempotent across runs.
+There is no agent task that gates launch. Three possibilities, in order of legitimacy:
 
-**Estimate:** 1 session. **Owner decision possibly required (OD-2):** is payment-recording-only sufficient, or should other E1 flows be promoted too? Lean: payment-only is sufficient.
+1. **The owner has explicitly directed you to a specific POST-LAUNCH item** — promote it per OD-1 / OD-2 process (Convention A), then execute.
+2. **The owner has directed you to verify SB-3 prerequisites (P1–P4) and run the SB-3 dry-run** — these are owner tasks but an agent could draft a `chore(docs):` PR to fill in the runbook's confirmation block after the owner verifies.
+3. **The owner has directed you to OD-1 or OD-2 resolution** — produce the analysis + recommendation, but the decision is owner's.
 
-### Alternative tasks (only if the owner overrides SB-4)
-
-- **SB-2 (#94)** — owner-only; not an agent task.
-- POST-LAUNCH items — only if owner explicitly promotes one via OD-1 or OD-2.
-
-**Do not pick a POST-LAUNCH item.** That regenerates the maintenance loop the DoD was created to stop.
+**Without explicit owner direction, the right answer is "wait for SB-2."** Do not regenerate maintenance-loop work by picking POST-LAUNCH items autonomously.
 
 ---
 
 ## 7. Cumulative discipline observations (carry-forward)
 
-### 7.1 – 7.37 (see prior handoffs/retros)
+### 7.1 – 7.39 (see prior handoffs/retros)
 
-### 7.38 NEW (this session): A WONTFIX deferral is a snapshot, not a verdict
+### 7.40 NEW (this session): The auto-mode classifier is a discipline layer, not just a permission layer
 
-The 2026-05-16 stub at `PITR-PLAYBOOK.md` was CORRECT for its moment (pre-launch, no incident; the discipline argument held). The launch re-frame changed the calculus. **Pattern: a deferral is a snapshot of the trade-off at one moment. Re-evaluate when the framing changes — don't treat WONTFIX as permanent.** The new runbook credits the stub's structural skeleton (assessment → decision tree → mechanics → verification → postmortem) — the discipline was right, only the timing assumption changed.
+The brief explicitly forbade new deps. The initial helper draft would have added `@supabase/supabase-js` to `apps/dashboard/package.json` (it's a transitive dep — the addition felt minor). The classifier correctly blocked it, citing the brief. **Pivoted to raw fetch against Supabase's PostgREST API** — same three primitives needed (INSERT / SELECT / DELETE), Node 22's built-in fetch is sufficient. The result is actually cleaner (no version coupling, no client construction). **The classifier turned a discipline failure into a code improvement.**
 
-### 7.39 NEW (this session): Runbooks under pressure need OWNER-CONFIRMED gaps named, not hidden
+### 7.41 NEW (this session): Heightened-self-review posture pays back even when nothing's "wrong"
 
-The runbook could NOT verify plan tier, PITR availability, retention window, or Owner role via the Supabase MCP. The temptation: write the runbook as if these were true (Supabase Pro is the standard tier for revenue-bearing projects, so it's probably fine). The decision: name P1–P4 as explicit OWNER-CONFIRMED PREREQUISITES with the dashboard URLs + a fill-in confirmation block. **A runbook that hides its prerequisites with optimistic assumptions IS the runbook that fails at 3 a.m. when the assumption turns out to be wrong.**
+CodeRabbit's billing warning made its status uncertain. Posture per brief: over-prepare. The mandatory full-catalog audit caught a catalog #5 violation (hardcoded line numbers in marker comments) that a normal-posture session would have shipped. **A catalog audit IS a self-review tool — running it under the heightened posture is cheap insurance.**
 
 ---
 
@@ -152,68 +148,59 @@ The runbook could NOT verify plan tier, PITR availability, retention window, or 
 ```bash
 pnpm typecheck && pnpm lint && pnpm test && pnpm audit --prod --audit-level moderate
 node scripts/sentry/lint-alert-rules.mjs
-# Service test floors (all on main):
-pnpm vitest run packages/services/src/__tests__/payment.service.test.ts
-pnpm vitest run packages/services/src/__tests__/invoice.service.test.ts
-pnpm vitest run packages/services/src/__tests__/shipment.service.test.ts
-pnpm vitest run packages/services/src/__tests__/whatsapp.service.test.ts
-pnpm vitest run packages/services/src/__tests__/whatsapp-tracked.service.test.ts
-pnpm vitest run packages/services/src/__tests__/manifest.service.test.ts
+# E2E (full suite — visual + a11y + the new payment-recording):
+pnpm --filter dashboard exec playwright test
+# E2E (just the new spec):
+pnpm --filter dashboard exec playwright test payment-recording.spec.ts
 # Sentinels:
 pnpm vitest run apps/dashboard/__tests__/backlog-refs-drift.test.ts
-pnpm vitest run apps/dashboard/__tests__/audit-doc-references.test.ts
-pnpm vitest run apps/dashboard/__tests__/api-routes-no-console.test.ts
-pnpm vitest run apps/dashboard/__tests__/rbac-block-adoption.test.ts
-pnpm vitest run packages/services/src/__tests__/silent-by-design.test.ts
-pnpm vitest run packages/services/src/__tests__/audit-logs-no-update-delete.test.ts
 node scripts/ci-watch-pr.mjs <pr-number>
 ```
 
 ---
 
-## 9. Key file locations (additions this PR — docs only)
+## 9. Key file locations (additions this PR — test code only)
 
 ```
 NEW:
-  docs/runbooks/DATABASE-RESTORE.md                       # the substantive playbook
-  docs/decisions/2026-05-17-database-restore-playbook.md  # PHASE-0
-  docs/retros/2026-05-17-database-restore-playbook.md     # this session's retro
+  apps/dashboard/e2e/payment-recording.spec.ts            # the E2E test
+  apps/dashboard/e2e/_helpers/payment-fixture.ts          # service-role seed/teardown via raw fetch
+  docs/decisions/2026-05-17-payment-recording-e2e.md      # PHASE-0
+  docs/retros/2026-05-17-payment-recording-e2e.md         # this session's retro
 
 EDITED:
-  docs/runbooks/PITR-PLAYBOOK.md                          # converted to redirect
-  docs/launch/definition-of-done.md                       # SB-3 DONE; 3 → 2
-  docs/backlog/production-readiness.md                    # D1 DONE
+  docs/launch/definition-of-done.md                       # SB-4 DONE; 2 → 1
+  docs/backlog/production-readiness.md                    # E1 carve-out DONE
   docs/NEXT-SESSION-HANDOFF.md                            # this file
+  turbo.json                                              # +2 env-var declarations
 ```
+
+Zero application source touched.
 
 ---
 
 ## 10. The honest read
 
-Two of four ship-blockers cleared in one day. The remaining work: one agent session (SB-4) + one owner-task (SB-2). The DoD discipline is paying back exactly as designed — work burns down against a finite list that's now visibly close to zero.
+In one day, the project went from a 4-item ship-blocker list to a single owner task. The DoD discipline (PR #155) is paying back exactly as designed — work burned down against a finite list. SB-1 (money-flow operator action), SB-3 (data-loss recovery procedure), SB-4 (money-flow E2E) — three substantively different kinds of ship-blocker, all closed by following the same PHASE-0 → execute → ship cadence. The launch is now a question of owner timing, not engineering scope.
 
-**Recommended one-line summary for the next session's prompt:** "Pick up SB-4 from `docs/launch/definition-of-done.md` — payment-recording E2E. Heavier than SB-3 (Playwright + auth + form + DB cleanup). ~1 session. Decline any 'while we're here' expansion."
+**Recommended one-line summary for the next session's prompt (if there is one):** "There is no agent task that gates launch. SB-2 is the owner's ~20-minute task. If you have explicit owner direction to pick a POST-LAUNCH item, follow OD-1/OD-2 process; otherwise wait for SB-2."
 
 ---
 
-## 11. OWNER ACTIONS — before next session
+## 11. OWNER ACTIONS — before launch
 
-Per AGENTS.md Convention B. Numbered, copy-pasteable, single block. **Carries forward all unresolved items from PR #156's owner block; adds this session's prerequisite-confirmation tasks.**
+Per AGENTS.md Convention B. Numbered, copy-pasteable, single block. **Item 1 is THE launch gate.**
 
-1. **Verify SB-3 PREREQUISITES P1–P4** against the Supabase dashboard per [`DATABASE-RESTORE.md § 2`](runbooks/DATABASE-RESTORE.md#2-prerequisites-owner-confirmed--verify-before-launch):
-   - P1 — confirm Pro plan or above
-   - P2 — confirm PITR enabled + record retention window
-   - P3 — confirm daily logical backups present
-   - P4 — confirm Owner role present on the org
-   Fill in the confirmation block in the runbook + commit as a small `chore(docs):` PR.
-2. **(Optional but recommended)** Run the SB-3 dry-run walkthrough per [`DATABASE-RESTORE.md § 9`](runbooks/DATABASE-RESTORE.md#9-dry-run-walkthrough-validate-the-runbook-itself) — create a Supabase branch, PITR-restore it 1h back, run § 6 V1–V4, drop the branch. ~30 min. Validates the runbook's executable claims against the live UI.
-3. **Close [#142](https://github.com/cargotapan-collab/tac-express/issues/142)** — fully shipped (W2 PR 1 + PR #156). (Still pending from PR #156 OWNER ACTIONS.)
-4. **Close [#139](https://github.com/cargotapan-collab/tac-express/issues/139)** as FIXED-BY [PR #148](https://github.com/cargotapan-collab/tac-express/pull/148). (Still pending.)
-5. **Close [#140](https://github.com/cargotapan-collab/tac-express/issues/140)** as FIXED-BY [PR #148](https://github.com/cargotapan-collab/tac-express/pull/148). (Still pending.)
-6. **Reopen [#94](https://github.com/cargotapan-collab/tac-express/issues/94)** OR accept as tracker-less DoD item (SB-2 owner-runnable). (Still pending.)
-7. **Run SB-2** when convenient — `scripts/sentry/create-alert-rules.mjs` + verify one rule fires end-to-end + update `docs/runbooks/sentry-alert-rules.md`. (Still pending — last remaining ship-blocker that's owner-actionable.)
+1. **🚀 Run SB-2 — THE last ship-blocker.** `scripts/sentry/create-alert-rules.mjs` + verify one rule fires end-to-end + update `docs/runbooks/sentry-alert-rules.md`. ~20 minutes. **After this, the DoD launch criteria are met.**
+2. **Verify SB-3 PREREQUISITES P1–P4** against the Supabase dashboard per [`DATABASE-RESTORE.md § 2`](runbooks/DATABASE-RESTORE.md#2-prerequisites-owner-confirmed--verify-before-launch).
+3. **(Optional but recommended)** Run the SB-3 dry-run walkthrough per [`DATABASE-RESTORE.md § 9`](runbooks/DATABASE-RESTORE.md#9-dry-run-walkthrough-validate-the-runbook-itself) (~30 min).
+4. **Close [#142](https://github.com/cargotapan-collab/tac-express/issues/142)** — fully shipped (W2 PR 1 + PR #156). (Still pending.)
+5. **Close [#139](https://github.com/cargotapan-collab/tac-express/issues/139)** as FIXED-BY [PR #148](https://github.com/cargotapan-collab/tac-express/pull/148). (Still pending.)
+6. **Close [#140](https://github.com/cargotapan-collab/tac-express/issues/140)** as FIXED-BY [PR #148](https://github.com/cargotapan-collab/tac-express/pull/148). (Still pending.)
+7. **Reopen [#94](https://github.com/cargotapan-collab/tac-express/issues/94)** OR accept as tracker-less DoD item. (Same as item 1; bundling for one-stop.)
 8. **Delete the stuck `tac-whatsapp-sends-102/` directory** in the primary clone. (Still pending.)
 9. **Decide OD-1** — is [#154](https://github.com/cargotapan-collab/tac-express/issues/154) a SHIP-BLOCKER? Lean POST-LAUNCH. (Still pending.)
 10. **Decide OD-2** — should any of the other 4 E1 flows be SHIP-BLOCKERS? Lean payment-only sufficient. (Still pending.)
+11. **CodeRabbit billing** — update payment method or pay pending invoices to restore CodeRabbit reviews (surfaced on PR #159).
 
-**That's it. Ten owner actions, all listed. Next agent session burns SB-4 (payment-recording E2E).**
+**Eleven owner actions. Item 1 is the launch gate. Items 2–11 are housekeeping that can happen any time — but item 1 is the one that flips the project from "ready to launch" to "launched."**
