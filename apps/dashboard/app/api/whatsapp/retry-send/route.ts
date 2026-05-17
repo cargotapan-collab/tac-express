@@ -193,10 +193,30 @@ export async function POST(req: NextRequest) {
   }
 
   // ─── 5. Load the invoice (RLS-checked via cookie-bound Supabase) ────
+  // Same pattern as the getWhatsappSendById pre-flight above (CodeRabbit
+  // #156): distinguish true-null (cancelled/deleted/RLS-hidden invoice =
+  // expected, returns 422) from a DB outage (thrown, returns 500). The
+  // blanket `.catch(() => null)` here would mask a Supabase outage as a
+  // "no longer readable" 422, misleading incident triage.
   const invoiceService = createInvoiceServerService(cookieStore)
-  const invoice = (await invoiceService
-    .getInvoiceById(failedRow.invoice_id)
-    .catch(() => null)) as InvoiceLike | null
+  let invoice: InvoiceLike | null
+  try {
+    invoice = (await invoiceService.getInvoiceById(
+      failedRow.invoice_id,
+    )) as InvoiceLike | null
+  } catch (err) {
+    log.error(
+      {
+        invoiceId: failedRow.invoice_id,
+        errorMsg: err instanceof Error ? err.message : String(err),
+      },
+      "getInvoiceById threw — surfacing as 500",
+    )
+    return NextResponse.json(
+      { error: "Internal error reading invoice record." },
+      { status: 500 },
+    )
+  }
 
   if (!invoice) {
     return NextResponse.json(
