@@ -162,12 +162,17 @@ test.describe("Payment recording — money-flow E2E", () => {
 
     // A2 — payment-timeline reflects the new row.
     // The amount renders as `₹0.01` (en-IN formatted) in the timeline.
-    // Use `.first()` — there is exactly one row on the seeded invoice;
-    // pinning .first() prevents an "ambiguous selector" failure if a
-    // future PR introduces an unrelated `₹0.01` somewhere else on the page.
-    await expect(page.getByText("₹0.01").first()).toBeVisible({
-      timeout: 10_000,
-    })
+    // Scope the lookup to the PaymentTimeline root via its `data-slot=
+    // "payment-timeline"` anchor — `page.getByText("₹0.01").first()`
+    // would be ambiguous because the submit button label `Record ₹0.01`
+    // ALSO contains `₹0.01`, and the dialog may remain mounted (just
+    // hidden) after submit. CodeRabbit #160 caught this; the scoped
+    // lookup is the catalog-#7 (anchor-scoped windows) shape.
+    await expect(
+      page
+        .locator('[data-slot="payment-timeline"]')
+        .getByText("₹0.01"),
+    ).toBeVisible({ timeout: 10_000 })
 
     // ─── 5. DB assertions (A3 + A4) — the money-flow guarantee ────────────
     // The above UI assertions can pass even if the row never landed (the
