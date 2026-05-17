@@ -10,8 +10,11 @@
 >
 > Each item has a fenced ```` ```refs ... ``` ```` block. Lines are `<kind>: <value>` where `<kind>` ∈ {`file`, `symbol`, `table`, `rpc`}. Items without code artifacts use `` `refs: none — not-sentinel-checked (reason)` `` to be explicit about why the sentinel skips them.
 
-**Date last refreshed:** 2026-05-17
+**Date last refreshed:** 2026-05-17 (re-framing pass: launch-buckets added per [`docs/launch/definition-of-done.md`](../launch/definition-of-done.md))
 **Seed:** [`docs/audits/2026-05-16-102-revalidation.md`](audits/2026-05-16-102-revalidation.md) + the two known deltas since (whatsapp_sends DONE in #141; #142–#145 filed alongside #141).
+**Re-frame:** [`docs/audits/2026-05-17-launch-reframe-triage.md`](audits/2026-05-17-launch-reframe-triage.md) — reconciled every item against main; assigned a launch-bucket. **`**Bucket:**` lines below classify each item as SHIP-BLOCKER (gates launch — see DoD § 2), POST-LAUNCH (real work; not launch-gating), or WONTFIX-WATCH (CLAUDE.md § 6 deferral).**
+
+> **Tracker pointer hygiene:** the umbrella [#102](https://github.com/cargotapan-collab/tac-express/issues/102) issue is CLOSED on the tracker (intentionally; authority moved here per AGENTS.md § 0). The per-item `**Tracker:** #102` references below are historical pointers; the authoritative line item lives here. Per-item refs blocks (the `refs:` fenced blocks) remain the load-bearing identifiers checked by the backlog-refs-drift sentinel.
 
 ---
 
@@ -34,7 +37,8 @@ These are the items the sentinel actively guards.
 
 **Risk:** rank #2 (now DONE) — formerly rank #2 of remaining items per re-validation § 6.
 **Status:** DONE — merged in PR #141 on 2026-05-17.
-**Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item; PR [#141](https://github.com/cargotapan-collab/tac-express/pull/141).
+**Bucket:** N/A — DONE; shipped pre-launch.
+**Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item (umbrella closed; this file is now authoritative); PR [#141](https://github.com/cargotapan-collab/tac-express/pull/141).
 
 The first dogfooded item carrying verifiable refs. Backing table, wrapper service, types, route wiring, and tests all present on main.
 
@@ -59,8 +63,9 @@ table: whatsapp_sends
 ### O1 — `manifest.service.ts` full test floor
 
 **Risk:** rank #4 per re-validation § 6.
-**Status:** DONE — PR #<TBD-MANIFEST-FLOOR>. Full coverage of all 10 public methods (the 9 previously-uncovered plus the audit-wired `removeShipmentFromManifest` from PR #135) landed; `freshManifestService` factory mirrors the established floor pattern; ManifestStatus enum exhaustiveness pinned via dual sentinel.
-**Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item.
+**Status:** DONE — PR [#147](https://github.com/cargotapan-collab/tac-express/pull/147). Full coverage of all 10 public methods (the 9 previously-uncovered plus the audit-wired `removeShipmentFromManifest` from PR #135) landed; `freshManifestService` factory mirrors the established floor pattern; ManifestStatus enum exhaustiveness pinned via dual sentinel.
+**Bucket:** N/A — DONE; shipped pre-launch.
+**Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item (umbrella closed; this file is now authoritative).
 
 Sentinel-checked refs below pin the full set of methods exercised by the floor — drift on any of them (rename, deletion, signature change) fails CI.
 
@@ -86,7 +91,8 @@ symbol: packages/services/src/manifest.service.ts::reconcileManifest
 
 **Risk:** rank #5 per re-validation § 6.
 **Status:** DONE — PR #150. PHASE-A classified the cast as outcome 1 (cast was hiding nothing — the service `renderInvoicePdfToBuffer` already accepted the binary union `string | { data: Buffer; format: "png" | "jpg" }`; the cast widened a typed object to a string the service didn't need). Removed; typecheck honest with no new bypasses. The genuine `@react-pdf/renderer` library-side type-gap stays inside `packages/services/src/pdf/invoice-pdf.tsx::renderInvoicePdfToBuffer` where the actual library boundary lives.
-**Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item.
+**Bucket:** N/A — DONE; shipped pre-launch.
+**Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item (umbrella closed; this file is now authoritative).
 
 ```refs
 file: apps/dashboard/app/api/public/invoice-pdf/route.ts
@@ -105,8 +111,9 @@ These four items were filed yesterday as follow-ups to whatsapp_sends. They post
 ### W2 — Operator retry UI for failed WhatsApp sends
 
 **Risk:** approximate rank #5–6 (medium).
-**Status:** PARTIAL — PR 1 (visibility/read path) DONE in PR #<TBD-W2-PR1>; PR 2 (retry action / write path) OPEN, filed as a separate follow-up issue (see "PR 2 scope" below). Per the brief's read/retry split — operators can now SEE failed sends; the retry-button + retry-API-route ship in PR 2.
-**Tracker:** [#142](https://github.com/cargotapan-collab/tac-express/issues/142).
+**Status:** PARTIAL — PR 1 (visibility/read path) DONE in PR [#152](https://github.com/cargotapan-collab/tac-express/pull/152); PR 2 (retry action / write path) OPEN, filed as a separate follow-up issue (see "PR 2 scope" below). Per the brief's read/retry split — operators can now SEE failed sends; the retry-button + retry-API-route ship in PR 2.
+**Bucket:** SHIP-BLOCKER (the PR 2 half = `SB-1` in DoD; the PR 1 half is DONE). See [`docs/launch/definition-of-done.md#sb-1`](../launch/definition-of-done.md#sb-1--failed-send-retry-action-153).
+**Tracker:** [#142](https://github.com/cargotapan-collab/tac-express/issues/142) (PARTIAL — recommended close per DoD § 8 OWNER ACTIONS; let [#153](https://github.com/cargotapan-collab/tac-express/issues/153) carry the remainder under the one-feature-one-open-issue convention).
 
 **PR 1 (this session — visibility):** new page at `/ops-console/whatsapp/failed-sends`, role-gated MANAGER+. Lists failed WhatsApp sends in the last 7 days. Pure UI components in `packages/ui` (table + status-badge + page-shape view); apps/dashboard owns page composition + role-gating + the server-side data fetch directly from the service. New service method `listFailedWhatsappSends` lives in the existing tracked wrapper. Zero retry-related code in PR 1.
 
@@ -131,6 +138,7 @@ symbol: packages/types/src/whatsapp-send.types.ts::FailedWhatsappSendRow
 
 **Risk:** approximate rank #9 (low — only matters at operational pain).
 **Status:** OPEN — not started; multi-session build (needs job-runner PHASE-0).
+**Bucket:** POST-LAUNCH. SB-1 ships operator-triggered retry; automation is an enhancement once volume makes manual retry painful.
 **Tracker:** [#143](https://github.com/cargotapan-collab/tac-express/issues/143).
 
 Picks a job runner (Vercel Cron / Inngest / pg_cron), polls failed sends, retries with exponential backoff. No job-runner infrastructure exists in main today.
@@ -143,6 +151,7 @@ Picks a job runner (Vercel Cron / Inngest / pg_cron), polls failed sends, retrie
 
 **Risk:** approximate rank #7 (medium-low).
 **Status:** OPEN — not started.
+**Bucket:** POST-LAUNCH. Current `queued/sent/failed` lifecycle drives the operator retry path; `delivered/read` is a customer-confirmation enhancement.
 **Tracker:** [#144](https://github.com/cargotapan-collab/tac-express/issues/144).
 
 Public webhook endpoint with HMAC verification, replay protection. Adds `delivered`/`read` status to `whatsapp_sends` via webhook-written rows linked by `wamid`. Extends the row-model's `WhatsAppSendStatus` enum, triggering the exhaustiveness sentinel as the forcing function.
@@ -155,6 +164,7 @@ Public webhook endpoint with HMAC verification, replay protection. Adds `deliver
 
 **Risk:** approximate rank #10 (low — defense-in-depth; current discipline holds).
 **Status:** OPEN — not started.
+**Bucket:** POST-LAUNCH. Defense-in-depth; the wrapper's discipline already enforces this — mechanizing is hygiene.
 **Tracker:** [#145](https://github.com/cargotapan-collab/tac-express/issues/145).
 
 Mirror of `audit-logs-no-update-delete.test.ts` for the whatsapp_sends wrapper boundary. Distinct from the present PR's backlog-drift sentinel (#136) — that polices the BACKLOG; this one polices the WRAPPER allow-list.
@@ -173,7 +183,8 @@ The sentinel skips these because there is no code artifact to verify. Each line 
 
 **Risk:** rank #3 per re-validation § 6.
 **Status:** OPEN — owner task; not agent-actionable.
-**Tracker:** [#94](https://github.com/cargotapan-collab/tac-express/issues/94).
+**Bucket:** SHIP-BLOCKER = `SB-2` in DoD. See [`docs/launch/definition-of-done.md#sb-2`](../launch/definition-of-done.md#sb-2--sentry-alert-rule-notification-action-94--owner-runnable-backlog-o3). Silent-incident shape: solo-owner production without alerting → money-flow errors fire to Sentry → owner doesn't learn until customer complains.
+**Tracker:** [#94](https://github.com/cargotapan-collab/tac-express/issues/94) — currently CLOSED on tracker (closed 2026-05-15 prematurely); owner reopens OR accepts as tracker-less DoD item per OWNER ACTIONS in handoff.
 
 Script-side is done (`scripts/sentry/canonical-rules.mjs` + `scripts/sentry/lint-alert-rules.mjs`). The remaining step is the owner running `scripts/sentry/create-alert-rules.mjs` locally with a project:write token. 5-min owner action.
 
@@ -185,9 +196,8 @@ Script-side is done (`scripts/sentry/canonical-rules.mjs` + `scripts/sentry/lint
 
 **Risk:** rank #6 per re-validation § 6.
 **Status:** OPEN — no procedure exists in `docs/PRODUCTION-RUNBOOK.md` or `docs/runbooks/`.
-**Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item.
-
-Becomes rank #1 the day a DB-loss incident happens. Until then, a documentation gap.
+**Bucket:** SHIP-BLOCKER = `SB-3` in DoD. See [`docs/launch/definition-of-done.md#sb-3`](../launch/definition-of-done.md#sb-3--database-restore-pitr-playbook-backlog-d1). Becomes rank #1 the day a DB-loss incident happens; procedure must exist BEFORE the incident.
+**Tracker:** none on GitHub (#102 umbrella closed); authoritative entry is this file.
 
 `refs: none — not-sentinel-checked (the work IS writing a doc; the sentinel checks code refs, not future doc paths)`
 
@@ -197,7 +207,8 @@ Becomes rank #1 the day a DB-loss incident happens. Until then, a documentation 
 
 **Risk:** rank #7 per re-validation § 6.
 **Status:** OPEN — rate-limit fails open; no documented incident response.
-**Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item.
+**Bucket:** POST-LAUNCH. Fails-open is deliberate; blast radius = rate-limit not enforced (not data loss). Sentry alerting (SB-2) will surface the failure.
+**Tracker:** none on GitHub (#102 umbrella closed); authoritative entry is this file.
 
 `refs: none — not-sentinel-checked (the work IS writing a doc; the sentinel checks code refs, not future doc paths)`
 
@@ -207,7 +218,8 @@ Becomes rank #1 the day a DB-loss incident happens. Until then, a documentation 
 
 **Risk:** rank #8 per re-validation § 6.
 **Status:** OPEN — `grep "grafana\|monitoring dashboard"` in the runbook returns 0 dashboard URLs.
-**Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item.
+**Bucket:** POST-LAUNCH. Reduces incident friction; URLs are findable. Could be folded into SB-3 session as a freebie if convenient (same docs/runbooks/ surface).
+**Tracker:** none on GitHub (#102 umbrella closed); authoritative entry is this file.
 
 `refs: none — not-sentinel-checked (the work IS editing a doc to add URLs; not code artifacts)`
 
@@ -217,7 +229,8 @@ Becomes rank #1 the day a DB-loss incident happens. Until then, a documentation 
 
 **Risk:** rank #9 per re-validation § 6.
 **Status:** OPEN — `grep "@bucket\|rate-limit.*bucket"` in `whatsapp.service.ts` returns 0 hits.
-**Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item.
+**Bucket:** POST-LAUNCH. Pure documentation; zero behavior risk.
+**Tracker:** none on GitHub (#102 umbrella closed); authoritative entry is this file.
 
 Pure documentation improvement; no behavior risk. ~30 min.
 
@@ -229,7 +242,8 @@ Pure documentation improvement; no behavior risk. ~30 min.
 
 **Risk:** rank #10 per re-validation § 6.
 **Status:** OPEN — file does not exist.
-**Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item.
+**Bucket:** POST-LAUNCH. Currently continuous deploy; matters only if manual-release event becomes possible.
+**Tracker:** none on GitHub (#102 umbrella closed); authoritative entry is this file.
 
 Useful if a manual-release event becomes possible (currently continuous deploy).
 
@@ -241,7 +255,8 @@ Useful if a manual-release event becomes possible (currently continuous deploy).
 
 **Risk:** rank #11 per re-validation § 6 (grouped; aggregate scope is large but per-flow per-day risk is moderate).
 **Status:** OPEN — none of the 5 flows have specs.
-**Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item.
+**Bucket:** MIXED. **Payment-recording = SHIP-BLOCKER (carve-out)** = `SB-4` in DoD — see [`docs/launch/definition-of-done.md#sb-4`](../launch/definition-of-done.md#sb-4--payment-recording-e2e-backlog-e1-carve-out). **Other 4 flows (shipment wizard, manifest wizard, RBAC RLS isolation, exception lifecycle) = POST-LAUNCH** — pending owner decision OD-2 (could promote any). Unit tests + manual QA + SB-2 alerting is defensible for the 4 non-money flows.
+**Tracker:** none on GitHub (#102 umbrella closed); authoritative entry is this file.
 
 Five flows: payment recording (POST + assert), full shipment creation wizard (steps 2–4), full manifest creation with bulk shipment select, role-based RLS isolation (warehouse cross-hub), exception lifecycle (create / escalate / resolve). Each ~1 session; cumulative is the biggest unticked-item bucket.
 
@@ -261,6 +276,7 @@ Present for searchability. Trigger conditions preserved verbatim from the re-val
 
 **Risk:** WONTFIX-STILL-VALID per CLAUDE.md § 6.1 (re-validation § 2 row 24).
 **Status:** WONTFIX-UNLESS-TRIGGERED.
+**Bucket:** WONTFIX-WATCH. Re-evaluate 2026-08-16.
 
 Trigger conditions: design freeze on v6 or v7; wizard PR blocked ≥ 1 session on variant choice; roadmap names a target architecture state; brainstorming produces a written spec.
 
@@ -272,6 +288,7 @@ Trigger conditions: design freeze on v6 or v7; wizard PR blocked ≥ 1 session o
 
 **Risk:** WONTFIX-STILL-VALID per CLAUDE.md § 6.2 (re-validation § 4 row 27).
 **Status:** WONTFIX-UNLESS-TRIGGERED.
+**Bucket:** WONTFIX-WATCH. Re-evaluate 2026-08-16.
 
 Trigger conditions: team size ≥ 2 engineers with shared production responsibility; first 24/7 incident; Sentry rule 6 (production-errors owner-targeted) fires ≥ 3× in a 30-day window.
 

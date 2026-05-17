@@ -85,9 +85,17 @@ Adding a new skill OR a new trigger phrase REQUIRES a corresponding line in [`.c
 
 Mandatory pre-read when writing tests, mock-builders, sentinels, regex parsers, or marker comments: [`docs/patterns/coderabbit-catalog.md`](docs/patterns/coderabbit-catalog.md). 9 entries across 4 categories (test-assertion-strength, code-reference-stability, type-safety, abstraction-timing). Several are permanent CodeRabbit-memory learnings — writing the pattern correctly first time saves the review round.
 
+### Launch-scope authority — `docs/launch/definition-of-done.md`
+
+The launch-gating subset of the backlog lives at [`docs/launch/definition-of-done.md`](docs/launch/definition-of-done.md). **That file is AUTHORITATIVE for what "production-ready" means.** It defines, finitely, the SHIP-BLOCKER list whose criteria must all be true for TAC Express to go to production. The full open-item list (including POST-LAUNCH items) remains in `docs/backlog/production-readiness.md`; the DoD file is the launch-gating triage of it.
+
+**When asked "what's left to launch?" — read the DoD file, not the backlog.** When a SHIP-BLOCKER ships, update the DoD file's § 3 status table. When the owner promotes a POST-LAUNCH item to SHIP-BLOCKER, update both the DoD file (add the new SB-N) and the backlog file (update the item's `**Bucket:**` line).
+
 ### Production-readiness backlog — authoritative file (NOT the GitHub issue)
 
-The open production-readiness item list lives at [`docs/backlog/production-readiness.md`](docs/backlog/production-readiness.md). **That file is AUTHORITATIVE.** [`#102`](https://github.com/cargotapan-collab/tac-express/issues/102)-the-GitHub-issue is a human-facing pointer + discussion surface. When picking the next session's task — derive the task from the repo file, never from the issue body. When closing an item — update the repo file's `**Status:**`, not the issue body.
+The open production-readiness item list lives at [`docs/backlog/production-readiness.md`](docs/backlog/production-readiness.md). **That file is AUTHORITATIVE for the open-item list.** [`#102`](https://github.com/cargotapan-collab/tac-express/issues/102)-the-GitHub-issue was a human-facing pointer + discussion surface; it is now CLOSED (intentionally — authority moved to the file). When picking the next session's task — derive the task from the repo file, never from the (closed) issue body. When closing an item — update the repo file's `**Status:**`, not the issue body.
+
+Every item carries a `**Bucket:**` line classifying it as SHIP-BLOCKER (gates launch — promotes to a row in the DoD file), POST-LAUNCH (real work; not launch-gating), or WONTFIX-WATCH (CLAUDE.md § 6 deferral). The bucket is the connection point between the backlog file and the DoD file.
 
 The repo file uses a fenced ```` ```refs ... ``` ```` block per item carrying `file:` / `symbol:` / `table:` / `rpc:` references to code artifacts. Drift is mechanically detected: the `backlog-refs-drift` CI gate (added in PR #<TBD-#136>) runs [`apps/dashboard/__tests__/backlog-refs-drift.test.ts`](apps/dashboard/__tests__/backlog-refs-drift.test.ts) on every PR touching `apps/`, `packages/`, `scripts/`, `supabase/`, or `docs/backlog/`. A renamed file, deleted symbol, dropped table, or removed RPC → CI fails with the item name and the rotted ref. Full design rationale: [`docs/decisions/2026-05-17-backlog-drift-sentinel.md`](docs/decisions/2026-05-17-backlog-drift-sentinel.md).
 
@@ -113,6 +121,16 @@ This includes the six sentinel tests:
 **Failure surface:** vitest's standard FAIL output names the failing test by file + describe > it chain (e.g., `FAIL packages/services/src/__tests__/silent-by-design.test.ts > silent-by-design sentinel > marker is at canonical site`). The CI check NAME is generic ("Unit tests") but the OUTPUT is precise.
 
 **Rule for adding new sentinels:** put them under `__tests__/` in the right package; the `Unit tests` job picks them up automatically — no workflow edit needed. If a new sentinel needs the same name-level CI surface that `backlog-refs-drift` has (e.g., it lives in a docs path the broader `paths:` filter doesn't cover, or it's so load-bearing that a buried failure would mislead reviewers), add a dedicated narrow job mirroring `backlog-refs-drift`. Otherwise, do NOT add per-sentinel narrow jobs — PR check list noise is a real cost; vitest's output diagnoses the failure clearly.
+
+### Launch-scope conventions (two)
+
+Two governance rules adopted alongside `docs/launch/definition-of-done.md` to stop the maintenance loop from regenerating launch scope:
+
+**A. Follow-up issues default to POST-LAUNCH.** Every new issue a PR spawns is implicitly POST-LAUNCH. The launch scope only grows when the owner explicitly promotes an issue to SHIP-BLOCKER with a justification matching the hard test in [`docs/launch/definition-of-done.md § 1`](docs/launch/definition-of-done.md#1-the-hard-test-how-an-item-earns-ship-blocker-status) (data loss / security / money / broken-irrecoverable-journey / legal). Promotion is recorded in the DoD file (new SB-N row) AND in the backlog file (the item's `**Bucket:**` line). Without explicit promotion, follow-ups do not gate launch — they are visible POST-LAUNCH work.
+
+**B. OWNER ACTIONS block ends every handoff and every retro.** `docs/NEXT-SESSION-HANDOFF.md` and every `docs/retros/*.md` end with a single numbered, copy-pasteable `OWNER ACTIONS — before next session` block. Owner-only chores (issue closures, tracker reopens, owner-runnable scripts, environment changes, etc.) get exactly ONE predictable slot per session. They do not trickle out into prose paragraphs and accumulate silently across handoffs.
+
+> **Pattern:** when in doubt about whether a fact belongs in the OWNER ACTIONS block, check the hard test. If the action requires the owner's judgment OR the owner's credentials, it's an owner action. If the agent can complete it autonomously in the next session, it's a session task and belongs in § 6 of the handoff, not the OWNER ACTIONS block.
 
 ### Agent-side scaffolding scripts (PRs + CI watching)
 
