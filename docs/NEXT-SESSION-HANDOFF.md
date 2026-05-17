@@ -27,7 +27,7 @@ If the owner instead wants to advance a POST-LAUNCH item, that is a fresh agent 
 
 ---
 
-## 2. READ THIS FIRST — eight things you must NOT do
+## 2. READ THIS FIRST — nine things you must NOT do
 
 (Unchanged.)
 
