@@ -64,7 +64,7 @@ Then read in order:
 
 ### Open PRs: 0 (after THIS one merges).
 
-### Open issues (post this PR's OWNER ACTIONS — assuming owner closes #142/#139/#140 → 5 remaining)
+### Open issues — 10 total today (per `gh issue list --state open`); the OWNER ACTIONS block recommends closing 3 (#142/#139/#140) which would bring it to 7
 
 | Tracker | Title | Bucket | Notes |
 |---|---|---|---|

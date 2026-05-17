@@ -49,37 +49,38 @@ The flow requires an **ISSUED invoice with `balance > 0`** as a precondition (th
 
 ```text
 beforeAll:
-  1. Create test customer (UPSERT by stable id `e2e-payment-test-customer`)
-     — idempotent across runs; remains across runs
-  2. Create test shipment for that customer (UPSERT by stable id)
-     — idempotent across runs; remains across runs
-  3. Create FRESH invoice for that shipment:
+  1. Create FRESH invoice directly (no upstream customer/shipment seed):
      - status='ISSUED', total_amount=100, balance=100, advance_paid=0
+     - customer_id=null, shipment_id=null, awb_number=null
+       (all three FKs have ON DELETE SET NULL on the invoices table per
+       supabase/migrations/20260515000001 §invoices; leaving them NULL
+       is valid and keeps the fixture truly self-contained)
      - id is a NEW uuid per test run (stored in test-local state)
   → return { invoiceId } as the test-scoped data
 
 test (the actual journey):
-  4. UI: log in (auth state reused), navigate to /ops-console/finance/{invoiceId}
-  5. UI: click "Record Payment" button → dialog opens
-  6. UI: enter amount 0.01 (tiny non-zero amount per scope-min discipline)
-  7. UI: keep default method (UPI), click "Record" button
-  8. UI assertion: dialog closes; payment-timeline reflects the new row
-  9. DB assertion: SELECT from invoice_payments WHERE invoice_id = invoiceId
+  2. UI: log in (auth state reused), navigate to /ops-console/finance/{invoiceId}
+  3. UI: click "Record Payment" button → dialog opens
+  4. UI: enter amount 0.01 (tiny non-zero amount per scope-min discipline)
+  5. UI: keep default method (UPI), click "Record" button
+  6. UI assertion: dialog closes; payment-timeline reflects the new row
+  7. DB assertion: SELECT from invoice_payments WHERE invoice_id = invoiceId
      → exactly 1 row exists, amount=0.01, method='UPI'
 
 afterAll (ALWAYS runs, even on mid-test failure — Playwright guarantee):
-  10. DELETE FROM invoice_payments WHERE invoice_id = invoiceId
-  11. DELETE FROM invoices WHERE id = invoiceId
-  (customer + shipment retained — idempotent across runs)
+  8. DELETE FROM invoices WHERE id = invoiceId
+     (single delete; ON DELETE CASCADE on invoice_payments.invoice_id
+     removes the payment row automatically — no separate
+     invoice_payments delete needed)
 ```
 
-**Why this shape:**
-- Self-contained — the test doesn't depend on whatever invoices happen to live in the DB; no pre-existing data assumption
+**Why this shape (simpler than the original draft — credit Macroscope #160 finding for surfacing the doc/impl drift):**
+- Self-contained — the test doesn't depend on whatever invoices, customers, or shipments happen to live in the DB; no pre-existing data assumption, no upstream-seed assumption
 - Repeatable — N concurrent runs of the test against the same DB produce N independent invoice fixtures, no collision
-- Teardown reliable — `afterAll` runs in Playwright regardless of test pass/fail; explicit DELETEs not cascade-dependent
+- Teardown reliable — `afterAll` runs in Playwright regardless of test pass/fail; a single DELETE cascades automatically; no risk of leaving the payment row orphaned
 - No DB schema change — uses existing tables only
-- Customer/shipment retained idempotently — first run creates them, subsequent runs UPSERT and reuse; cleaner DB hygiene without losing run-cost
 - Tiny amount (₹0.01) — won't materially affect any reporting if the teardown is somehow skipped (residual cleanup discipline)
+- Drift note: the initial draft of this doc described seeding customer + shipment via UPSERT. Implementation revealed all three FKs are nullable on `invoices`, making the upstream seed unnecessary. The simpler shape ships; doc updated to match.
 
 ## D. The journey + assertions
 
