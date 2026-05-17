@@ -462,7 +462,7 @@ describe("postSmart decision tree (via sendMessage)", () => {
 // ─── WAMID-null silent-rejection guard ───────────────────────────────────────
 
 describe("WAMID-null silent-rejection guard", () => {
-  it("send endpoint + 200 + message_wamid: null -> failure (the load-bearing tamper-evident signal)", async () => {
+  it("send endpoint + 200 + message_wamid: null -> failure; NO form-encoded fallback (#139 regression check)", async () => {
     // WPBox returns HTTP 200 with status: "success" but message_wamid: null
     // when WhatsApp accepted the call shape but the actual send was
     // rejected downstream (template requires HEADER, recipient unreachable,
@@ -470,19 +470,24 @@ describe("WAMID-null silent-rejection guard", () => {
     // the message went through. The guard is the difference between
     // "delivery succeeded" and "delivery attempted." Load-bearing.
     //
-    // Note: the WAMID-null guard returns ok:false with status:200, which
-    // postSmart's shouldFallback (status === 200) reads as worth retrying
-    // as form-encoded. Both attempts produce the same WAMID-null shape;
-    // the second one is the final result. Mock both calls.
+    // #139 regression: this test was originally written when postSmart's
+    // shouldFallback (status === 200) fired on WAMID-null and triggered a
+    // redundant form-encoded retry — every silent rejection cost two API
+    // calls. The source fix sets `semanticFailure: true` on the WAMID-null
+    // branch in attemptPost, and postSmart short-circuits on that flag
+    // BEFORE computing shouldFallback. ONE fetch call per send;
+    // attemptedFormats: ["json"] only. The mock has ONE response (was 2
+    // pre-fix); if a future regression re-introduces the fallback, the
+    // sequence-exhaustion assertion in mockFetchSequence fires loudly.
     const wamidNullBody = JSON.stringify({
       status: "success",
       message_id: 99,
       message_wamid: null,
     })
-    const fetchMock = mockFetchSequence(
-      { kind: "response", response: mockResponse({ body: wamidNullBody }) },
-      { kind: "response", response: mockResponse({ body: wamidNullBody }) },
-    )
+    const fetchMock = mockFetchSequence({
+      kind: "response",
+      response: mockResponse({ body: wamidNullBody }),
+    })
     vi.stubGlobal("fetch", fetchMock)
     const svc = freshService()
     const result = await svc.sendMessage({ phone: "919876543210", message: "hi" })
@@ -492,10 +497,17 @@ describe("WAMID-null silent-rejection guard", () => {
       expect(result.error).toContain("HEADER component")
       expect(result.status).toBe(200)
       expect(result.rawResponse).toContain("message_wamid")
-      // Both attempts ran; both produced WAMID-null; final tag is both.
-      expect(result.attemptedFormats).toEqual(["json", "form"])
+      // ONLY the JSON attempt ran post-#139 fix — no redundant form retry.
+      expect(result.attemptedFormats).toEqual(["json"])
+      // semanticFailure flag surfaces to the caller so consumers (and the
+      // delivery-tracking wrapper) can distinguish semantic rejections
+      // from transport-format failures if needed.
+      expect(result.semanticFailure).toBe(true)
     }
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    // Catalog #1 / #2: pin the EXACT call count. A future regression that
+    // re-introduces the redundant fallback (status === 200 path firing on
+    // WAMID-null) makes this fail with `expected 2 to equal 1`.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it("send endpoint + 200 + message_wamid present -> success", async () => {
@@ -515,21 +527,23 @@ describe("WAMID-null silent-rejection guard", () => {
     expect(result.ok).toBe(true)
   })
 
-  it("send endpoint via sendTemplate + 200 + message_wamid: null -> failure (guard is endpoint-class, not just sendMessage)", async () => {
+  it("send endpoint via sendTemplate + 200 + message_wamid: null -> failure, single fetch (#139 regression, endpoint-class)", async () => {
     // The WAMID-null guard is scoped to BOTH /sendmessage and
     // /sendtemplatemessage paths. Pinning sendTemplate explicitly
     // guards against a regression that narrows the path check to
-    // sendmessage only. Same two-attempt shape as the sendMessage case
-    // (status:200 triggers form fallback).
+    // sendmessage only.
+    //
+    // Post-#139: ONE fetch call, attemptedFormats: ["json"] only. Same
+    // single-response mock as the sendMessage case above.
     const wamidNullBody = JSON.stringify({
       status: "success",
       message_id: 99,
       message_wamid: null,
     })
-    const fetchMock = mockFetchSequence(
-      { kind: "response", response: mockResponse({ body: wamidNullBody }) },
-      { kind: "response", response: mockResponse({ body: wamidNullBody }) },
-    )
+    const fetchMock = mockFetchSequence({
+      kind: "response",
+      response: mockResponse({ body: wamidNullBody }),
+    })
     vi.stubGlobal("fetch", fetchMock)
     const svc = freshService()
     const result = await svc.sendTemplate({
@@ -538,7 +552,12 @@ describe("WAMID-null silent-rejection guard", () => {
       templateLanguage: "en",
     })
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.error).toContain("message_wamid: null")
+    if (!result.ok) {
+      expect(result.error).toContain("message_wamid: null")
+      expect(result.attemptedFormats).toEqual(["json"])
+      expect(result.semanticFailure).toBe(true)
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it("non-send endpoint (makeContact) + 200 + message_wamid: null -> SUCCESS (guard is scoped, not global)", async () => {
@@ -950,22 +969,27 @@ describe("getWhatsAppConfig", () => {
     expect(cfg.baseUrl).toBe("")
   })
 
-  it("LATENT BUG: empty-string baseUrl propagates to relative fetch URL (?? does not coalesce empty string)", async () => {
-    // Documents the bug surfaced by CodeRabbit's review of the prior
-    // overly-permissive baseUrl assertion. NOT fixed in this PR per
-    // the test-floor-PR-is-tests-only rule; filed as a follow-up.
+  it("empty-string baseUrl resolves to the default WPBox base URL (#140 regression check)", async () => {
+    // Originally documented as a LATENT BUG by CodeRabbit's review of the
+    // PR #138 test floor: the source's pre-fix
+    // `(config.baseUrl ?? "https://chat.leminai.com")` used `??`, which
+    // only coalesces null/undefined, so baseUrl="" passed straight through
+    // and fetch was called with a relative URL (`/api/wpbox/sendmessage`).
+    // Node's fetch rejects non-absolute URLs in production.
     //
-    // The source's `(config.baseUrl ?? "https://chat.leminai.com").replace(...)`
-    // expression yields the empty string when baseUrl is "" — because
-    // `??` only coalesces null/undefined, not falsy. The resulting
-    // `baseUrl` after the trailing-slash strip is also "", so the
-    // template literal `${baseUrl}${path}` produces just the path,
-    // and fetch is called with a relative URL.
+    // #140 fix: changed `??` to `||` in createWhatsAppService. Since
+    // baseUrl is `string | undefined` and the only falsy strings are ""
+    // (which we want to coalesce) and undefined (already covered), `||`
+    // is the minimal correct change. Fixed at the consumer layer
+    // (createWhatsAppService), NOT at getWhatsAppConfig, so the
+    // WhatsAppConfig type stays honest about what `baseUrl: ""` means
+    // (treated as "use default").
     //
-    // In production this would fail because fetch in Node requires an
-    // absolute URL. We pin the broken-but-current behavior here so the
-    // future fix has a target: the failing assertion in this test
-    // becomes a passing one once the source normalizes empty -> default.
+    // This test was previously titled "LATENT BUG: ..." and asserted
+    // `expect(url).toBe("/api/wpbox/sendmessage")` (the buggy relative
+    // URL). Flipped here to assert the fixed behavior: the URL is the
+    // default base + path. A regression that reverts `||` back to `??`
+    // makes this assertion fail.
     const fetchMock = mockFetchSequence({
       kind: "response",
       response: mockResponse({
@@ -980,10 +1004,7 @@ describe("getWhatsAppConfig", () => {
     })
     await svc.sendMessage({ phone: "919876543210", message: "hi" })
     const [url] = fetchMock.mock.calls[0]! as [string, RequestInit]
-    // BUG: relative URL, not absolute. Should be the default WPBox
-    // production hostname per the `?? "https://chat.leminai.com"`
-    // intent — but `??` does not trigger on "".
-    expect(url).toBe("/api/wpbox/sendmessage")
+    expect(url).toBe("https://chat.leminai.com/api/wpbox/sendmessage")
   })
 })
 
