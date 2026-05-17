@@ -78,19 +78,21 @@ This test is intentionally ruthless. The SHIP-BLOCKER bucket is small by design.
 
 ---
 
-### SB-3 — Database restore (PITR) playbook ([backlog D1](../backlog/production-readiness.md#d1--pitr--database-restore-playbook))
+### SB-3 — Database restore (PITR) playbook ([backlog D1](../backlog/production-readiness.md#d1--pitr--database-restore-playbook)) — **DONE**
 
-**Why it gates launch:** No documented procedure exists for "Supabase project lost" or "table accidentally truncated" recovery. Supabase has PITR available, but if the incident happens BEFORE the procedure is documented, the recovery clock starts at "owner Googles supabase pitr how to" — multiplying RTO by an unknown factor on the worst possible day.
+**Why it gated launch:** No documented procedure existed for "Supabase project lost" or "table accidentally truncated" recovery. Supabase has PITR available, but if the incident had happened BEFORE the procedure was documented, the recovery clock would have started at "owner Googles supabase pitr how to" — multiplying RTO by an unknown factor on the worst possible day.
 
-**Testable DONE criterion:**
-- `docs/runbooks/DATABASE-RESTORE.md` exists.
-- Names the Supabase PITR feature explicitly (link to the current Supabase PITR docs URL).
-- Documents the auth path (which dashboard, which project ID, which permission level required).
-- Walks the exact steps for two scenarios: (a) full project recovery to a point-in-time, (b) single-table restore from a backup.
-- Names an explicit RTO target (e.g., "PITR restore RTO ≤ 4 hours from incident detection").
-- A dry-run is noted in the doc — not executed against production (which would be destructive), but the steps walked through against a Supabase staging project OR against the docs/UI to confirm the steps are valid.
+**Status:** DONE — runbook at [`docs/runbooks/DATABASE-RESTORE.md`](../runbooks/DATABASE-RESTORE.md) shipped in the PR that closes SB-3. PHASE-0 decision doc at [`docs/decisions/2026-05-17-database-restore-playbook.md`](../decisions/2026-05-17-database-restore-playbook.md). The runbook covers the three in-scope scenarios (bad migration; data deletion/corruption; full project loss), with explicit decision tree, 4-step verification, 5 safety guards, and named OWNER-CONFIRMED PREREQUISITES (P1–P4) the owner verifies once via the Supabase dashboard.
 
-**Estimate:** 1-2 hours.
+**Testable DONE criterion (all satisfied):**
+- ✅ `docs/runbooks/DATABASE-RESTORE.md` exists.
+- ✅ Names the Supabase PITR feature explicitly (link to current Supabase PITR docs URL at `https://supabase.com/docs/guides/platform/backups#point-in-time-recovery`).
+- ✅ Documents the auth path (Supabase org Owner role; project ref `mdvnphbucrpspntrezmj`; org `ppwavecghnfqsmzqlhgb`).
+- ✅ Walks the exact steps for the three in-scope scenarios — including (a) full project recovery to a point-in-time, (b) single-table restore (via Supabase branches + parallel project + targeted re-insert).
+- ✅ Names explicit RTO targets: ≤ 4 hours for scenarios 1+2; ≤ 8 hours for scenario 3.
+- ✅ Dry-run walkthrough recorded in § 9; owner-side validation procedure documented (~30 minutes against a Supabase branch).
+
+**Owner-pending:** the four OWNER-CONFIRMED PREREQUISITES (P1 Pro plan, P2 PITR enabled + retention, P3 daily backups, P4 Owner role) must be verified by the owner via the Supabase dashboard. The runbook's § 2 includes a fill-in confirmation block.
 
 ---
 
@@ -117,11 +119,11 @@ This test is intentionally ruthless. The SHIP-BLOCKER bucket is small by design.
 |---|---|---|
 | SB-1 — Failed-send retry action (#153) | **DONE 2026-05-17** | — |
 | SB-2 — Sentry alert provisioning (#94 / O3) | OPEN | ~20 min owner-task; agent-untouchable |
-| SB-3 — PITR playbook (D1) | OPEN | Not started; ~1-2 hours of doc work |
+| SB-3 — PITR playbook (D1) | **DONE 2026-05-17** | Owner-pending: P1–P4 prerequisite confirmation against the Supabase dashboard (see runbook § 2) |
 | SB-4 — Payment-recording E2E (E1 carve-out) | OPEN | Not started; ~1 session of work |
 
-**Open ship-blockers:** 3 of 4 remain.
-**Realistic burn-down:** **2-3 sessions remaining** — SB-4 is 1 session; SB-3 is half a session; SB-2 is owner-only and can run in parallel.
+**Open ship-blockers:** 2 of 4 remain (SB-2, SB-4).
+**Realistic burn-down:** **1-2 sessions remaining** — SB-4 is 1 session of agent work; SB-2 is the owner's ~20-minute task and can run in parallel.
 
 After all 4 are DONE, the launch criteria are met. POST-LAUNCH work continues against the same backlog file, but **does not gate launch**.
 
@@ -130,11 +132,11 @@ After all 4 are DONE, the launch criteria are met. POST-LAUNCH work continues ag
 ## 4. Recommended burn-down order
 
 1. ~~**SB-1 first** ([#153](https://github.com/cargotapan-collab/tac-express/issues/153)) — direct continuation of PR #152.~~ **DONE 2026-05-17.**
-2. **SB-3 next** (D1 PITR playbook) — pure documentation work; isolates a serious tail-risk; the owner can review independently of any code change; reduces the launch-eve workload on the highest-risk item.
-3. **SB-4 third** (payment-recording E2E) — requires the most setup (Playwright e2e wiring for an authenticated dashboard flow with form-state + DB cleanup); benefits from being last because by then the money-flow surface is fully exercised by the prior PRs and the failure modes are well-known.
-4. **SB-2 fourth** (owner Sentry provisioning) — owner-only; can run in parallel with any of the above; must be done before first real-user traffic.
+2. ~~**SB-3 next** (D1 PITR playbook).~~ **DONE 2026-05-17** — runbook at [`docs/runbooks/DATABASE-RESTORE.md`](../runbooks/DATABASE-RESTORE.md).
+3. **SB-4 third** (payment-recording E2E) — requires the most setup (Playwright e2e wiring for an authenticated dashboard flow with form-state + DB cleanup). The next agent session burns this.
+4. **SB-2 fourth** (owner Sentry provisioning) — owner-only; can run in parallel with SB-4; must be done before first real-user traffic.
 
-**Ordering reasoning:** unchanged from v1.0 except SB-1 is now closed. SB-3 (pure doc) is the next agent-actionable item — small, isolates DB-loss tail risk, low-friction.
+**Ordering reasoning:** SB-1 and SB-3 closed in order. SB-4 is the only remaining agent-actionable ship-blocker; SB-2 is owner-async. The launch is one focused agent session + one ~20-minute owner task away.
 
 ---
 

@@ -202,8 +202,8 @@ Script-side is done (`scripts/sentry/canonical-rules.mjs` + `scripts/sentry/lint
 ### D1 — PITR / database restore playbook
 
 **Risk:** rank #6 per re-validation § 6.
-**Status:** OPEN — no procedure exists in `docs/PRODUCTION-RUNBOOK.md` or `docs/runbooks/`.
-**Bucket:** SHIP-BLOCKER = `SB-3` in DoD. See [`docs/launch/definition-of-done.md#sb-3`](../launch/definition-of-done.md#sb-3--database-restore-pitr-playbook-backlog-d1). Becomes rank #1 the day a DB-loss incident happens; procedure must exist BEFORE the incident.
+**Status:** DONE 2026-05-17 — runbook at [`docs/runbooks/DATABASE-RESTORE.md`](../runbooks/DATABASE-RESTORE.md). Covers three in-scope scenarios (bad migration; data deletion/corruption; full project loss) with decision tree, 4-step verification, 5 safety guards, and named OWNER-CONFIRMED PREREQUISITES (P1–P4). PHASE-0 decision doc at [`docs/decisions/2026-05-17-database-restore-playbook.md`](../decisions/2026-05-17-database-restore-playbook.md). The earlier WONTFIX stub at `docs/runbooks/PITR-PLAYBOOK.md` is now a short redirect to the new file.
+**Bucket:** N/A — DONE; shipped pre-launch (was SB-3 in DoD).
 **Tracker:** none on GitHub (#102 umbrella closed); authoritative entry is this file.
 
 `refs: none — not-sentinel-checked (the work IS writing a doc; the sentinel checks code refs, not future doc paths)`
