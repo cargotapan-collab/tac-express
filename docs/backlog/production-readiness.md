@@ -85,7 +85,7 @@ symbol: packages/services/src/manifest.service.ts::reconcileManifest
 ### O2 — `as unknown as` cast cleanup at `apps/dashboard/app/api/public/invoice-pdf/route.ts`
 
 **Risk:** rank #5 per re-validation § 6.
-**Status:** DONE — PR #<TBD-O2>. PHASE-A classified the cast as outcome 1 (cast was hiding nothing — the service `renderInvoicePdfToBuffer` already accepted the binary union `string | { data: Buffer; format: "png" | "jpg" }`; the cast widened a typed object to a string the service didn't need). Removed; typecheck honest with no new bypasses. The genuine `@react-pdf/renderer` library-side type-gap stays inside `packages/services/src/pdf/invoice-pdf.tsx::renderInvoicePdfToBuffer` where the actual library boundary lives.
+**Status:** DONE — PR #150. PHASE-A classified the cast as outcome 1 (cast was hiding nothing — the service `renderInvoicePdfToBuffer` already accepted the binary union `string | { data: Buffer; format: "png" | "jpg" }`; the cast widened a typed object to a string the service didn't need). Removed; typecheck honest with no new bypasses. The genuine `@react-pdf/renderer` library-side type-gap stays inside `packages/services/src/pdf/invoice-pdf.tsx::renderInvoicePdfToBuffer` where the actual library boundary lives.
 **Tracker:** [#102](https://github.com/cargotapan-collab/tac-express/issues/102) line item.
 
 ```refs
