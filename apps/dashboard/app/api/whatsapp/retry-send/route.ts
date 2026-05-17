@@ -78,8 +78,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  // Same DB-error vs null pattern as the two pre-flight reads below
+  // (getWhatsappSendById, getInvoiceById) — route-local consistency.
+  // Genuine missing profile → fall through to the role gate (403 RBAC
+  // denial); thrown DB error → 500 (no false RBAC-denial telemetry).
   const adminService = createAdminServerService(cookieStore)
-  const profile = await adminService.getProfileById(user.id).catch(() => null)
+  let profile: Awaited<ReturnType<typeof adminService.getProfileById>> | null
+  try {
+    profile = await adminService.getProfileById(user.id)
+  } catch (err) {
+    log.error(
+      {
+        userId: user.id,
+        errorMsg: err instanceof Error ? err.message : String(err),
+      },
+      "getProfileById threw — surfacing as 500",
+    )
+    return NextResponse.json(
+      { error: "Internal error reading operator profile." },
+      { status: 500 },
+    )
+  }
   const role = profile?.role as UserRole | undefined
   if (!role || !isManagerOrAbove(role)) {
     captureRbacDenial({
@@ -96,7 +115,23 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ─── 2. Per-user rate limit (mirrors send-invoice) ──────────────────
+  // ─── 2. Parse + validate body (BEFORE the per-send rate-limit so we
+  // have parsed.originalSendId available for the second guard) ─────────
+  let parsed: z.infer<typeof RequestBodySchema>
+  try {
+    const raw = await req.json()
+    parsed = RequestBodySchema.parse(raw)
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid request body", issues: err.issues },
+        { status: 400 },
+      )
+    }
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+  }
+
+  // ─── 3a. Per-user quota (mirrors send-invoice) ──────────────────────
   const rl = await checkWhatsApp(`user:${user.id}`)
   if (!rl.success) {
     return NextResponse.json(
@@ -117,19 +152,35 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ─── 3. Parse + validate body ───────────────────────────────────────
-  let parsed: z.infer<typeof RequestBodySchema>
-  try {
-    const raw = await req.json()
-    parsed = RequestBodySchema.parse(raw)
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid request body", issues: err.issues },
-        { status: 400 },
-      )
-    }
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+  // ─── 3b. Per-originalSendId in-flight guard (CodeRabbit #156 — cross-
+  // operator concurrency defense-in-depth) ──────────────────────────────
+  //
+  // The per-user quota above prevents bursts from ONE operator. The
+  // service-layer pre-INSERT existing-attempt check prevents most
+  // cross-operator races but leaves a TOCTOU window. This Upstash-backed
+  // per-originalSendId quota narrows that window further: two operators
+  // hitting the same originalSendId within the rate-limit window are
+  // serialized through Upstash. Same shape as the per-user guard —
+  // returns 429 with rate-limit headers.
+  const retryRl = await checkWhatsApp(`retry-send:${parsed.originalSendId}`)
+  if (!retryRl.success) {
+    return NextResponse.json(
+      {
+        error:
+          "A retry for this failed send is already in progress. Try again in a minute.",
+        limit: retryRl.limit,
+        remaining: retryRl.remaining,
+        reset: retryRl.reset,
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": String(retryRl.limit),
+          "X-RateLimit-Remaining": String(retryRl.remaining),
+          "X-RateLimit-Reset": String(retryRl.reset),
+        },
+      },
+    )
   }
 
   // ─── 4. Pre-flight check on the failed row ──────────────────────────
