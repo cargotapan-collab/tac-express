@@ -118,10 +118,11 @@ A restore with no verification step is incomplete. The runbook's verification se
 ### V1 — Schema integrity
 
 ```bash
-pnpm migrations-fresh-apply
-# Equivalent to running `supabase db reset` then `supabase db push` against
-# the restored DB. The `Migrations apply on fresh DB` CI gate that runs on
-# every PR is the same check.
+supabase db push --linked --dry-run
+# Same shape as the `Migrations apply on fresh DB` CI gate (which runs
+# `supabase db reset --debug` against an ephemeral Postgres). The
+# `--linked --dry-run` flag pair surfaces unapplied migrations without
+# writing — safe to run against a restored production-shaped DB.
 ```
 
 Pass: 0 errors, all 7 active migrations apply.
@@ -132,10 +133,13 @@ Fail: schema drift between restore and repo migrations. Stop. Do NOT write to th
 Capture these BEFORE the restore (Step 0 / safety) and AFTER:
 
 ```sql
+-- whatsapp_sends line is conditional — see § B above (the table may not
+-- be present on production yet). Verify via information_schema first;
+-- comment out the line if absent. Same caveat in the runbook § 6 V2.
 SELECT 'invoices' AS table, COUNT(*) AS n FROM invoices
 UNION ALL SELECT 'invoice_payments', COUNT(*) FROM invoice_payments
 UNION ALL SELECT 'audit_logs', COUNT(*) FROM audit_logs
-UNION ALL SELECT 'whatsapp_sends', COUNT(*) FROM whatsapp_sends
+UNION ALL SELECT 'whatsapp_sends', COUNT(*) FROM whatsapp_sends   -- comment out if absent
 UNION ALL SELECT 'shipments', COUNT(*) FROM shipments
 UNION ALL SELECT 'manifests', COUNT(*) FROM manifests;
 ```

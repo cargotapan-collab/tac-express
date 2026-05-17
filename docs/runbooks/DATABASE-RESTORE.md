@@ -138,10 +138,16 @@ If the project is unreachable (scenario 3), this step is skipped — the post-in
 Run via the Supabase SQL Editor (`https://supabase.com/dashboard/project/mdvnphbucrpspntrezmj/sql/new`):
 
 ```sql
+-- The whatsapp_sends line is conditional — see prerequisite check § 2
+-- (the table may not be present on production until migration
+-- 20260517000001 lands). Check existence first; comment the line out if
+-- the table is absent:
+--   SELECT EXISTS (SELECT 1 FROM information_schema.tables
+--                  WHERE table_schema='public' AND table_name='whatsapp_sends');
 SELECT 'invoices' AS table, COUNT(*) AS n FROM invoices
 UNION ALL SELECT 'invoice_payments', COUNT(*) FROM invoice_payments
 UNION ALL SELECT 'audit_logs', COUNT(*) FROM audit_logs
-UNION ALL SELECT 'whatsapp_sends', COUNT(*) FROM whatsapp_sends
+UNION ALL SELECT 'whatsapp_sends', COUNT(*) FROM whatsapp_sends   -- comment out if absent
 UNION ALL SELECT 'shipments', COUNT(*) FROM shipments
 UNION ALL SELECT 'manifests', COUNT(*) FROM manifests
 UNION ALL SELECT 'customers', COUNT(*) FROM customers
@@ -207,17 +213,24 @@ Symptoms: deploy-related; Sentry rule 4 (Supabase RPC failures) spikes
    - Wait for the restore (typical: 5–30 minutes for projects this size; you will receive an email from Supabase when complete)
 4. Re-apply the GOOD migrations that ran BEFORE the bad one (if any in the same window):
    - Compare `gh pr list --state merged --base main --limit 10` to the post-restore state
-   - For each merged-PR migration that is NOT in the restored DB, run `pnpm --filter @tac-express/database push --include-all` against the restored DB
+   - For each merged-PR migration that is NOT in the restored DB, run `supabase db push --linked` against the restored project (or `supabase db reset --linked` if you need a full fresh-apply — that's the same command the `Migrations apply on fresh DB` CI gate runs)
    - The bad migration MUST NOT be re-applied — fix it on a branch first
 5. Verify per § 6
 6. Unblock writes (revert `WHATSAPP_ENABLED` to `true` + redeploy)
 
-**Equivalent CLI path** (if dashboard is unreachable):
-```bash
-# Supabase CLI PITR — requires linked project + owner access token
-supabase pitr restore --project-ref mdvnphbucrpspntrezmj \
-  --recovery-time-target '<ISO-8601-UTC>'
-# Then confirm via dashboard's restore-status panel.
+**If the dashboard is unreachable:** the Supabase CLI's PITR surface has changed across versions and the exact subcommand depends on the installed CLI version (`branches restore` exists on recent versions for branch-based PITR; project-direct PITR is dashboard-only on some plan tiers). **Do NOT guess at a CLI invocation under incident pressure.** Instead:
+
+1. Open a Supabase support ticket immediately: `https://supabase.com/dashboard/support` (or email `support@supabase.com` if the dashboard itself is unreachable from your network).
+2. Quote the project ref `mdvnphbucrpspntrezmj` + target timestamp + "PITR restore requested; dashboard unreachable."
+3. Supabase support can perform the PITR restore against the project on the customer's behalf with org-level proof of ownership.
+
+Owner-validated alternative — when the dry-run walkthrough (§ 9) is performed, the owner records the exact CLI command for the project's then-current Supabase CLI version below:
+
+```
+# Recorded by owner during the § 9 dry-run walkthrough:
+# CLI version:     ________________________
+# PITR command:    ________________________
+# Confirmed:       ________________________
 ```
 
 ### § 5.B — Scenario 2: accidental data deletion / corruption
@@ -253,8 +266,13 @@ Symptoms: operator reports missing records (e.g., invoice gone from list)
 8. Verify per § 6
 9. **Audit-log the operator action** — even though `audit_logs` is wrapped only on application-layer destructive ops, manually insert a row recording the restoration:
    ```sql
+   -- NOTE: `auth.uid()` returns NULL in the SQL Editor (no JWT/PostgREST
+   -- session context). Manually substitute the operator's profile UUID —
+   -- look it up via `SELECT id FROM profiles WHERE email = '<operator>';`
+   -- first. Without this, the FK to profiles fails OR the audit row
+   -- silently records NULL actor, defeating the audit trail.
    INSERT INTO audit_logs (actor_user_id, op, target_id, payload) VALUES
-     (auth.uid(), 'restore_table_<table>', '<some-target-id>',
+     ('<operator-profile-uuid>', 'restore_table_<table>', '<some-target-id>',
       jsonb_build_object('runbook_section', '5.B', 'target_timestamp', '<ISO>',
                          'rows_restored', <N>));
    ```
@@ -302,12 +320,19 @@ Run these IN ORDER. STOP on any failure; do NOT cut over.
 Run against the restored DB:
 
 ```bash
-# Point pnpm at the restored connection string:
+# Two equivalent ways to verify the restored DB matches the repo migrations:
+#
+# (a) Use the Supabase CLI directly (same shape the CI gate uses):
 SUPABASE_DB_URL='postgresql://...restored connection...' \
-  pnpm --filter @tac-express/database push --include-all --dry-run
+  supabase db push --linked --dry-run
+#
+# (b) Or run `supabase db reset --debug` against the restored project
+#     (DESTRUCTIVE — wipes + re-applies migrations; only run if it's safe
+#     to discard the restored data and re-bootstrap from migrations alone,
+#     e.g. on a Supabase branch).
 ```
 
-**Pass:** 0 errors; `--dry-run` reports "no changes" (all 7+ active migrations from `supabase/migrations/` are present in the restored DB).
+**Pass:** 0 errors; `--dry-run` reports "no changes" (all active migrations from `supabase/migrations/` are present in the restored DB).
 
 **Fail:** schema drift between restored DB and repo `supabase/migrations/`. **STOP.** Do NOT write to the restored DB. Re-check the restore target timestamp — most schema-drift cases are "restored too far back" or "missed a forward migration after the restore."
 
@@ -344,6 +369,7 @@ GROUP BY op;
 -- Any unfamiliar `op` value → drift; investigate before cutover.
 
 -- whatsapp_sends FK to invoices (when invoice_id is non-null):
+-- ONLY RUN if whatsapp_sends exists (see § 6 V2 conditional check).
 SELECT COUNT(*) AS orphaned_sends
 FROM whatsapp_sends w
 WHERE w.invoice_id IS NOT NULL
