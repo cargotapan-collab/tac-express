@@ -49,6 +49,11 @@ export {
 } from "./ops-skeleton"
 export { OpsEmptyState, type OpsEmptyStateProps } from "./ops-empty-state"
 export { OpsErrorState, type OpsErrorStateProps } from "./ops-error-state"
+export {
+  OpsAccessFallback,
+  type OpsAccessFallbackProps,
+  type OpsAccessFallbackReason,
+} from "./ops-access-fallback"
 export { OpsDetailFrame, type OpsDetailFrameProps } from "./ops-detail-frame"
 export {
   OpsTimeline,

@@ -7,6 +7,7 @@ import {
   createAdminServerService,
   createTrackedWhatsAppServerService,
 } from "@workspace/services/server"
+import { OpsAccessFallback } from "@workspace/ui/components/composed/ops-console"
 import { OpsWhatsAppFailedSendsView } from "@workspace/ui/components/composed/ops-console/pages"
 import { UserRole } from "@workspace/types"
 
@@ -41,11 +42,7 @@ export async function OpsWhatsAppFailedSendsLive() {
   const auth = getServerAuth(cookieStore)
   const user = await auth.getUser().catch(() => null)
   if (!user) {
-    return (
-      <div className="p-6 text-sm text-muted-foreground">
-        Sign in required.
-      </div>
-    )
+    return <OpsAccessFallback reason="unauthenticated" />
   }
 
   const adminService = createAdminServerService(cookieStore)
@@ -57,11 +54,7 @@ export async function OpsWhatsAppFailedSendsLive() {
       actualRole: role ?? UserRole.OPS_STAFF,
       surface: "/ops-console/whatsapp/failed-sends",
     })
-    return (
-      <div className="p-6 text-sm text-muted-foreground">
-        Not authorized. This view requires MANAGER role or above.
-      </div>
-    )
+    return <OpsAccessFallback reason="forbidden" requiredRole="MANAGER" />
   }
 
   const svc = createTrackedWhatsAppServerService(cookieStore)
