@@ -47,6 +47,11 @@ const CHAIN_METHODS = [
   // chain methods (returns the builder, resolves to the configured
   // result when awaited).
   "range",
+  // `ilike(column, pattern)` — Postgres case-insensitive LIKE. Added when
+  // manifest.service.ts became the first consumer needing it via
+  // getManifests(filters.search). Same shape as `range`'s addition — an
+  // additive extension to the canonical helper, not a forked builder.
+  "ilike",
   "single",
   "maybeSingle",
 ] as const
