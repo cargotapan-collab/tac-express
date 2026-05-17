@@ -60,6 +60,26 @@ function postgrestHeaders(extra?: Record<string, string>): Record<string, string
   }
 }
 
+/**
+ * Per-request timeout for every PostgREST call. Bounds the worst-case
+ * stall (DNS / TLS / cold PostgREST) so a hung fetch can't burn the
+ * entire Playwright timeout AND can't prevent `afterAll` teardown from
+ * running (a leaked test invoice would persist across CI runs).
+ *
+ * Mirrors the established `AbortSignal.timeout(15_000)` pattern in
+ * `packages/services/src/whatsapp.service.ts` — 10s here is tighter
+ * because PostgREST round-trips are typically <500ms; anything past 10s
+ * is a real outage, not normal latency.
+ */
+const POSTGREST_TIMEOUT_MS = 10_000
+
+function postgrestFetch(input: string, init: RequestInit): Promise<Response> {
+  return fetch(input, {
+    ...init,
+    signal: AbortSignal.timeout(POSTGREST_TIMEOUT_MS),
+  })
+}
+
 function assertEnv(): void {
   if (!hasServiceRoleEnv()) {
     throw new Error(
@@ -93,7 +113,7 @@ export async function seedTestInvoice(): Promise<SeededInvoice> {
   const totalAmount = 100
   const balance = 100
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/invoices`, {
+  const res = await postgrestFetch(`${SUPABASE_URL}/rest/v1/invoices`, {
     method: "POST",
     headers: postgrestHeaders({ Prefer: "return=minimal" }),
     body: JSON.stringify({
@@ -151,7 +171,7 @@ export async function teardownTestInvoice(
   // Count cascade-deleted payments BEFORE the DELETE — once cascade fires,
   // counting after is impossible (rows are gone). PostgREST's exact-count
   // is opt-in via the Prefer header; HEAD-method skips returning rows.
-  const countRes = await fetch(
+  const countRes = await postgrestFetch(
     `${SUPABASE_URL}/rest/v1/invoice_payments?invoice_id=eq.${encodeURIComponent(invoiceId)}&select=id`,
     {
       method: "HEAD",
@@ -167,7 +187,7 @@ export async function teardownTestInvoice(
     countRes.headers.get("content-range"),
   )
 
-  const deleteRes = await fetch(
+  const deleteRes = await postgrestFetch(
     `${SUPABASE_URL}/rest/v1/invoices?id=eq.${encodeURIComponent(invoiceId)}`,
     {
       method: "DELETE",
@@ -210,7 +230,7 @@ export async function findPaymentsForTestInvoice(
     `?invoice_id=eq.${encodeURIComponent(invoiceId)}` +
     `&select=id,invoice_id,amount,method,received_at` +
     `&order=created_at.asc`
-  const res = await fetch(url, {
+  const res = await postgrestFetch(url, {
     method: "GET",
     headers: postgrestHeaders(),
   })
