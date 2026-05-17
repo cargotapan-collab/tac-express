@@ -1,47 +1,40 @@
 # Next-Session Handoff — Start Here
 
-> **You are picking up TAC Express after PR #<TBD> (W2 PR 1 — WhatsApp failed-sends operator view; the VISIBILITY half of the W2 read/retry split).** Read this top-to-bottom before opening any other file. Designed to take 5 minutes and get you productive.
+> **You are picking up TAC Express after the Definition of Done re-frame session.** The project is now running against a finite, ordered launch list. Read this top-to-bottom before opening any other file. Designed to take 5 minutes and get you productive.
 
-**Last code commit on `main`:** post-PR-#<TBD> merge — `feat(ui): WhatsApp failed-sends operator view (W2 PR 1, visibility/read)`.
-**Date this doc was written:** 2026-05-17 (seventh substantive session today — first UI-building session in the arc).
-**Author of last session:** Claude Code (Opus 4.7) in PM-mode + Senior Frontend Architect + Designer + CTO.
+**Last code commit on `main`:** PR #152 — `feat(ui): WhatsApp failed-sends operator view (W2 PR 1, visibility/read)`.
+**Last docs/governance PR (THIS one):** **TBD** — Definition of Done + launch re-frame.
+**Date this doc was written:** 2026-05-17 (eighth substantive session today — first META session in the arc).
+**Author of last session:** Claude Code (Opus 4.7) in PM-mode + CTO + engineer/designer advisory.
 
-**Status of recent work (per `docs/backlog/production-readiness.md`):**
-- **W1** (whatsapp_sends audit table): DONE (PR #141).
-- **#136 backlog-drift sentinel + Unit tests CI gate**: DONE (PRs #146 + #149).
-- **O1** (manifest.service.ts full test floor): DONE (PR #147).
-- **#139 + #140** (whatsapp.service source bugs): DONE (PR #148).
-- **O2** (`as unknown as` cast cleanup, invoice-pdf): DONE (PR #150).
-- **W2** (operator retry UI): **PARTIAL** — PR 1 (visibility/read) DONE this session; **PR 2 (retry action / write) is the next session's natural lead** — see § 6 Option A.
-- **W3 / W4 / W5** (whatsapp_sends follow-ups #143–#145): OPEN.
+**The launch list is now AUTHORITATIVE.** See [`docs/launch/definition-of-done.md`](launch/definition-of-done.md) — 4 SHIP-BLOCKERS, finitely defined, ordered for burn-down. After all 4 are DONE, the launch criteria are met.
 
 ---
 
-## 1. CADENCE PRE-COMMIT (load-bearing — THIRTEEN substantive PRs old)
+## 1. THE PROJECT IS NOW LAUNCH-RUN, NOT MAINTENANCE-LOOP
 
-**Status: HOLDS.** Thirteen real tests across the arc. This session resisted FIVE named bundle temptations from the brief:
+The fundamental shift from this session: work is burned down against a list that ENDS.
 
-1. **Adding automatic/background retry** — that's #143, multi-session build. Not started.
-2. **Rebuilding a shadcn primitive** for the status badge — resisted; followed the `exception-severity-badge.tsx` composed-component pattern.
-3. **Fetch/DB call inside a `packages/ui` component** — every reusable component is pure (props in, callbacks out); the live wrapper handles the fetch.
-4. **Building UI in apps/dashboard** — every reusable piece is in `packages/ui/src/components/composed/`. Apps/ holds only the page entry + the server-side data wrapper.
-5. **A styling shortcut — one Tailwind color class "just this once"** — zero. Verified by the negative-assertion in the badge component test: `expect(badge.className).not.toMatch(/\bbg-red-\d+\b/)`.
+Until today, the project ran as "what is the highest-priority backlog item we can do next?" — a loop that never terminates because every feature PR correctly spawned follow-up issues. Today's re-frame produced:
 
-**New observation (this session):** the brief's design-system framing ("TAC Orbital + 0.125rem") was stale. Reality is "TAC Express v5.0 — Violet Grid + 0rem" per AGENTS.md + globals.css. Followed the authoritative sources. Recorded as discipline § 7.28 — when a brief's design-system label differs from AGENTS.md, AGENTS.md wins; the brief's law list correctly defers to globals.css.
+- **4 SHIP-BLOCKERS** that must be true for launch. **Nothing else gates launch.**
+- **13 POST-LAUNCH items** in a visible parking lot (the rest of the open backlog).
+- **2 OWNER DECISIONS** that could expand SHIP-BLOCKER scope.
+
+**The next session's task is SB-1 — direct continuation of PR #152.** Do not pick a different task without owner override. See § 6.
 
 ---
 
-## 2. READ THIS FIRST — seven things you must NOT do
+## 2. READ THIS FIRST — eight things you must NOT do
 
-(Unchanged.)
-
-1. **Do NOT skip [`tac-express-onboarding`](.claude/skills/tac-express-onboarding/SKILL.md).** Mandatory per `CLAUDE.md § 0.5`.
+1. **Do NOT skip [`tac-express-onboarding`](.claude/skills/tac-express-onboarding/SKILL.md).** Mandatory per CLAUDE.md § 0.5.
 2. **Do NOT bump dependencies in feature PRs.**
 3. **Do NOT add Sentry tag keys without updating all four artifacts.**
-4. **Do NOT run `scripts/sentry/create-alert-rules.mjs` from an agent session.** Owner runs it locally (#94, still pending).
+4. **Do NOT run `scripts/sentry/create-alert-rules.mjs` from an agent session.** That's SB-2; owner-only.
 5. **Do NOT regress to `console.*` in the three pino-migrated API routes.**
 6. **Do NOT attempt to merge from an agent session without typed per-PR authorization.** Owner types `merge PR <N>` exactly.
-7. **Do NOT derive task references from `#102`-the-GitHub-issue.** [`docs/backlog/production-readiness.md`](backlog/production-readiness.md) is authoritative.
+7. **Do NOT derive task references from `#102`-the-GitHub-issue.** [`docs/backlog/production-readiness.md`](backlog/production-readiness.md) is authoritative for the OPEN-ITEM list; [`docs/launch/definition-of-done.md`](launch/definition-of-done.md) is authoritative for what gates LAUNCH. #102 itself is CLOSED.
+8. **NEW: Do NOT promote a POST-LAUNCH item to SHIP-BLOCKER without explicit owner decision.** Per AGENTS.md launch-scope Convention A. Adding a new SB-N to the DoD requires the owner's say-so plus a justification matching the hard test.
 
 ---
 
@@ -50,120 +43,115 @@
 ```bash
 git checkout main && git pull origin main
 pnpm typecheck && pnpm lint && pnpm test
-# Expected: all green; 729 tests passing (post-this-PR; +17 from PR 1).
+# Expected: all green; 749 tests passing (post-PR #152).
 pnpm audit --prod --audit-level moderate
 node scripts/sentry/lint-alert-rules.mjs
 ```
+
+Then read in order:
+
+1. [`docs/launch/definition-of-done.md`](launch/definition-of-done.md) — **the launch list.** Know the 4 SHIP-BLOCKERS by name.
+2. [`docs/backlog/production-readiness.md`](backlog/production-readiness.md) — the full open-item list with `**Bucket:**` lines.
+3. This handoff § 6 — your first task.
 
 ---
 
 ## 4. Current state snapshot
 
-### Open PRs (0 after #<TBD> merges)
+### Open PRs: 0 (after THIS one merges).
 
-### Open issues — derive from [`docs/backlog/production-readiness.md`](backlog/production-readiness.md)
+### Open issues (post this PR's OWNER ACTIONS — owner closes #139/#140/#142 → 8 remaining)
 
-**The repo backlog file is authoritative.** Tracker numbers for cross-reference.
-
-| Tracker | Title | In repo backlog as | Priority |
+| Tracker | Title | Bucket | Where covered |
 |---|---|---|---|
-| [#94](https://github.com/cargotapan-collab/tac-express/issues/94) | Sentry alert-rule notification action | **O3** | P2 (owner-runnable) |
-| [#130](https://github.com/cargotapan-collab/tac-express/issues/130) | Regex-alternation LAW gate | not in backlog (tooling) | own session |
-| [#131](https://github.com/cargotapan-collab/tac-express/issues/131) | Branded type cluster | not in backlog — SCOPE EXPANDED twice (PR #150 retro § 8.3; PR <TBD> retro § 9.3) | own session |
-| [#142](https://github.com/cargotapan-collab/tac-express/issues/142) | Operator retry UI | **W2 — PARTIAL** (PR 1 done this session; PR 2 filed as follow-up) | medium |
-| [#143](https://github.com/cargotapan-collab/tac-express/issues/143) | Automated retry job | **W3** | low |
-| [#144](https://github.com/cargotapan-collab/tac-express/issues/144) | Meta delivery webhook | **W4** | medium-low |
-| [#145](https://github.com/cargotapan-collab/tac-express/issues/145) | App-layer immutability sentinel | **W5** | low |
-| [#151](https://github.com/cargotapan-collab/tac-express/issues/151) | proxy.ts cast cleanup | not in backlog | own session (small) |
-| [#<TBD-W2-PR2>](TBD) | NEW: W2 PR 2 — retry action (button + POST /retry-send route) | added to backlog under W2 PR 2 scope | medium |
+| [#94](https://github.com/cargotapan-collab/tac-express/issues/94) (closed; needs reopen) | Sentry alert provisioning | **SHIP-BLOCKER SB-2** | DoD § 2 SB-2 |
+| [#130](https://github.com/cargotapan-collab/tac-express/issues/130) | Regex-alternation LAW gate | POST-LAUNCH | DoD § 6 |
+| [#131](https://github.com/cargotapan-collab/tac-express/issues/131) | Branded `ServiceLevel` cluster | POST-LAUNCH | DoD § 6 |
+| [#143](https://github.com/cargotapan-collab/tac-express/issues/143) | Automated retry job (W3) | POST-LAUNCH | DoD § 6 |
+| [#144](https://github.com/cargotapan-collab/tac-express/issues/144) | Meta delivery webhook (W4) | POST-LAUNCH | DoD § 6 |
+| [#145](https://github.com/cargotapan-collab/tac-express/issues/145) | Immutability sentinel (W5) | POST-LAUNCH | DoD § 6 |
+| [#151](https://github.com/cargotapan-collab/tac-express/issues/151) | proxy.ts cast cleanup | POST-LAUNCH | DoD § 6 |
+| **[#153](https://github.com/cargotapan-collab/tac-express/issues/153)** | **W2 PR 2 — retry action** | **SHIP-BLOCKER SB-1** | **DoD § 2 SB-1 — NEXT SESSION** |
+| [#154](https://github.com/cargotapan-collab/tac-express/issues/154) | RBAC auth-error sweep | POST-LAUNCH (pending OD-1) | DoD § 5 |
 
-**Recently resolved:** the audit_logs+test-floor arc (PRs #133/#135/#138/#141/#147), the backlog-drift sentinel + Unit tests CI gate (PRs #146 + #149), whatsapp.service source bugs (#148), invoice-pdf cast (#150), **W2 visibility (this PR)**.
+(Owner closes #139, #140, #142 per OWNER ACTIONS § 9 of the retro.)
+
+### Backlog-only items (per [`production-readiness.md`](backlog/production-readiness.md))
+
+| ID | Title | Bucket |
+|---|---|---|
+| **O3** | Sentry alert provisioning (= #94 work) | **SHIP-BLOCKER SB-2** |
+| **D1** | PITR / database restore playbook | **SHIP-BLOCKER SB-3** |
+| D2 | Upstash outage runbook | POST-LAUNCH |
+| D3 | Monitoring dashboard URLs | POST-LAUNCH |
+| D4 | WhatsApp rate-limit JSDoc | POST-LAUNCH |
+| D5 | RELEASE-CHECKLIST.md | POST-LAUNCH |
+| **E1 (carve-out)** | **Payment-recording E2E** | **SHIP-BLOCKER SB-4** |
+| E1 (other 4) | Shipment / manifest / RBAC RLS / exception E2Es | POST-LAUNCH (pending OD-2) |
+| X1, X2 | Form variant; on-call schedule | WONTFIX-WATCH (re-eval 2026-08-16) |
 
 ---
 
 ## 5. Critical context (the things that will trip you up)
 
-### 5.1 — 5.10 (unchanged — see prior handoffs)
+### 5.1 — 5.12 (unchanged — see [prior handoff](../../docs/retros/2026-05-17-whatsapp-retry-ui.md) and historic context)
 
-### 5.11 NEW: TAC Express v5.0 Violet Grid design-system policy (the authoritative reminder)
+### 5.13 NEW: The Definition of Done is the launch authority
 
-The design system on main IS **TAC Express v5.0 — Violet Grid**:
-- `--radius: 0rem` (LAW 13). Zero radius. Sharp corners only.
-- Brutalist offset shadows (`--shadow-*` resolve to 1px–16px offsets on `var(--border)`).
-- Violet-anchored signal palette with semantic tokens (`--primary`, `--accent-warning`, `--destructive`, `--muted-foreground`).
-- Plus Jakarta Sans / IBM Plex Mono / Lora fonts (declared only in `apps/*/app/layout.tsx`).
-- Dark-first + Modern Ivory light theme.
+`docs/launch/definition-of-done.md` is THE answer to "what's left to launch?" The backlog file remains the full open-item list; the DoD file is the launch-gating triage of it. Every backlog item carries a `**Bucket:**` line classifying it as SHIP-BLOCKER (and which SB-N) / POST-LAUNCH / WONTFIX-WATCH.
 
-When a session brief uses different terminology ("TAC Orbital", "0.125rem", etc.), the brief's preamble is stale — the brief's PROJECT LAWS list itself correctly defers to globals.css. AGENTS.md § 3 is the authoritative spec; globals.css is the authoritative variables.
+When a SHIP-BLOCKER ships: update the DoD's § 3 status table. When the owner promotes a POST-LAUNCH item: update both files.
 
-### 5.12 NEW: WhatsApp failed-sends operator view exists (this PR)
+### 5.14 NEW: Two launch-scope conventions in AGENTS.md
 
-`/ops-console/whatsapp/failed-sends` is a MANAGER+-gated page that lists failed WhatsApp sends in the last 7 days. Built on PR #141's `whatsapp_sends` table. The retry action does NOT yet exist — that's W2 PR 2 (filed as a follow-up).
-
-Pure UI components in `packages/ui/src/components/composed/whatsapp/`:
-- `WhatsAppSendStatusBadge` — status badge (mirrors `exception-severity-badge.tsx` pattern).
-- `FailedSendsTable` — wraps the project's `DataTable` with WhatsApp-specific columns.
-
-Page-shape view in `packages/ui/src/components/composed/ops-console/pages/`:
-- `OpsWhatsAppFailedSendsView` — full view composition (OpsFrame + OpsPageHead + OpsCard + table).
-
-App-side wrapper in `apps/dashboard/app/ops-console/whatsapp/failed-sends/`:
-- `page.tsx` — server entry.
-- `ops-whatsapp-failed-sends-live.tsx` — server component that role-gates + fetches.
-
-New service method `listFailedWhatsappSends({ limit?, sinceDays? })` in `packages/services/src/whatsapp-tracked.service.ts`.
+- **A: Follow-up issues default to POST-LAUNCH.** Promotion requires explicit owner decision + a justification matching the hard test in DoD § 1.
+- **B: OWNER ACTIONS block ends every handoff and every retro.** Single, numbered, copy-pasteable — owner-only chores get exactly one slot per session.
 
 ---
 
-## 6. Your first task — recommended
+## 6. Your first task — RECOMMENDED: SB-1 (#153)
 
-**The next-lead source of truth is [`docs/backlog/production-readiness.md`](backlog/production-readiness.md).** Per the backlog's open items + this session's filed follow-up:
+**The DoD § 4 burn-down order names SB-1 (#153) as the next session's lead.** Don't pick something else without owner override.
 
-### Option A — W2 PR 2: retry action (button + POST /retry-send route) — RECOMMENDED DIRECT CONTINUATION
+### SB-1 — [#153](https://github.com/cargotapan-collab/tac-express/issues/153) — failed-send retry action
 
-Visibility shipped this PR; the retry action is the natural next half. Scope:
-- New `RetryWhatsappSendButton` component (pure UI in `packages/ui/src/components/composed/whatsapp/`).
-- New `POST /api/whatsapp/retry-send` API route (role-gated MANAGER+; calls existing `retryWhatsappSend(originalSendId, replayPayload)` shipped in PR #141).
-- Extend `FailedSendsTable` with a retry-button column.
-- Extend `OpsWhatsAppFailedSendsLive` with the client-side mutation handler (in-flight disabled state, post-retry refetch or optimistic update — PHASE-0 decision).
+**Why this first:** it is the smallest concrete SHIP-BLOCKER unit AND a direct continuation of PR #152. Every primitive needed already exists on main:
 
-Estimated: ~1 session. Pattern-reuses every primitive shipped in PR 1 + the `retryWhatsappSend` service method from PR #141.
+- `retryWhatsappSend(originalSendId)` service method — shipped in PR #141 (`packages/services/src/whatsapp-tracked.service.ts`)
+- `FailedSendsTable` pure component — shipped in PR #152 (`packages/ui/src/components/composed/whatsapp/failed-sends-table.tsx`)
+- `OpsWhatsAppFailedSendsLive` server wrapper — shipped in PR #152 (the role-gate + data fetch)
 
-### Option B — W3 / W4 / W5 — the other whatsapp_sends follow-ups
+**Scope (from [#153](https://github.com/cargotapan-collab/tac-express/issues/153)):**
 
-W4 (Meta delivery-callback webhook) is the most logically next after W2 PR 2 — it adds the missing `delivered` status to round out the whatsapp_sends model. W3 (automated retry) is multi-session. W5 (immutability sentinel) is defense-in-depth.
+1. New `POST /api/whatsapp/retry-send` route at `apps/dashboard/app/api/whatsapp/retry-send/route.ts`. Body validation via zod (`{ originalSendId: UUID }`). Role-gated MANAGER+ via `getServerAuth` + `isManagerOrAbove`. Rate-limit guard: at most one in-flight retry per `original_send_id` (rejects if a `queued` attempt already exists for the same original).
+2. New `<RetryButton />` cell in `FailedSendsTable`, MANAGER+ only (prop-drilled `canRetry: boolean` from the live wrapper — UI stays pure). Optimistic UI: button disables → toast → revalidate.
+3. Tests: route happy-path / role-deny / in-flight-guard / validation-error / primitive-throws. Component renders-only-when-canRetry / calls-API-on-click / disables-during-inflight / toasts-on-error. E2E if cheap.
 
-### Option C — #130 (regex-alternation LAW gate) — small tooling
+**Done = the DoD § 2 SB-1 testable criterion is met.**
 
-Own session.
+**Bailout-seam pre-call:** PR 1 / PR 2 split for #153 itself is unlikely — the scope is bounded (one route + one button + the in-flight handling). If PHASE-A reveals the in-flight state is more than a simple `useState`, the natural seam is "ship the route + button with naive double-submit guard now; ship the optimistic-UI polish next." Probably won't fire.
 
-### Option D — #131 (branded type cluster) — SCOPE EXPANDED
+### Alternative tasks (only if the owner overrides SB-1)
 
-Per the retro § 9.3, the cluster now spans ~12 service mappers + 3+ web consumers + 4 test-fixture helpers. Picking this up requires a PHASE-0 deciding the branded-type extension strategy.
+- **SB-3 (D1 PITR playbook)** — pure doc work; ~1-2 hours. Could ship same-day as SB-1 if both are quick. Decline if SB-1 expands.
+- **SB-4 (payment-recording E2E)** — most setup-heavy; benefits from being later in the burn-down once SB-1 has reinforced the money-flow surface understanding.
+- **SB-2 (#94)** — owner-only; not an agent task.
 
-### Option E — #151 — proxy.ts cast cleanup (~30 min)
-
-### Option F — Permissions convergence cleanup (PR #149 carry-forward)
-
-8 architecture-gates jobs to converge to `permissions: contents: read`.
-
-### Option G — #94 (owner-runnable Sentry provisioning) — not an agent task
+**Do not pick a POST-LAUNCH item.** That regenerates the maintenance loop the DoD was created to stop.
 
 ---
 
 ## 7. Cumulative discipline observations (carry-forward)
 
-Distilled from PRs #105 → #<TBD>.
+### 7.1 – 7.28 (unchanged — see prior handoffs)
 
-### 7.1 – 7.26 (unchanged — see prior handoffs)
+### 7.29 NEW (this session): The hard test is the gate against scope creep
 
-### 7.27 NEW (this session): When a brief names a split seam AND the inventory confirms it, take the split
+The bar for SHIP-BLOCKER is intentionally ruthless: data loss / security / money / broken-irrecoverable-journey / legal. Most "we should fix this" items don't meet it. The ruthlessness IS the value — without it the list re-bloats. When tempted to promote a POST-LAUNCH item, re-read DoD § 1; if the answer to the hard test is anything softer than "yes, definitely one of those five," the item stays POST-LAUNCH.
 
-This session ran a deliberate bailout per the brief's read/retry seam. PR 1 (visibility) shipped independently coherent + valuable; PR 2 (retry action) is filed as a clean follow-up with explicit scope. The split kept design discipline tight — cramming both halves would have meant skimping on a11y / test depth / design-system attestation. Pattern: when a brief explicitly names a seam AND the PHASE-A inventory confirms the full feature exceeds one PR, take the split; don't force.
+### 7.30 NEW (this session): One META PR can buy many feature-PRs of clarity
 
-### 7.28 NEW (this session): When a brief's design-system framing differs from AGENTS.md, AGENTS.md wins
-
-The brief used stale terminology ("TAC Orbital + 0.125rem"); AGENTS.md + globals.css have the authoritative current spec ("TAC Express v5.0 — Violet Grid + 0rem"). The brief's PROJECT LAWS list itself correctly says "Use ONLY the semantic CSS variables defined in globals.css" — that rule is the tiebreaker. Verify the design system from AGENTS.md/globals.css at the start of every UI session, regardless of what the brief preamble says.
+This session shipped no production code. The deliverable is one DoD file + one reconciliation doc + two conventions in AGENTS.md + a retro + this handoff. It cost a session. It returns the rest of the project's sessions to a closeable destination instead of an open-ended optimization. Same pattern as PR #126 (maximum-sweep) and PR #137 (102-revalidation) — META PRs that pay back across many subsequent sessions.
 
 ---
 
@@ -172,68 +160,57 @@ The brief used stale terminology ("TAC Orbital + 0.125rem"); AGENTS.md + globals
 ```bash
 pnpm typecheck && pnpm lint && pnpm test && pnpm audit --prod --audit-level moderate
 node scripts/sentry/lint-alert-rules.mjs
-# Service test floors:
+# Service test floors (all on main):
 pnpm vitest run packages/services/src/__tests__/payment.service.test.ts
 pnpm vitest run packages/services/src/__tests__/invoice.service.test.ts
 pnpm vitest run packages/services/src/__tests__/shipment.service.test.ts
 pnpm vitest run packages/services/src/__tests__/whatsapp.service.test.ts
-pnpm vitest run packages/services/src/__tests__/whatsapp-tracked.service.test.ts   # NOW includes listFailedWhatsappSends cases (this PR)
+pnpm vitest run packages/services/src/__tests__/whatsapp-tracked.service.test.ts
 pnpm vitest run packages/services/src/__tests__/manifest.service.test.ts
 # Sentinels:
-pnpm vitest run apps/dashboard/__tests__/backlog-refs-drift.test.ts                # NOW 43 cases (10 new symbol refs from this PR)
+pnpm vitest run apps/dashboard/__tests__/backlog-refs-drift.test.ts
 pnpm vitest run apps/dashboard/__tests__/audit-doc-references.test.ts
 pnpm vitest run apps/dashboard/__tests__/api-routes-no-console.test.ts
 pnpm vitest run apps/dashboard/__tests__/rbac-block-adoption.test.ts
 pnpm vitest run packages/services/src/__tests__/silent-by-design.test.ts
 pnpm vitest run packages/services/src/__tests__/audit-logs-no-update-delete.test.ts
-# NEW component tests this PR:
-pnpm vitest run packages/ui/src/components/composed/whatsapp/whatsapp-send-status-badge.test.tsx
-pnpm vitest run packages/ui/src/components/composed/whatsapp/failed-sends-table.test.tsx
 node scripts/ci-watch-pr.mjs <pr-number>
 ```
 
 ---
 
-## 9. Key file locations (additions this PR)
+## 9. Key file locations (additions this PR — all docs/governance, zero production code)
 
 ```
-# Pure UI components (packages/ui)
-packages/ui/src/components/composed/whatsapp/whatsapp-send-status-badge.tsx
-packages/ui/src/components/composed/whatsapp/failed-sends-table.tsx
-packages/ui/src/components/composed/ops-console/pages/ops-whatsapp-failed-sends-view.tsx
-
-# UI component tests
-packages/ui/src/components/composed/whatsapp/whatsapp-send-status-badge.test.tsx
-packages/ui/src/components/composed/whatsapp/failed-sends-table.test.tsx
-
-# App-side composition + role-gate + fetch (apps/dashboard)
-apps/dashboard/app/ops-console/whatsapp/failed-sends/page.tsx
-apps/dashboard/app/ops-console/whatsapp/failed-sends/ops-whatsapp-failed-sends-live.tsx
-
-# Service-side
-packages/services/src/whatsapp-tracked.service.ts  # listFailedWhatsappSends added
-packages/services/src/__tests__/whatsapp-tracked.service.test.ts  # 5 new cases
-
-# Types
-packages/types/src/whatsapp-send.types.ts  # FailedWhatsappSendRow added
-
-# Decision doc + retro
-docs/decisions/2026-05-17-whatsapp-failed-sends-view.md
-docs/retros/2026-05-17-whatsapp-retry-ui.md
+docs/launch/definition-of-done.md                          # NEW — authoritative launch list (4 SBs)
+docs/audits/2026-05-17-launch-reframe-triage.md            # NEW — full reconciliation + triage
+docs/retros/2026-05-17-definition-of-done.md               # NEW — this session's retro
+docs/NEXT-SESSION-HANDOFF.md                               # REPLACED — this file
+docs/backlog/production-readiness.md                       # EDITED — added **Bucket:** lines + header note
+AGENTS.md                                                  # EDITED — launch-scope authority + two conventions
 ```
 
 ---
 
 ## 10. The honest read
 
-A first-UI session executed strictly to the project's design-system + 14 laws + monorepo structure. The bailout was the right call — PR 1 (visibility) ships independently coherent + valuable; PR 2 (retry action) is a clean follow-up.
+The project's engineering quality is genuinely strong. The problem was never quality — it was shape. Until today the launch was an open-ended optimization problem; today it's a 4-item burn-down. Four sessions of work (three agent + ~20 min owner) and the launch criteria are met. After that, the work shifts from "next backlog item" to "first customer."
 
-Source diff: ~390 LoC of new code + ~260 LoC of new tests + ~750 LoC of docs. Tests 712 → 729 (+17). The brief's "DO NOT" list ran twelve items long; all twelve held — including one Tailwind color class, one rebuilt shadcn primitive, one DB call in `packages/ui`. The cadence-pre-commit is now THIRTEEN substantive PRs old and still holding.
-
-**Recommended one-line summary for the next session's prompt:** "Pick up W2 PR 2 — the retry action (button + POST /retry-send route). Pattern-reuses PR 1's components + PR #141's `retryWhatsappSend` primitive. ONE PR. Decline any 'while we're here' expansion."
+**Recommended one-line summary for the next session's prompt:** "Pick up SB-1 from `docs/launch/definition-of-done.md` — the failed-send retry action (#153). Pattern-reuses PR #152 + PR #141. ONE PR. Decline any 'while we're here' expansion."
 
 ---
 
-**Load the skills. Re-read § 1 (cadence pre-commit, THIRTEEN substantive PRs old). Pick a task from § 6 — or better, from `docs/backlog/production-readiness.md` directly. Ship one clean PR.**
+## 11. OWNER ACTIONS — before next session
 
-When you're done, update or replace this file with a fresh handoff.
+Per AGENTS.md launch-scope Convention B (now codified). Numbered, copy-pasteable, single block:
+
+1. **Close [#139](https://github.com/cargotapan-collab/tac-express/issues/139)** as FIXED-BY [PR #148](https://github.com/cargotapan-collab/tac-express/pull/148) — the `shouldFallback` semantic-failure logic shipped + verified present on main.
+2. **Close [#140](https://github.com/cargotapan-collab/tac-express/issues/140)** as FIXED-BY [PR #148](https://github.com/cargotapan-collab/tac-express/pull/148) — the `||` baseURL coalesce shipped + verified present on main.
+3. **Resolve [#142](https://github.com/cargotapan-collab/tac-express/issues/142)** — recommended: close it (read half shipped in PR #152; retry half = [#153](https://github.com/cargotapan-collab/tac-express/issues/153)). One-feature-one-open-issue convention.
+4. **Reopen [#94](https://github.com/cargotapan-collab/tac-express/issues/94)** OR accept as tracker-less DoD item — owner-runnable Sentry provisioning remains (SB-2).
+5. **Run SB-2** when convenient — `scripts/sentry/create-alert-rules.mjs` with a `project:write` Sentry token; deliberately trip one rule to verify end-to-end notification; update `docs/runbooks/sentry-alert-rules.md`.
+6. **Delete the stuck `tac-whatsapp-sends-102/` directory** in the primary clone (`C:\tac\tac-express\tac-whatsapp-sends-102/`) — leftover worktree artifact, currently untracked and inert. (Also `.tmp/` if no longer needed.)
+7. **Decide OD-1** — is [#154](https://github.com/cargotapan-collab/tac-express/issues/154) a SHIP-BLOCKER? Lean: POST-LAUNCH (refresh is acceptable). "Yes" adds SB-5; +1 session to burn-down.
+8. **Decide OD-2** — should any of the other 4 E1 flows (shipment / manifest / RBAC RLS / exception) be SHIP-BLOCKERS? Lean: payment-only is sufficient. Each "yes" = +1 session.
+
+**That's it. Eight owner actions, all listed. The agent's next-session work is SB-1 (#153). No other agent work is queued.**
