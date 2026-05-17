@@ -1,11 +1,14 @@
 import * as React from "react"
 import "@testing-library/jest-dom/vitest"
-import { describe, it, expect } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { describe, it, expect, vi } from "vitest"
+import { fireEvent, render, screen } from "@testing-library/react"
 
 import type { FailedWhatsappSendRow, UUID } from "@workspace/types"
 
-import { FailedSendsTable } from "./failed-sends-table"
+import {
+  FailedSendsTable,
+  type FailedSendsTableRetryConfig,
+} from "./failed-sends-table"
 
 // Test-fixture UUID helper — same shape as the sibling-of-#131 helpers
 // in packages/services/src/__tests__/{attachment,notification,audit}.
@@ -81,5 +84,93 @@ describe("FailedSendsTable", () => {
       .getByTitle(longErr)
     expect(cell).toBeInTheDocument()
     expect(cell.textContent?.length).toBeLessThan(longErr.length)
+  })
+
+  // ─── Retry column (SB-1 / #153 — opt-in via retryConfig prop) ─────────
+
+  it("does NOT render a Retry column when retryConfig is omitted (PR 1 visibility-only shape)", () => {
+    render(<FailedSendsTable rows={[ROW]} />)
+    expect(screen.queryByRole("columnheader", { name: "Retry" })).toBeNull()
+    expect(screen.queryByRole("button", { name: /retry/i })).toBeNull()
+  })
+
+  it("renders a Retry column AND a per-row button when retryConfig is provided", () => {
+    const onRetry = vi.fn()
+    const retryConfig: FailedSendsTableRetryConfig = {
+      rowState: () => ({
+        canRetry: true,
+        isInflight: false,
+        lastError: null,
+      }),
+      onRetry,
+    }
+    render(<FailedSendsTable rows={[ROW]} retryConfig={retryConfig} />)
+    expect(screen.getByRole("columnheader", { name: "Retry" })).toBeInTheDocument()
+    const btn = screen.getByRole("button", { name: "Retry" })
+    expect(btn).toBeInTheDocument()
+    fireEvent.click(btn)
+    expect(onRetry).toHaveBeenCalledTimes(1)
+    expect(onRetry).toHaveBeenCalledWith(ROW)
+  })
+
+  it("reflects per-row state (template row disabled, message row enabled)", () => {
+    const templateRow: FailedWhatsappSendRow = {
+      ...ROW,
+      id: asUUID("aa111111-1111-1111-1111-111111111111"),
+      endpoint: "sendtemplatemessage",
+      template_name: "invoice_notification_v2",
+    }
+    const messageRow: FailedWhatsappSendRow = {
+      ...ROW,
+      id: asUUID("bb111111-1111-1111-1111-111111111111"),
+      endpoint: "sendmessage",
+      template_name: null,
+    }
+    const onRetry = vi.fn()
+    const retryConfig: FailedSendsTableRetryConfig = {
+      rowState: (rowId) =>
+        rowId === templateRow.id
+          ? {
+              canRetry: false,
+              isInflight: false,
+              lastError: null,
+              disabledReason: "Template retries: re-send from the invoice detail page.",
+            }
+          : {
+              canRetry: true,
+              isInflight: false,
+              lastError: null,
+            },
+      onRetry,
+    }
+    render(
+      <FailedSendsTable rows={[templateRow, messageRow]} retryConfig={retryConfig} />,
+    )
+    // Two Retry buttons — one disabled (template), one enabled (message).
+    const buttons = screen.getAllByRole("button", { name: "Retry" })
+    expect(buttons).toHaveLength(2)
+    expect(buttons[0]).toBeDisabled()
+    expect(buttons[1]).not.toBeDisabled()
+    expect(buttons[0]?.getAttribute("title")).toBe(
+      "Template retries: re-send from the invoice detail page.",
+    )
+  })
+
+  it("propagates in-flight state per row (button disabled, label 'Retrying…')", () => {
+    const onRetry = vi.fn()
+    const retryConfig: FailedSendsTableRetryConfig = {
+      rowState: () => ({
+        canRetry: true,
+        isInflight: true,
+        lastError: null,
+      }),
+      onRetry,
+    }
+    render(<FailedSendsTable rows={[ROW]} retryConfig={retryConfig} />)
+    const btn = screen.getByRole("button", { name: "Retrying…" })
+    expect(btn).toBeDisabled()
+    expect(btn.getAttribute("aria-busy")).toBe("true")
+    fireEvent.click(btn)
+    expect(onRetry).not.toHaveBeenCalled()
   })
 })

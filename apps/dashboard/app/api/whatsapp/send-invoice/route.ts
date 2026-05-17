@@ -15,11 +15,12 @@ import {
   createInvoiceServerService,
   createTrackedWhatsAppServerService,
 } from "@workspace/services/server"
+import { normalizePhone } from "@workspace/services/whatsapp.service"
 import {
-  normalizePhone,
-  buildHeaderMediaComponent,
-  type WhatsAppTemplateComponent,
-} from "@workspace/services/whatsapp.service"
+  buildInvoiceMessage,
+  buildInvoiceTemplateComponents,
+  type InvoiceLike,
+} from "@workspace/services/whatsapp/invoice-replay-payload"
 import { buildSignedInvoicePdfUrl } from "@workspace/services/pdf/invoice-pdf-token"
 import type { InvoicePdfData } from "@workspace/services/pdf/invoice-pdf"
 import { checkWhatsApp } from "@/lib/rate-limit"
@@ -120,30 +121,9 @@ const TemplateModeSchema = BaseBodySchema.extend({
 
 const RequestBodySchema = z.union([DirectModeSchema, TemplateModeSchema])
 
-interface InvoiceLike {
-  invoiceNumber: string
-  status: string
-  createdAt: string
-  customerName: string
-  customerId?: string | null
-  customerGstin?: string | null
-  awbNumber?: string | null
-  baseFreight: number
-  docketCharge: number
-  pickupCharge?: number | null
-  packingCharge?: number | null
-  fuelSurcharge: number
-  handlingFee: number
-  insurance: number
-  discount: number
-  tax: { cgst: number; sgst: number; igst: number; total: number }
-  totalAmount: number
-  advancePaid: number
-  balance: number
-  dueDate?: string | null
-  notes?: string | null
-  paymentMode: string
-}
+// `InvoiceLike` lives in @workspace/services/whatsapp/invoice-replay-payload —
+// the canonical shape shared by this route + the retry route (PR #153 / SB-1).
+// It's imported above to keep both consumers in lockstep.
 
 /** Maximum allowed length of `invoice.notes` we will attempt to JSON.parse.
  *  Higher than realistic but caps event-loop blocking from a hostile/oversize
@@ -491,7 +471,7 @@ export async function POST(req: NextRequest) {
           phone,
           templateName: parsed.templateName,
           templateLanguage: parsed.templateLanguage,
-          components: buildTemplateComponents({
+          components: buildInvoiceTemplateComponents({
             params: parsed.templateParams,
             mediaUrl: resolvedMediaUrl,
             mediaFilename: resolvedMediaFilename,
@@ -703,106 +683,10 @@ function extractPhonesFromInvoice(invoice: InvoiceLike): InvoiceNotesPhones {
   }
 }
 
-/**
- * Compose the free-form message body for direct-mode delivery.
- * Uses WhatsApp's markdown subset (`*bold*`) for label emphasis.
- */
-function buildInvoiceMessage(invoice: InvoiceLike): string {
-  const formatINR = (n: number) =>
-    `₹${Number(n).toLocaleString("en-IN", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`
-
-  const lines: Array<string | null> = [
-    `Hello ${invoice.customerName || "customer"},`,
-    "",
-    "Your tax invoice has been generated.",
-    "",
-    `*Invoice:* ${invoice.invoiceNumber}`,
-    invoice.awbNumber ? `*AWB:* ${invoice.awbNumber}` : null,
-    `*Amount:* ${formatINR(invoice.totalAmount)}`,
-    `*Balance Due:* ${formatINR(invoice.balance)}`,
-    invoice.dueDate
-      ? `*Due Date:* ${new Date(invoice.dueDate).toLocaleDateString("en-IN", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        })}`
-      : null,
-    "",
-    "Thank you for choosing TAC Express.",
-  ]
-
-  return lines.filter((l): l is string => l !== null).join("\n")
-}
-
-/**
- * Translate the dialog's flat template inputs into the nested
- * `components` array WPBox expects.
- *
- * Output shape (in order):
- *   1. HEADER (optional — only when `mediaUrl` is provided; matches
- *      the structure required by templates whose HEADER is DOCUMENT,
- *      IMAGE, or VIDEO).
- *   2. BODY (always — N text parameters matching the template's
- *      `{{1}}…{{N}}` placeholders).
- *
- * Falls back to sensible defaults from the invoice when no params were
- * supplied (lets a user fire-and-forget against any 3-param template).
- */
-function buildTemplateComponents(input: {
-  params: Array<{ text: string }> | undefined
-  mediaUrl?: string
-  mediaFilename?: string
-  mediaKind?: "document" | "image" | "video"
-  invoice: InvoiceLike
-}): WhatsAppTemplateComponent[] {
-  const formatINR = (n: number) =>
-    `₹${Number(n).toLocaleString("en-IN", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`
-
-  const effectiveParams =
-    input.params && input.params.length > 0
-      ? input.params
-      : [
-          { text: input.invoice.customerName || "Customer" },
-          { text: input.invoice.invoiceNumber },
-          { text: formatINR(input.invoice.totalAmount) },
-        ]
-
-  const components: WhatsAppTemplateComponent[] = []
-
-  if (input.mediaUrl) {
-    const kind = input.mediaKind ?? "document"
-    if (kind === "document") {
-      components.push(
-        buildHeaderMediaComponent({
-          kind: "document",
-          link: input.mediaUrl,
-          filename:
-            input.mediaFilename ?? `TAC-Invoice-${input.invoice.invoiceNumber}.pdf`,
-        }),
-      )
-    } else if (kind === "image") {
-      components.push(buildHeaderMediaComponent({ kind: "image", link: input.mediaUrl }))
-    } else {
-      components.push(buildHeaderMediaComponent({ kind: "video", link: input.mediaUrl }))
-    }
-  }
-
-  components.push({
-    type: "BODY",
-    parameters: effectiveParams.map((p) => ({
-      type: "text" as const,
-      text: p.text,
-    })),
-  })
-
-  return components
-}
+// `buildInvoiceMessage` + `buildInvoiceTemplateComponents` extracted to
+// @workspace/services/whatsapp/invoice-replay-payload (catalog #9 — second
+// consumer pattern; the retry route added in PR #153 / SB-1 is the second
+// consumer that triggered extraction).
 
 /**
  * Pull the WAMID (WhatsApp message ID) out of the WPBox response.

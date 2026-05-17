@@ -4,9 +4,10 @@ import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
 
 import { DataTable } from "@workspace/ui/components/composed/data-table"
-import type { FailedWhatsappSendRow } from "@workspace/types"
+import type { FailedWhatsappSendRow, UUID } from "@workspace/types"
 
 import { WhatsAppSendStatusBadge } from "./whatsapp-send-status-badge"
+import { WhatsAppRetryButton } from "./whatsapp-retry-button"
 
 /**
  * Pure table component for the failed-sends operator triage view
@@ -33,16 +34,49 @@ import { WhatsAppSendStatusBadge } from "./whatsapp-send-status-badge"
  * Component is PURE — receives rows, optionally emits onRowClick.
  * Zero DB / business logic per LAW 6 + LAW 7.
  *
- * Retry capability NOT shipped here — that's PR 2 of the W2 split.
- * The DataTable's `onRowClick` is wired but ABSENT here so a click does
- * nothing in PR 1. PR 2 adds a retry button column.
+ * Retry capability — added in W2 PR 2 (SB-1 / #153) via the OPTIONAL
+ * `retryConfig` prop. When provided, the table renders a "Retry" column
+ * holding a pure `<WhatsAppRetryButton>` per row, prop-drilled with the
+ * per-row state from the caller. Without `retryConfig`, the table is
+ * unchanged from PR 1 (visibility-only).
  */
+
+/**
+ * Per-row state for the optional retry column. Owned by the caller (the
+ * `apps/dashboard` client wrapper); pure components don't own mutation
+ * state.
+ */
+interface RetryRowState {
+  /** Whether THIS row is retryable. False for template rows (V1 scope cut)
+   *  and for non-MANAGER viewers (live wrapper passes false in that case). */
+  canRetry: boolean
+  /** Whether THIS row has a retry currently in-flight. */
+  isInflight: boolean
+  /** Last error from the most-recent retry attempt for THIS row. */
+  lastError: string | null
+  /** Tooltip text shown when canRetry is false. */
+  disabledReason?: string
+}
+
+interface FailedSendsTableRetryConfig {
+  /** Lookup function: row id → its current retry state. */
+  rowState: (rowId: UUID) => RetryRowState
+  /** Upward intent emit when the operator clicks Retry on a row. */
+  onRetry: (row: FailedWhatsappSendRow) => void
+}
 
 interface FailedSendsTableProps {
   rows: FailedWhatsappSendRow[]
   /**
+   * Optional retry config. When provided, the table appends a "Retry"
+   * column wired to the parent's per-row state Map. When omitted, the
+   * table renders exactly as it did in PR 1 (visibility only).
+   */
+  retryConfig?: FailedSendsTableRetryConfig
+  /**
    * Optional row-click handler. PR 1 omits it (no row interaction yet);
-   * PR 2 may use it to open a per-send detail panel.
+   * PR 2 keeps it omitted but the prop is still accepted for forward-
+   * compatible drilldown surfaces.
    */
   onRowClick?: (row: FailedWhatsappSendRow) => void
 }
@@ -61,80 +95,108 @@ function truncate(text: string | null, max = 80): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text
 }
 
-const COLUMNS: ColumnDef<FailedWhatsappSendRow>[] = [
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <WhatsAppSendStatusBadge status={row.original.status} />,
-    size: 96,
-  },
-  {
-    accessorKey: "attempt_no",
-    header: "Try",
-    cell: ({ row }) => (
-      <span className="font-mono text-xs tabular-nums text-foreground">
-        {row.original.attempt_no}
-      </span>
-    ),
-    size: 56,
-  },
-  {
-    accessorKey: "phone",
-    header: "Phone",
-    cell: ({ row }) => (
-      <span className="font-mono text-xs tabular-nums text-foreground">
-        +{row.original.phone}
-      </span>
-    ),
-    size: 160,
-  },
-  {
-    accessorKey: "endpoint",
-    header: "Endpoint",
-    cell: ({ row }) => (
-      <span className="font-mono text-2xs uppercase tracking-wider text-muted-foreground">
-        {row.original.endpoint === "sendtemplatemessage" ? "template" : "message"}
-      </span>
-    ),
-    size: 112,
-  },
-  {
-    accessorKey: "template_name",
-    header: "Template",
-    cell: ({ row }) => (
-      <span className="font-mono text-xs text-muted-foreground">
-        {row.original.template_name ?? "—"}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "error_message",
-    header: "Error",
-    cell: ({ row }) => (
-      <span
-        className="text-xs text-foreground"
-        title={row.original.error_message ?? undefined}
-      >
-        {truncate(row.original.error_message)}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "completed_at",
-    header: "Failed at",
-    cell: ({ row }) => (
-      <span className="font-mono text-xs tabular-nums text-muted-foreground">
-        {formatTimestamp(row.original.completed_at)}
-      </span>
-    ),
-    size: 192,
-  },
-]
+function buildColumns(
+  retryConfig?: FailedSendsTableRetryConfig,
+): ColumnDef<FailedWhatsappSendRow>[] {
+  const cols: ColumnDef<FailedWhatsappSendRow>[] = [
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => <WhatsAppSendStatusBadge status={row.original.status} />,
+      size: 96,
+    },
+    {
+      accessorKey: "attempt_no",
+      header: "Try",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs tabular-nums text-foreground">
+          {row.original.attempt_no}
+        </span>
+      ),
+      size: 56,
+    },
+    {
+      accessorKey: "phone",
+      header: "Phone",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs tabular-nums text-foreground">
+          +{row.original.phone}
+        </span>
+      ),
+      size: 160,
+    },
+    {
+      accessorKey: "endpoint",
+      header: "Endpoint",
+      cell: ({ row }) => (
+        <span className="font-mono text-2xs uppercase tracking-wider text-muted-foreground">
+          {row.original.endpoint === "sendtemplatemessage" ? "template" : "message"}
+        </span>
+      ),
+      size: 112,
+    },
+    {
+      accessorKey: "template_name",
+      header: "Template",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {row.original.template_name ?? "—"}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "error_message",
+      header: "Error",
+      cell: ({ row }) => (
+        <span
+          className="text-xs text-foreground"
+          title={row.original.error_message ?? undefined}
+        >
+          {truncate(row.original.error_message)}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "completed_at",
+      header: "Failed at",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs tabular-nums text-muted-foreground">
+          {formatTimestamp(row.original.completed_at)}
+        </span>
+      ),
+      size: 192,
+    },
+  ]
 
-function FailedSendsTable({ rows, onRowClick }: FailedSendsTableProps) {
+  if (retryConfig) {
+    cols.push({
+      id: "retry",
+      header: "Retry",
+      cell: ({ row }) => {
+        const state = retryConfig.rowState(row.original.id)
+        return (
+          <WhatsAppRetryButton
+            row={row.original}
+            canRetry={state.canRetry}
+            isInflight={state.isInflight}
+            lastError={state.lastError}
+            disabledReason={state.disabledReason}
+            onRetry={retryConfig.onRetry}
+          />
+        )
+      },
+      size: 208,
+    })
+  }
+
+  return cols
+}
+
+function FailedSendsTable({ rows, retryConfig, onRowClick }: FailedSendsTableProps) {
+  const columns = React.useMemo(() => buildColumns(retryConfig), [retryConfig])
   return (
     <DataTable<FailedWhatsappSendRow, unknown>
-      columns={COLUMNS}
+      columns={columns}
       data={rows}
       pageSize={20}
       onRowClick={onRowClick}
@@ -143,4 +205,8 @@ function FailedSendsTable({ rows, onRowClick }: FailedSendsTableProps) {
 }
 
 export { FailedSendsTable }
-export type { FailedSendsTableProps }
+export type {
+  FailedSendsTableProps,
+  FailedSendsTableRetryConfig,
+  RetryRowState,
+}
