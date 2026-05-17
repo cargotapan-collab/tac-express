@@ -105,12 +105,25 @@ These four items were filed yesterday as follow-ups to whatsapp_sends. They post
 ### W2 — Operator retry UI for failed WhatsApp sends
 
 **Risk:** approximate rank #5–6 (medium).
-**Status:** OPEN — not started.
+**Status:** PARTIAL — PR 1 (visibility/read path) DONE in PR #<TBD-W2-PR1>; PR 2 (retry action / write path) OPEN, filed as a separate follow-up issue (see "PR 2 scope" below). Per the brief's read/retry split — operators can now SEE failed sends; the retry-button + retry-API-route ship in PR 2.
 **Tracker:** [#142](https://github.com/cargotapan-collab/tac-express/issues/142).
 
-A `/ops-console/whatsapp/failed-sends` page OR a "Resend" button on the invoice-detail page, gated MANAGER+. Service-layer primitive `retryWhatsappSend` exists in `packages/services/src/whatsapp-tracked.service.ts` (verified by W1's refs above); this item adds the route + UI.
+**PR 1 (this session — visibility):** new page at `/ops-console/whatsapp/failed-sends`, role-gated MANAGER+. Lists failed WhatsApp sends in the last 7 days. Pure UI components in `packages/ui` (table + status-badge + page-shape view); apps/dashboard owns page composition + role-gating + the server-side data fetch directly from the service. New service method `listFailedWhatsappSends` lives in the existing tracked wrapper. Zero retry-related code in PR 1.
 
-`refs: none — not-sentinel-checked (work not started; no code artifacts exist yet on main; refs added when the PR opens)`
+**PR 2 (next session — retry action):** retry button on each row → `POST /api/whatsapp/retry-send` → existing `retryWhatsappSend` primitive (shipped in PR #141). In-flight state handling, post-retry refetch, optimistic UI decision. Filed as its own follow-up issue with do-not-bundle marker.
+
+```refs
+file: apps/dashboard/app/ops-console/whatsapp/failed-sends/page.tsx
+file: apps/dashboard/app/ops-console/whatsapp/failed-sends/ops-whatsapp-failed-sends-live.tsx
+file: packages/ui/src/components/composed/whatsapp/whatsapp-send-status-badge.tsx
+file: packages/ui/src/components/composed/whatsapp/failed-sends-table.tsx
+file: packages/ui/src/components/composed/ops-console/pages/ops-whatsapp-failed-sends-view.tsx
+symbol: packages/services/src/whatsapp-tracked.service.ts::listFailedWhatsappSends
+symbol: packages/ui/src/components/composed/whatsapp/whatsapp-send-status-badge.tsx::WhatsAppSendStatusBadge
+symbol: packages/ui/src/components/composed/whatsapp/failed-sends-table.tsx::FailedSendsTable
+symbol: packages/ui/src/components/composed/ops-console/pages/ops-whatsapp-failed-sends-view.tsx::OpsWhatsAppFailedSendsView
+symbol: packages/types/src/whatsapp-send.types.ts::FailedWhatsappSendRow
+```
 
 ---
 
