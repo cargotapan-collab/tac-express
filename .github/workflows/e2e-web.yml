@@ -1,0 +1,134 @@
+# apps/web Playwright e2e suite — smoke + a11y across desktop / 375w mobile /
+# 768w tablet for the 9-page MVP carve (landing, about, pricing, contact,
+# quote, legal × 3, /track/[awb]).
+#
+# Mirrors .github/workflows/e2e.yml (which is dashboard-scoped on port 3001)
+# but targets apps/web on port 3000. Kept as a SIBLING workflow rather than
+# extending the dashboard one because:
+#   - paths filters are distinct (apps/web/** vs apps/dashboard/**)
+#   - secrets list is different (web doesn't need E2E_USER_EMAIL/PASSWORD)
+#   - failure isolation: a flaky landing smoke shouldn't fail the dashboard
+#     visual+a11y gate that's been green for months
+#
+# Built in the autonomous launch-readiness run after PL-4's first PR (#172)
+# shipped the apps/web Playwright config + smoke + a11y specs but left CI
+# integration deferred. This is that integration.
+#
+# Suites
+# ------
+# - smoke (desktop / 375w mobile / 768w tablet) — interactive correctness +
+#   horizontal-overflow check per page
+# - a11y (desktop / 375w mobile / 768w tablet) — axe-core WCAG 2.1 AA scan
+#
+# AXE_FAIL_ON_VIOLATIONS is OFF here. The apps/web carve has known
+# color-contrast findings (issue #173) that are in design-review. Flip the
+# env var when #173 is resolved.
+
+name: e2e-web
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/ui/**"
+      - "packages/services/**"
+      - "packages/types/**"
+      - "packages/database/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/e2e-web.yml"
+  push:
+    branches: [main]
+
+concurrency:
+  group: e2e-web-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-web:
+    name: apps/web smoke + a11y
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # OFF until #173 (landing color-contrast) is resolved + the remaining
+      # 3 sites surfaced by the carve.a11y scan are cleaned up. After that,
+      # flip to "1" to gate future regressions.
+      AXE_FAIL_ON_VIOLATIONS: "0"
+      # apps/web's dev server needs Supabase env to import the database
+      # client without throwing — the actual values can be any well-formed
+      # placeholder for the static-render pages, but the contact form
+      # would need real values to fully exercise. CI uses the same secrets
+      # as the dashboard e2e workflow.
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium (with deps)
+        run: pnpm --filter web exec playwright install --with-deps chromium
+
+      - name: Build web
+        run: pnpm --filter web build
+
+      - name: Start web (production build on port 3000)
+        run: pnpm --filter web start &
+        env:
+          PORT: "3000"
+
+      - name: Wait for web to be ready
+        # Polls / for 60s. Landing renders without auth — no DB queries on
+        # the static-content path — so this should be fast once the server
+        # is up. If your env lacks SUPABASE_URL the page may still 500 at
+        # request time, but the server itself binds the port either way.
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null -w "%{http_code}" http://localhost:3000/ | grep -qE '^(200|307|308)$'; then
+              echo "Web is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Web failed to start within 60s"
+          exit 1
+
+      - name: Run Playwright smoke + a11y (against the running server)
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          TZ: UTC
+        run: |
+          pnpm --filter web exec playwright test \
+            --config=playwright.config.ts \
+            --project=smoke-desktop \
+            --project=smoke-mobile \
+            --project=smoke-tablet \
+            --project=a11y-desktop \
+            --project=a11y-mobile \
+            --project=a11y-tablet
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-web-report
+          path: apps/web/playwright-report/
+          retention-days: 14
+
+      - name: Upload diffs (only on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-web-failures
+          path: apps/web/test-results/
+          retention-days: 14
