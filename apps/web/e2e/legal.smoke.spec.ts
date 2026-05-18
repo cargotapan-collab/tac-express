@@ -16,9 +16,10 @@ for (const { path, heading } of LEGAL_PAGES) {
   test.describe(path, () => {
     test("renders the page with a top-level heading", async ({ page }) => {
       await page.goto(path)
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+      const h1 = page.getByRole("heading", { level: 1 })
+      await expect(h1).toBeVisible()
       // The heading copy mentions the legal-page topic.
-      await expect(page.getByRole("heading").first()).toContainText(heading)
+      await expect(h1).toContainText(heading)
     })
 
   })
