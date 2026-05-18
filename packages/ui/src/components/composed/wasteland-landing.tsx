@@ -162,8 +162,7 @@ function LogisticsHero() {
               asChild
               variant="default"
               size="lg"
-              // eslint-disable-next-line no-restricted-syntax -- design-locked: matches the LOCATE primary in the AWB form above
-              className="h-12 rounded-none font-mono font-bold text-sm tracking-[0.3em] uppercase px-10 focus-visible:outline-none focus-visible:tac-focus-premium"
+              className="h-12 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 focus-visible:outline-none focus-visible:tac-focus-premium"
             >
               <Link href="/quote">
                 <Icon name="calculator" className="mr-3 w-5 h-5" />
@@ -174,8 +173,7 @@ function LogisticsHero() {
               asChild
               variant="outline"
               size="lg"
-              // eslint-disable-next-line no-restricted-syntax -- design-locked: paired with GET A QUOTE
-              className="h-12 rounded-none font-mono font-bold text-sm tracking-[0.3em] uppercase px-10 focus-visible:outline-none focus-visible:tac-focus-premium"
+              className="h-12 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 focus-visible:outline-none focus-visible:tac-focus-premium"
             >
               <Link href="/contact">
                 <Icon name="mail" className="mr-3 w-5 h-5" />
