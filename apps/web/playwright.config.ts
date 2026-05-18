@@ -69,9 +69,13 @@ export default defineConfig({
       name: "smoke-tablet",
       testMatch: /.*\.smoke\.spec\.ts$/,
       use: {
-        ...devices["iPad (gen 7)"],
-        // OD-P6's tablet breakpoint is 768w. Same override pattern as
-        // mobile so the tablet project pins the launch-critical width.
+        // Desktop Chrome base (chromium) so CI can ship single-engine
+        // (`playwright install --with-deps chromium`). The earlier draft
+        // used `devices["iPad (gen 7)"]` which routes through WebKit and
+        // failed CI with "Executable doesn't exist at ...webkit-*". The
+        // launch-relevant pin is the 768w viewport — chromium at 768w
+        // exercises the same Tailwind breakpoint behaviour as a real iPad.
+        ...devices["Desktop Chrome"],
         viewport: { width: 768, height: 1024 },
       },
     },
@@ -92,7 +96,9 @@ export default defineConfig({
       name: "a11y-tablet",
       testMatch: /.*\.a11y\.spec\.ts$/,
       use: {
-        ...devices["iPad (gen 7)"],
+        // See smoke-tablet comment above — chromium base so CI single-engine
+        // browser install works.
+        ...devices["Desktop Chrome"],
         viewport: { width: 768, height: 1024 },
       },
     },
