@@ -59,11 +59,20 @@ export default defineConfig({
       testMatch: /.*\.smoke\.spec\.ts$/,
       use: {
         ...devices["Pixel 7"],
-        // Pixel 7's device profile is 412×915. The OD-P6 lean is 375w +
-        // 768w; explicit viewport overrides the device default so the
-        // mobile project actually exercises the 375w breakpoint the
-        // PL-3 audit was tuned against.
+        // Pixel 7's device profile is 412×915. OD-P6 = 375w + 768w;
+        // explicit viewport overrides the device default so this project
+        // actually exercises the small-phone breakpoint.
         viewport: { width: 375, height: 812 },
+      },
+    },
+    {
+      name: "smoke-tablet",
+      testMatch: /.*\.smoke\.spec\.ts$/,
+      use: {
+        ...devices["iPad (gen 7)"],
+        // OD-P6's tablet breakpoint is 768w. Same override pattern as
+        // mobile so the tablet project pins the launch-critical width.
+        viewport: { width: 768, height: 1024 },
       },
     },
     {
@@ -77,6 +86,14 @@ export default defineConfig({
       use: {
         ...devices["Pixel 7"],
         viewport: { width: 375, height: 812 },
+      },
+    },
+    {
+      name: "a11y-tablet",
+      testMatch: /.*\.a11y\.spec\.ts$/,
+      use: {
+        ...devices["iPad (gen 7)"],
+        viewport: { width: 768, height: 1024 },
       },
     },
     {
