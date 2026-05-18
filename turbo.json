@@ -41,6 +41,7 @@
                                            "WPBOX_LEAD_TEMPLATE_NAME",
                                            "WPBOX_LEAD_TEMPLATE_LANGUAGE",
                                            "WHATSAPP_ENABLED",
+                                           "PLAYWRIGHT_BASE_URL",
                                            "INVOICE_PDF_SIGNING_SECRET",
                                            "NEXT_PUBLIC_DASHBOARD_URL",
                                            "NEXT_PUBLIC_WHATSAPP_INVOICE_TEMPLATE",
