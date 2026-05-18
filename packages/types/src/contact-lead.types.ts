@@ -34,16 +34,18 @@ export const CONTACT_LEAD_NOTIFICATION_STATUSES = [
 export type ContactLeadNotificationStatus =
   (typeof CONTACT_LEAD_NOTIFICATION_STATUSES)[number]
 
-/** Public form input (the visitor-side payload). */
+/** Public form input (the visitor-side payload, post-route-validation).
+ *  The honeypot field is intentionally NOT in this type — the route layer
+ *  inspects the honeypot before any service call, so by the time input
+ *  reaches the service it is guaranteed-not-a-bot. */
 export interface ContactLeadFormInput {
   name: string
   email: string
-  /** Optional. Empty string is normalized to undefined at the service boundary. */
+  /** Optional. Empty / whitespace-only is normalized to NULL in the
+   *  service layer; the column stays canonical (no mixed "" / NULL). */
   company?: string
   reason: ContactLeadReason
   message: string
-  /** Honeypot field. Must be empty on every legitimate submission. */
-  honeypot?: string
 }
 
 /** A row as stored. Returned to operator-side reads (NOT to the public form). */

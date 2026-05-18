@@ -138,11 +138,13 @@ export function ContactForm() {
         <Textarea name="message" rows={5} required disabled={submitting} />
       </Field>
 
-      {/* Honeypot — visible to bots, hidden from humans + screen-readers.
-          Bots that auto-fill every text input populate this; legitimate
-          submissions leave it empty. The server returns 200 silently on
-          a hit (no lead row written, no signal to the bot). */}
-      <div aria-hidden className="absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden">
+      {/* Honeypot — visible to bots in the HTML, hidden from humans +
+          screen-readers via Tailwind's sr-only utility (clip-path off-
+          screen positioning without arbitrary pixel values). Bots that
+          auto-fill every text input populate this; legitimate submissions
+          leave it empty. The server returns 200 silently on a hit (no
+          lead row written, no signal to the bot). */}
+      <div aria-hidden className="sr-only">
         <label htmlFor="website">
           Website (leave blank)
           <input

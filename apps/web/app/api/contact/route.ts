@@ -41,8 +41,12 @@ const ContactRequestSchema = z.object({
     .transform((value) => (value && value.length > 0 ? value : undefined)),
   reason: z.enum(CONTACT_LEAD_REASONS),
   message: z.string().trim().min(1, "Message is required").max(4000),
-  // Honeypot. Must be empty. Any non-empty value = bot.
-  website: z.string().max(0).optional().or(z.literal("")),
+  // Honeypot. ACCEPT any short string — the silent-reject decision is
+  // made by the handler AFTER the schema parses (see § 3 below). If we
+  // rejected non-empty honeypots at the schema layer, the response would
+  // be a tell-tale 400 instead of the 200-OK that keeps the bot fooled.
+  // The 200-char cap is just DoS protection; legitimate visitors send "".
+  website: z.string().max(200).optional(),
 })
 
 /** Pull a stable per-visitor identifier from the request. Best-effort: most

@@ -111,12 +111,17 @@ export function createContactLeadService(
   return {
     async submitContactLead(input, meta) {
       // ── Step 1: INSERT the lead row (durable system of record) ────────────
+      // Normalize company at the service boundary — accept "" / "   " /
+      // undefined from any caller (the route trims to undefined, but
+      // direct callers may not) and store a single canonical NULL when
+      // empty. Avoids mixed "" / NULL representations in the table.
+      const company = input.company?.trim()
       const insert = await db
         .from("contact_leads")
         .insert({
           name: input.name,
           email: input.email,
-          company: input.company ?? null,
+          company: company && company.length > 0 ? company : null,
           reason: input.reason,
           message: input.message,
           status: "new",
@@ -201,37 +206,72 @@ export function createContactLeadService(
 }
 
 /** Update notification_status='sent' + notification_sent_at=now(). Best-
- *  effort: a failure here doesn't change the public outcome. */
+ *  effort: NEVER throws. A failure here can only manifest as a stuck
+ *  'pending' row in the table — observable to operators querying the
+ *  leads list. Surface that failure to the server log so a misbehaving
+ *  Supabase write doesn't fail silently. */
 async function markNotificationSent(
   db: SupabaseClient,
   leadId: string,
 ): Promise<void> {
-  await db
-    .from("contact_leads")
-    .update({
-      notification_status: "sent",
-      notification_sent_at: new Date().toISOString(),
-    })
-    .eq("id", leadId)
+  try {
+    const { error } = await db
+      .from("contact_leads")
+      .update({
+        notification_status: "sent",
+        notification_sent_at: new Date().toISOString(),
+      })
+      .eq("id", leadId)
+    if (error) {
+      console.error(
+        `[contact-lead] markNotificationSent UPDATE failed for lead=${leadId}: ${error.message}`,
+      )
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error(
+      `[contact-lead] markNotificationSent threw for lead=${leadId}: ${message}`,
+    )
+  }
 }
 
 /** Update notification_status='failed' (the row stays queryable for manual
  *  follow-up). Reason text is NOT stored on the row to keep PII surface
  *  identical to the rest of the schema — only the status enum lands. The
- *  reason is logged to console for forensic review during incidents. */
+ *  reason is logged to console for forensic review during incidents.
+ *
+ *  NEVER throws — a failure here would otherwise propagate out of the
+ *  service's outer catch block and turn into a 500, defeating the whole
+ *  "lead is captured regardless of notification outcome" contract. We
+ *  swallow + log instead. The row stays in 'pending' or its prior state
+ *  if the UPDATE fails; that's observable in the leads list. */
 async function markNotificationFailed(
   db: SupabaseClient,
   leadId: string,
   reason: string,
 ): Promise<void> {
-  // Server-side log only — no PII in this string (lead body is not here;
-  // only the underlying error message + the lead id). Consistent with
+  // Server-side log — no PII in this string (lead body is not here; only
+  // the underlying error message + the lead id). Consistent with
   // whatsapp-tracked's tracker-failure logging posture.
-  console.error(`[contact-lead] notification failed for lead=${leadId}: ${reason}`)
-  await db
-    .from("contact_leads")
-    .update({ notification_status: "failed" })
-    .eq("id", leadId)
+  console.error(
+    `[contact-lead] notification failed for lead=${leadId}: ${reason}`,
+  )
+  try {
+    const { error } = await db
+      .from("contact_leads")
+      .update({ notification_status: "failed" })
+      .eq("id", leadId)
+    if (error) {
+      console.error(
+        `[contact-lead] markNotificationFailed UPDATE returned error for lead=${leadId}: ${error.message}`,
+      )
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error(
+      `[contact-lead] markNotificationFailed threw for lead=${leadId}: ${message}`,
+    )
+  }
 }
 
 /** Pull a human-readable error out of a WhatsAppResult. */
