@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { WastelandLanding } from "@workspace/ui/components/composed/wasteland-landing"
+import { siteUrl } from "@/lib/site-url"
 
 // PL-1 (docs/launch/product-launch-readiness.md § C.1) — the landing is the
 // most-shared and most-search-indexed URL. Without these tags every social
@@ -7,21 +8,15 @@ import { WastelandLanding } from "@workspace/ui/components/composed/wasteland-la
 // undermines credibility. Per § C.1's testable-done criterion: title /
 // description / openGraph / twitter are all non-empty here.
 //
-// Depth is the OD-P7-shaped decision; this ships the FLOOR (Title + OG +
-// Twitter Card). JSON-LD + sitemap are deferred until OD-P7 is answered.
+// PL-1 closeout (OD-P7 = both): JSON-LD structured data rendered below +
+// app/sitemap.ts + app/robots.ts complete the depth requirement on top of
+// the metadata floor shipped in PR #164.
 //
-// `metadataBase` resolves relative `/images/...` URLs into absolute URLs in
-// the OG/Twitter payload. Override via NEXT_PUBLIC_SITE_URL at deploy time;
-// the fallback is the production domain.
-//
-// `??` only guards against undefined — a CI config that explicitly sets
-// NEXT_PUBLIC_SITE_URL="" or a malformed value would crash `new URL(...)`
-// at module-eval time. Validate at this env-var boundary with
-// URL.canParse (Node ≥19.9; Next.js 16 requires Node 20+).
-const FALLBACK_SITE_URL = "https://tacexpress.in"
-const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
-const siteUrl =
-  rawSiteUrl && URL.canParse(rawSiteUrl) ? rawSiteUrl : FALLBACK_SITE_URL
+// `metadataBase` resolves relative `/images/...` URLs into absolute URLs
+// in the OG/Twitter payload. The shared `siteUrl` helper validates
+// NEXT_PUBLIC_SITE_URL at the env-var boundary (see lib/site-url.ts) so all
+// three SEO surfaces (metadata · sitemap · robots) build their absolute
+// URLs from the same source.
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -55,6 +50,57 @@ export const metadata: Metadata = {
   },
 }
 
+// schema.org/Organization JSON-LD. Floor depth: name / url / logo /
+// description / contactPoint / areaServed. The `areaServed` array names the
+// eight North-East India states the about page lists as the corridor —
+// this is what gives a logistics-search SERP result a region anchor.
+//
+// Real contact + HQ address are mirrored from apps/web/app/(public)/contact
+// so the structured data and the rendered Contact page never disagree.
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "TAC Express",
+  url: siteUrl,
+  logo: `${siteUrl}/images/tac-truck-hero.webp`,
+  description:
+    "TAC Express moves cargo through the corridor most logistics companies treat as a footnote — the North-East of India. The network behind tea growers, handicraft cooperatives, defense contractors, and e-commerce sellers.",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Imphal",
+    addressRegion: "Manipur",
+    addressCountry: "IN",
+  },
+  contactPoint: {
+    "@type": "ContactPoint",
+    telephone: "+91 385 244 6500",
+    email: "hello@tacexpress.com",
+    contactType: "customer service",
+    availableLanguage: ["en"],
+  },
+  areaServed: [
+    { "@type": "State", name: "Assam" },
+    { "@type": "State", name: "Arunachal Pradesh" },
+    { "@type": "State", name: "Manipur" },
+    { "@type": "State", name: "Meghalaya" },
+    { "@type": "State", name: "Mizoram" },
+    { "@type": "State", name: "Nagaland" },
+    { "@type": "State", name: "Sikkim" },
+    { "@type": "State", name: "Tripura" },
+  ],
+} as const
+
 export default function Home() {
-  return <WastelandLanding />
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        // Next.js recommends inline JSON-LD via dangerouslySetInnerHTML
+        // for App Router; the payload is a build-time constant — no
+        // user-controlled input — so the XSS surface is closed.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <WastelandLanding />
+    </>
+  )
 }
