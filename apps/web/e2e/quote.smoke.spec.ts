@@ -20,6 +20,10 @@ test.describe("/quote", () => {
 
   test("clicking calculate produces an indicative rate panel", async ({ page }) => {
     await page.goto("/quote")
+    // Explicitly fill weight so the test asserts the happy path rather
+    // than relying on the form's default value (today: 5kg). Defaults
+    // could change; this assertion shouldn't.
+    await page.getByLabel(/chargeable weight/i).fill("5")
     await page.getByRole("button", { name: /calculate rate/i }).click()
 
     // The output panel labels the rate as "Indicative rate" + shows a
