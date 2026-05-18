@@ -352,3 +352,25 @@ Per OD-P5 (9-page MVP carve) + OD-P6 (375w + 768w breakpoints), audited each pag
 **What this PR does NOT do:** verify the static audit against actual mobile viewport rendering. The Next.js dev server can't run from a worktree, and the existing Playwright config doesn't cover apps/web. That validation is **PL-4** — extending Playwright to test apps/web at 375w + 768w viewports. Begun in a sibling PR.
 
 **Burn-down impact:** PL-3 was the longest-looking blocker on paper; in practice the mobile-first Tailwind discipline already in the codebase means the work was ~85% audit, ~15% targeted fix.
+
+### J.8 PL-4 — apps/web Playwright foundation (autonomous run 2026-05-18)
+
+The root [`playwright.config.ts`](../../playwright.config.ts) targets `apps/dashboard` on port 3001. Per the PL-4 testable-done criterion ("new specs in `e2e/` … for landing + contact + quote"), the apps/web public surface needed its own Playwright config — same toolchain, different baseURL + webServer + test dir.
+
+| Artifact | Purpose |
+|---|---|
+| [`apps/web/playwright.config.ts`](../../apps/web/playwright.config.ts) | Six projects: `smoke-{desktop,mobile}` · `a11y-{desktop,mobile}` · `visual-{light,dark}`. The mobile projects pin viewport to **375×812** (the OD-P6 mobile-critical width) so PL-3 regressions surface immediately. |
+| [`apps/web/e2e/landing.smoke.spec.ts`](../../apps/web/e2e/landing.smoke.spec.ts) | AWB tracker reachability + sales-CTA row presence + JSON-LD Organization payload + CTA-link routing. |
+| [`apps/web/e2e/contact.smoke.spec.ts`](../../apps/web/e2e/contact.smoke.spec.ts) | Form fields visible + honeypot offscreen-hidden + public contact info on page. |
+| [`apps/web/e2e/quote.smoke.spec.ts`](../../apps/web/e2e/quote.smoke.spec.ts) | Rate-calculator form + indicative-rate output. |
+| `apps/web/package.json` scripts | `test:e2e`, `test:e2e:ui`, `test:smoke` — runnable locally via `pnpm --filter web test:smoke`. |
+
+**Coverage:** the three critical customer-journey paths (landing + contact + quote) at desktop AND 375×812 mobile.
+
+**What this PR does NOT do (filed for follow-up):**
+
+- **CI workflow integration.** The existing [`e2e.yml`](../../.github/workflows/e2e.yml) targets `apps/dashboard/**` only. Adding apps/web runs needs a sibling workflow (or path-aware steps in the existing one). Doing that without owner verification risks breaking the existing gate — kept out of this PR. The infrastructure is in place; CI wiring is a one-file follow-up.
+- **a11y + visual specs for landing/contact/quote.** This PR ships only the **smoke** projects' specs. The a11y + visual specs are mechanical extensions of the existing `apps/dashboard/e2e/*.{a11y,visual}.spec.ts` templates and follow naturally once smoke is green in CI.
+- **Specs for the other 6 carve pages** (about / pricing / legal × 3 / track). Per the cadence-discipline rule, smaller follow-up PRs.
+
+**Burn-down impact:** PL-4 as defined ("visual + a11y baseline for landing + critical paths") is partially complete after this PR. Smoke coverage at mobile + desktop on the 3 most-load-bearing pages is the floor; a11y/visual specs ship in the next session once CI integration is signed off.
