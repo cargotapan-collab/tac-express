@@ -159,9 +159,11 @@ function LogisticsHero() {
           </span>
           {/* PL-3 — buttons span the full width at <640w so the tap target
               hits the recommended minimum and matches the LOCATE button's
-              w-full/sm:w-auto pattern above. At sm+ they revert to
-              content-width so the row reads as paired CTAs. */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs sm:max-w-none">
+              w-full/sm:w-auto pattern above. At sm+ the wrapper drops the
+              width cap (sm:w-auto + sm:max-w-none) AND the inner buttons
+              revert to content-width — the row reads as a paired CTA group
+              under the eyebrow text, not as a full-bleed band. */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs sm:w-auto sm:max-w-none">
             <Button
               asChild
               variant="default"
