@@ -238,6 +238,7 @@ tac-express/
 
 > **Full spec:** `DESIGN_SYSTEM.md`
 > **Identity:** Mission-control density + brutalist offset shadows + NASA FUI utilities. Dark-first.
+> **Canonical name (reconciliation 2026-05-18):** the design system is **"TAC Express v5.0 Violet Grid"** in every authoritative source (this file, `DESIGN_SYSTEM.md`, `CLAUDE.md`, `README.md`, every `.claude/skills/` file). Legacy labels seen in older docs/comments — *TAC Precision*, *Velox*, *Wasteland*, *Orbital* — are superseded; see § 9. **Important disambiguation:** "TAC Orbital" survives as the legitimate name of the **telemetry/charts subsystem** (`packages/services/src/orbital.service.ts`, `packages/types/src/orbital.types.ts`, `packages/ui/src/components/charts/`, plus the `--telemetry-*` token block in `globals.css`). That subsystem uses Violet Grid tokens; the name is scoped to that adapter, not the design system as a whole. Comment headers in non-chart components that still read "TAC Orbital design system" are stale and should be corrected on touch.
 
 The design identity for TAC Express:
 - **Zero radius** — `--radius: 0rem`. Sharp corners everywhere. LAW 13.
@@ -337,6 +338,17 @@ export { ComponentName, componentVariants }
 ### Single shell — `/ops-console/*` only
 
 There is exactly one authenticated shell: `app/ops-console/`. The legacy v6 `(dashboard)` route group was deleted in the May 2026 single-shell migration; legacy `/foo` URLs are caught by `next.config.mjs` 308 redirects to `/ops-console/foo`. Auth gating + rate limiting live in `apps/dashboard/proxy.ts` (the Next.js 16 file convention — the older `middleware.ts` name is deprecated; do not reintroduce it). Internal nav must point at `/ops-console/*` paths; the redirects are bookmark-compat only, not an active routing path.
+
+### Auth routing shape — Supabase, with stale Clerk-style catch-all (post-#162 audit 2026-05-18)
+
+**Verdict:** Auth is **Supabase email+password only** — confirmed via `apps/web/package.json` (no Clerk dep; `@workspace/database` + `@workspace/services`), repo-wide grep (no `@clerk/*` import anywhere), and the sign-in form (`packages/ui/src/components/composed/auth/sign-in-page-client.tsx` calls `createBrowserClient().auth.signInWithPassword`).
+
+**Stale artifact:** The route folders use Clerk's canonical optional-catch-all shape:
+- `apps/web/app/sign-in/[[...sign-in]]/page.tsx`
+- `apps/dashboard/app/(public)/sign-in/[[...sign-in]]/page.tsx`
+- `apps/dashboard/app/(public)/sign-up/[[...sign-up]]/page.tsx` (redirects to sign-in; sign-up disabled)
+
+The `[[...slug]]` catch-all is Clerk's convention for capturing Clerk's nested routes (`/sign-in/factor-one`, `/sign-in/sso-callback`, …). With Supabase password auth, no nested routes are produced — a single `app/sign-in/page.tsx` would behave identically. The catch-all has **no functional effect today** but is misleading scaffolding that future readers will misread as "Clerk is in use here." Classified as **POST-LAUNCH-POLISH** (rename in a small follow-up PR), tracked in [`docs/launch/product-launch-readiness.md`](docs/launch/product-launch-readiness.md) § B.3.
 
 ### Shared Sidebar — themed via CSS scope, not props
 

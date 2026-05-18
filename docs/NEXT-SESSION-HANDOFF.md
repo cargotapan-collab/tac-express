@@ -5,9 +5,10 @@
 > A credible launch = `engineering_ready AND product_ready`. Both bars must pass. They are independent — engineering can be 4/4 done with product 0/4 done, or vice versa.
 
 **Last code commit on `main`:** PR #160 — `test(e2e): payment-recording money-flow E2E (SB-4 / E1 carve-out)`.
-**Last governance PR (THIS one):** TBD — Product-launch scope (customer-facing surface).
-**Date this doc was written:** 2026-05-17 (thirteenth substantive session today — second scoping META in the arc).
-**Author of last session:** Claude Code (Opus 4.7) in PM + frontend-architect + design lenses.
+**Last governance PR on `main`:** #162 — Product-launch scope (customer-facing surface). Merge SHA `5755520`.
+**This handoff covers:** the post-#162 follow-up (2026-05-18) — auth-provider audit, design-system naming reconciliation, worktree cleanup + process fix, #162-claims verification, and PL-1 implementation (sibling source PR). See [`docs/retros/2026-05-18-post-162-followup.md`](retros/2026-05-18-post-162-followup.md).
+**Date this doc was written:** 2026-05-18 (post-#162 follow-up).
+**Author of last session:** Claude Code (Opus 4.7) in PM + CTO mode (delegated by owner).
 
 **LAUNCH STATUS — TWO BARS:**
 
@@ -22,7 +23,14 @@
 
 The engineering DoD closeout (SB-2 + SB-3 P1–P4 + OD-1/OD-2) and the product-launch workstream (PL-1 → PL-4 + OD-P1–OD-P7) are independent. Owner can address them in parallel. **They are not in conflict; they are not sequential; both must pass for launch.**
 
-The agent-actionable next step is **PL-1 (landing page metadata)** — pure-UI, no owner-decision gating, ~1 hour. SB-2 remains owner-only.
+The agent-actionable next step after #162 was **PL-1 (landing page metadata)** — implemented this session in the sibling source PR (PR B). After PL-1 merges: PL-2/PL-3/PL-4 are gated on owner decisions (OD-P1 is load-bearing). SB-2 remains owner-only.
+
+### Post-#162 follow-up findings (resolved this session — see retro § 1–6)
+
+- **Auth provider:** Supabase email+password only — confirmed via source audit. The `[[...sign-in]]` / `[[...sign-up]]` optional-catch-all folders are stale Clerk-style scaffolding (no Clerk dep anywhere). NOT a violation; classified POST-LAUNCH-POLISH (rename folders).
+- **Design-system name:** "TAC Express v5.0 Violet Grid" is canonical in every authoritative source. "TAC Orbital" is the legitimate **telemetry subsystem** name (`orbital.service.ts`, `charts/`, `--telemetry-*` tokens) — KEEP. Three stale comment headers in non-chart components were folded into the source PR for cleanup.
+- **Worktree hygiene:** `tac-whatsapp-sends-102/` removed (was untracked, not a registered worktree). New "Worktree & artifact hygiene" section in `tac-karpathy-discipline` codifies end-of-session teardown.
+- **#162 self-report verification:** All claims hold — merge SHA `5755520` on main, 9/9 CI checks `success`, no application source touched in #162.
 
 ---
 

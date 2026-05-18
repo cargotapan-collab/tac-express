@@ -130,3 +130,49 @@ Compliant approach: [concrete alternative]"
 ```
 
 Never silently comply with a violation. Always name it and propose the fix.
+
+---
+
+## Worktree & artifact hygiene (end-of-session teardown)
+
+> Added 2026-05-18 after the post-#162 follow-up surfaced an inert
+> `tac-whatsapp-sends-102/` directory sitting at the repo root — a stale
+> clone from a previous worktree-style session that nobody tore down.
+> Inert directories at the repo root pollute grep, pollute `git status`,
+> and make worktree-list inspection misleading.
+
+### At the start of a session that creates a worktree
+
+1. Use `git worktree add` to a path **outside the repo root**
+   (`C:/tac/tw-<short-task-name>` is the established convention —
+   see existing `tw-dod`, `tw-launch`, `tw-prodscope`, `tw-sb1` …)
+   OR use the harness `Agent({ isolation: "worktree" })`, which
+   auto-cleans on no-op.
+2. Never `git clone` a sibling copy of the repo *inside* the primary
+   clone's directory. The repo root is for the primary working tree only.
+
+### At the end of every session
+
+Whenever the session created a worktree, before declaring the run done:
+
+1. **List worktrees:** `git worktree list`.
+2. **Identify the ones this session created.** Branch name + path
+   should match.
+3. **For each whose PR is merged or abandoned:**
+   - `git worktree remove <path>` — drops the worktree.
+   - `git branch -D <branch>` — ONLY if the branch is fully merged
+     or deliberately abandoned. Otherwise keep it.
+4. **If a stale non-worktree directory exists inside the repo root**
+   (an old clone, a scratchpad copy, an untracked sibling repo):
+   - Verify it is NOT a registered worktree (`git worktree list`
+     does not show it AND `<dir>/.git` does not exist).
+   - Confirm with the owner before deleting if there's any chance
+     it contains uncommitted work.
+   - Otherwise `rm -rf <dir>` — repo-root pollution is a real cost.
+
+### Sentinel against recurrence
+
+If the same untracked-stale-directory artifact appears again across
+sessions, that's a `tac-skillify` trigger — convert this section into
+a hooked cleanup step rather than written discipline. Until then, the
+written rule + end-of-session checklist is the floor.
