@@ -68,7 +68,7 @@ interface ShippingLabelProps {
 /* ════════════════════════════════════════════════════════════════════════ */
 /*  ShippingLabel                                                            */
 /*                                                                           */
-/*  FBA-anatomy 7-zone shipping label, retoned for TAC Orbital:              */
+/*  FBA-anatomy 7-zone shipping label, retoned for Violet Grid:              */
 /*                                                                           */
 /*    ┌─ Zone 1 ─────────────────────────────────────────────────────┐      */
 /*    │  TAC EXPRESS                          Box 01 of 01 — 1.2 kg  │      */

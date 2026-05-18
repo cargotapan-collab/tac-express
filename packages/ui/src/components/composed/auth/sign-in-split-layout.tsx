@@ -23,7 +23,7 @@ interface SignInSplitLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * TAC Orbital — split-screen sign-in layout.
+ * Violet Grid — split-screen sign-in layout.
  *
  * Lottie LEFT · Form RIGHT. Mission-control framing: 1px borders, brutalist
  * offset shadow on the panel container, hazard-stripe band joining the
