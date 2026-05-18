@@ -13,7 +13,15 @@ import { WastelandLanding } from "@workspace/ui/components/composed/wasteland-la
 // `metadataBase` resolves relative `/images/...` URLs into absolute URLs in
 // the OG/Twitter payload. Override via NEXT_PUBLIC_SITE_URL at deploy time;
 // the fallback is the production domain.
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tacexpress.in"
+//
+// `??` only guards against undefined — a CI config that explicitly sets
+// NEXT_PUBLIC_SITE_URL="" or a malformed value would crash `new URL(...)`
+// at module-eval time. Validate at this env-var boundary with
+// URL.canParse (Node ≥19.9; Next.js 16 requires Node 20+).
+const FALLBACK_SITE_URL = "https://tacexpress.in"
+const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
+const siteUrl =
+  rawSiteUrl && URL.canParse(rawSiteUrl) ? rawSiteUrl : FALLBACK_SITE_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
