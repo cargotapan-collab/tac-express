@@ -95,7 +95,7 @@ Authoritative for what "production-ready" means from an *operability* standpoint
 **Bar 2 — Customer-facing readiness — [`docs/launch/product-launch-readiness.md`](docs/launch/product-launch-readiness.md)**
 Authoritative for what "product-ready" means from a *customer-facing* standpoint (landing page, marketing pages, auth surface, journey clarity). Defines, finitely, the PRODUCT-LAUNCH-BLOCKER (PL-N) list and the OWNER DECISIONS REQUIRED (OD-P-N) gating them.
 
-**When asked "what's left to launch?" — read BOTH files.** A SHIP-BLOCKER lives in DoD; a PRODUCT-LAUNCH-BLOCKER lives in product-launch-readiness. The launch verdict = `engineering_ready AND product_ready`. When an SB-N ships, update DoD § 3; when a PL-N ships, update product-launch-readiness § 3. When the owner promotes a POST-LAUNCH item to either bucket, update the respective authority file AND the backlog file's `**Bucket:**` line.
+**When asked "what's left to launch?" — read BOTH files.** A SHIP-BLOCKER lives in DoD; a PRODUCT-LAUNCH-BLOCKER lives in product-launch-readiness. The launch verdict = `engineering_ready AND product_ready`. When an SB-N ships, update DoD § 3 (the engineering current-standing table); when a PL-N ships, update product-launch-readiness § F (the product current-standing table). When the owner promotes a POST-LAUNCH item to either bucket, update the respective authority file AND the backlog file's `**Bucket:**` line.
 
 ### Production-readiness backlog — authoritative file (NOT the GitHub issue)
 

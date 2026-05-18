@@ -5,6 +5,7 @@
 **Version:** 1.0 — initial scoping, 2026-05-17.
 **Authority chain:** AGENTS.md § 0 → this file (customer-facing surface) → `definition-of-done.md` (engineering).
 **Not modified by this scoping session:** `definition-of-done.md` engineering DoD; SB-2 closeout; OD-1 / OD-2; SB-3 prerequisites.
+**Section scheme:** `0` = preamble; `A`–`E` = PHASE-0 methodology (mirrors the scoping-brief's PHASE-0 (A)–(E)); `F`–`I` = closing sections. Single consistent letter-based scheme below the preamble.
 
 ---
 
@@ -167,7 +168,7 @@ The agent cannot answer any of these. They must come from the owner before the P
 
 ---
 
-## 3. Current standing
+## F. Current standing
 
 | PRODUCT-LAUNCH-BLOCKER | Status | Owner-decision dependency |
 |---|---|---|
@@ -181,7 +182,7 @@ The agent cannot answer any of these. They must come from the owner before the P
 
 ---
 
-## 4. Bailout-clause findings (PHASE-0 honest read)
+## G. Bailout-clause findings (PHASE-0 honest read)
 
 The audit did NOT reveal a fundamentally broken auth flow or a missing page. The customer-facing surface is materially built — 15 marketing pages, working operator sign-in via Supabase, comprehensive footer/nav, shared layout, Violet Grid tokens. The product-launch bar is real but not catastrophic — bailout does NOT fire.
 
@@ -189,7 +190,7 @@ The single most surprising finding: the **landing page has no `metadata` export*
 
 ---
 
-## 5. Relationship to the engineering DoD
+## H. Relationship to the engineering DoD
 
 - **Engineering DoD ([`definition-of-done.md`](definition-of-done.md))** — concerns *running* the product safely. Status: 3 of 4 done; SB-2 (Sentry alerting) is the last engineering gate, an owner-runnable ~20-min task.
 - **This file** — concerns *meeting* the customer. Status: 4 PRODUCT-LAUNCH-BLOCKERS identified; PL-2 is the load-bearing owner-decision dependency.
@@ -197,11 +198,11 @@ The single most surprising finding: the **landing page has no `metadata` export*
 
 ---
 
-## 6. Maintenance
+## I. Maintenance
 
 This file follows the same maintenance pattern as `definition-of-done.md`:
 
-- A PRODUCT-LAUNCH-BLOCKER goes DONE → strike its row in § C.1 + update § 3's current standing.
+- A PRODUCT-LAUNCH-BLOCKER goes DONE → strike its row in § C.1 + update § F's current standing.
 - The owner promotes a POST-LAUNCH-POLISH item to PRODUCT-LAUNCH-BLOCKER → add as new PL-N with justification matching the hard test.
 - Launch happens (both bars passed) → both DoD files move to `docs/_archive/` with the final footer.
 
