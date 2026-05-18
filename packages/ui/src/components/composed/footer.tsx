@@ -71,7 +71,9 @@ export function Footer() {
             {["Imphal", "New Delhi", "Northeast India"].map((loc) => (
               <span
                 key={loc}
-                className="border border-primary/20 font-mono text-2xs uppercase tracking-widest px-2.5 py-1 text-primary"
+                // tac-mono-label routes the color through --primary-mono-label
+                // in dark mode (the brighter WCAG-AA variant) — see #173.
+                className="tac-mono-label border border-primary/20 px-2.5 py-1"
               >
                 {loc}
               </span>

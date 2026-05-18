@@ -366,7 +366,13 @@ function ResultsChart() {
 
            <div className="flex items-center gap-4 mb-12 border-b border-border pb-8">
              <div className="w-12 h-12 bg-primary border-2 border-primary flex items-center justify-center flex-shrink-0">
-               <span className="tac-mono-label text-primary-foreground select-none">TH</span>
+               {/* Pre-existing latent bug surfaced by #173: tac-mono-label's
+                * color was overriding text-primary-foreground, so the "TH"
+                * avatar always rendered violet-on-violet (contrast 1.86:1).
+                * Drop tac-mono-label here — the typography is hand-set via
+                * font-mono + font-bold + tracking-wider so text-primary-
+                * foreground can win the cascade. */}
+               <span className="font-mono font-bold text-sm tracking-wider uppercase text-primary-foreground select-none">TH</span>
              </div>
              <div>
                <div className="tac-mono-label text-foreground normal-case">Tapan Hidangmayum</div>

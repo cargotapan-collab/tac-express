@@ -293,6 +293,22 @@
   --popover: oklch(0.2568 0.0076 274.6528);
   --popover-foreground: oklch(0.9556 0.0074 264.5319);
   --primary: oklch(0.6132 0.2294 291.7437);
+  /* WCAG AA contrast variant of --primary for small mono-label text on dark
+   * backgrounds. The brand --primary at L=0.6132 yields 3.8:1 against
+   * --background (#222327); below the 4.5:1 normal-text minimum.
+   *
+   * --primary-mono-label bumps L to 0.78 and trims chroma slightly so the
+   * computed sRGB luminance clears 4.5:1 while preserving the violet hue
+   * (H=291.7 unchanged). Used by .tac-mono-label only — does NOT replace
+   * --primary anywhere else; buttons, focus rings, signal glows, and chart
+   * primary all keep the brand violet.
+   *
+   * Light mode is unaffected (no override) — .tac-mono-label there falls
+   * back to var(--primary), which has enough contrast against the light
+   * background already.
+   *
+   * Filed in #173; verified against axe via apps/web/e2e/carve.a11y.spec.ts. */
+  --primary-mono-label: oklch(0.78 0.18 291.7437);
   --primary-foreground: oklch(0.1573 0.0062 271.1393);
   --secondary: oklch(0.3003 0.0094 271.1393);
   --secondary-foreground: oklch(0.9556 0.0074 264.5319);
@@ -909,7 +925,10 @@
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--primary);
+    /* --primary-mono-label is defined in dark mode only (brighter variant
+     * for WCAG AA contrast on dark backgrounds). Light mode falls back to
+     * --primary, which already has sufficient contrast on light backgrounds. */
+    color: var(--primary-mono-label, var(--primary));
   }
 
   /* 4. Signal Glow */
