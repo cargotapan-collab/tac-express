@@ -3,6 +3,7 @@
 
 
 import * as React from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "motion/react"
 import { Icon } from "@workspace/ui/icons"
@@ -138,6 +139,49 @@ function LogisticsHero() {
             </p>
           )}
         </motion.form>
+
+        {/* PL-2a — sales-led B2B customer-journey CTA row. The hero's primary
+            action is "locate an existing shipment" (AWB form above); this
+            row is the secondary path for visitors who don't yet have an
+            AWB — i.e. new sales leads. Without it the only customer-journey
+            terminator was the top-nav, which fails the "credibly land →
+            complete the intended journey" hard test for OD-P1 = sales-led B2B.
+            Targets `/quote` (rate calculator, no sign-in) and `/contact`
+            (sales/support/ops inbox). */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.45, ease: EASE_SMOOTH }}
+          className="flex flex-col items-center gap-4 mb-16"
+        >
+          <span className="tac-mono-label text-muted-foreground">
+            NOT TRACKING A SHIPMENT?
+          </span>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              asChild
+              variant="default"
+              size="lg"
+              className="h-12 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 focus-visible:outline-none focus-visible:tac-focus-premium"
+            >
+              <Link href="/quote">
+                <Icon name="calculator" className="mr-3 w-5 h-5" />
+                GET A QUOTE
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="h-12 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 focus-visible:outline-none focus-visible:tac-focus-premium"
+            >
+              <Link href="/contact">
+                <Icon name="mail" className="mr-3 w-5 h-5" />
+                CONTACT SALES
+              </Link>
+            </Button>
+          </div>
+        </motion.div>
 
         {/* Brutalist Hero Image Framing */}
         <motion.div 
