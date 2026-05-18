@@ -28,7 +28,8 @@
     "audit:skills": "pnpm dlx tsx scripts/audit-skills.ts",
     "test:routing-eval": "pnpm dlx tsx scripts/test-routing-eval.ts",
     "measure:bundle": "node scripts/measure-bundle-size.mjs",
-    "audit:all": "pnpm audit:governance && pnpm audit:auth-boundary && pnpm audit:skills && pnpm audit:design-spec && pnpm audit:db-types-fresh && pnpm test:routing-eval"
+    "audit:all": "pnpm audit:governance && pnpm audit:auth-boundary && pnpm audit:skills && pnpm audit:design-spec && pnpm audit:db-types-fresh && pnpm test:routing-eval",
+    "clean": "node -e \"const fs=require('node:fs'),p=require('node:path'),roots=['.'].concat(fs.existsSync('apps')?fs.readdirSync('apps').map(d=>p.join('apps',d)):[]).concat(fs.existsSync('packages')?fs.readdirSync('packages').map(d=>p.join('packages',d)):[]),targets=['.next','.turbo','out','dist','coverage','playwright-report','test-results','.tsbuildinfo'];for(const r of roots){if(!fs.existsSync(r))continue;for(const t of targets){const f=p.join(r,t);if(fs.existsSync(f)){fs.rmSync(f,{recursive:true,force:true});console.log('removed',f)}}};for(const f of fs.readdirSync('.').filter(x=>x.endsWith('.tsbuildinfo'))){fs.rmSync(f,{force:true});console.log('removed',f)}\""
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
