@@ -44,7 +44,7 @@ interface MapLibreMapProps {
 }
 
 /**
- * MapLibre wrapper preconfigured for the TAC Orbital design system.
+ * MapLibre wrapper preconfigured for the Violet Grid design system.
  *
  * Decision 1 (OPEN-QUESTIONS-DECISIONS-2026-04-30.md): we ship MapLibre +
  * OpenFreeMap as the default basemap. Swapping providers later is a one-line
