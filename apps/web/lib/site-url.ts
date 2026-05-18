@@ -11,10 +11,17 @@
 //
 // On failure (unset, empty string, whitespace-only, malformed) we fall back
 // to the production domain so the build never throws.
+//
+// Trailing slashes are stripped before export so every downstream consumer
+// concatenates against a canonical base — without this, a deploy that sets
+// NEXT_PUBLIC_SITE_URL="https://tacexpress.in/" would produce sitemap URLs
+// like `https://tacexpress.in//sitemap.xml`. (CodeRabbit #165.)
 
 const FALLBACK_SITE_URL = "https://tacexpress.in"
 
 const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
 
-export const siteUrl =
+const resolved =
   rawSiteUrl && URL.canParse(rawSiteUrl) ? rawSiteUrl : FALLBACK_SITE_URL
+
+export const siteUrl = resolved.replace(/\/+$/, "")
