@@ -1,6 +1,8 @@
 # TAC Express — Product-Launch Readiness (customer-facing surface)
 
-> **This file is authoritative for product-launch scope of the customer-facing surface.** Sibling to [`docs/launch/definition-of-done.md`](definition-of-done.md), which is authoritative for the **engineering** ship-blocker list. The two are DISTINCT bars. Both must pass for a credible production launch.
+> **Read [`MASTER-LAUNCH-PLAN.md`](MASTER-LAUNCH-PLAN.md) FIRST.** That file is the reconciled rollup across all workstreams. This file remains authoritative for the PRODUCT-LAUNCH-BLOCKER (PL-N) nomenclature, OWNER DECISIONS (OD-P-N), and per-item testable-done criteria for the customer-facing surface. Master plan supersedes the *scope*; this file supersedes the *detail*.
+>
+> **Authoritative for product-launch scope of the customer-facing surface.** Sibling to [`docs/launch/definition-of-done.md`](definition-of-done.md), which is authoritative for the **engineering** ship-blocker list. The two are DISTINCT bars. Both must pass for a credible production launch.
 
 **Version:** 1.0 — initial scoping, 2026-05-17.
 **Authority chain:** AGENTS.md § 0 → this file (customer-facing surface) → `definition-of-done.md` (engineering).

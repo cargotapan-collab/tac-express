@@ -1,0 +1,322 @@
+# TAC Express — MASTER LAUNCH PLAN
+
+> **Authority:** this file is the single, reconciled launch plan. It supersedes the *scope* of [`docs/launch/definition-of-done.md`](definition-of-done.md) (engineering) and [`docs/launch/product-launch-readiness.md`](product-launch-readiness.md) (product) as the **unified** burn-down. Those two files remain the per-bar detail; this file is the rollup + ordering.
+
+**Version:** 1.0 — master reconciliation, 2026-05-18.
+**Authority chain:** [`AGENTS.md` § 0](../../AGENTS.md) → THIS FILE → `definition-of-done.md` + `product-launch-readiness.md` → [`docs/backlog/production-readiness.md`](../backlog/production-readiness.md).
+**Main HEAD at reconciliation:** `180b93a` (`ci: apps/web e2e workflow — smoke + a11y across 3 viewports (PL-4 followup) (#177)`).
+
+---
+
+## 0. LAUNCH VERDICT (evidenced)
+
+> # **NOT READY**
+
+The verdict is BOOLEAN — `engineering_ready AND product_ready`. Four launch-blockers remain. Two are owner-only credential gates; one is owner-only design-call; one is owner-only template-approval. The agent-only burn-down is empty.
+
+**Evidence trail:**
+
+| Claim | Verified via | Result |
+|---|---|---|
+| `/api/contact` would 500 in production | Supabase MCP `list_tables` against project `mdvnphbucrpspntrezmj` | ❌ `contact_leads` ABSENT; `whatsapp_sends` ABSENT — 13 tables present, neither in the list |
+| SB-2 has been run end-to-end | Sentry MCP `search_issues` for `api/diagnostics` in `tapan-cargo-az/javascript-nextjs` | ❌ Zero `api/diagnostics` issues across project lifetime |
+| Production has active error signal | Sentry MCP `search_issues is:unresolved lastSeen:-7d` | ✅ No unresolved errors last 7d (separate from SB-2 — the LACK of alert-rule plumbing means a real incident wouldn't notify the owner) |
+| WastelandLanding "deprecated" claim from a prior Run | grep + `product-launch-readiness.md § B.1 / § C.2` | ❌ Brief misread. Implementation uses current Violet Grid tokens; rename is cosmetic POST-LAUNCH-POLISH. **Acceptable to ship.** |
+| Run-series outputs | gh PR audit of #163–#177 | ✅ 14 of 14 PRs merged or deliberately held (#176 only) |
+
+---
+
+## 1. Reconciliation — every issue / PR vs current main
+
+Audited via `gh issue/PR view` against main `180b93a`. Three workstreams reconciled into ONE list below.
+
+### 1.1 Open PRs (1)
+
+| PR | State | Why it is what it is |
+|---|---|---|
+| [#176](https://github.com/cargotapan-collab/tac-express/pull/176) `fix(a11y): WCAG AA contrast …` | OPEN · CLEAN · MERGEABLE · **deliberately held** | Per Run 3's brief: contrast/token PRs are explicitly excluded from auto-merge. Awaiting owner design sign-off. Demo PR — fixes landing-desktop + landing-tablet, surfaces 3 remaining sites for design decision. |
+
+### 1.2 Open issues (13)
+
+| # | Title | True state vs main | Bucket |
+|---|---|---|---|
+| [#174](https://github.com/cargotapan-collab/tac-express/issues/174) | Deploy 4 un-deployed migrations | OPEN; verified: `contact_leads` + `whatsapp_sends` absent from remote `mdvnphbucrpspntrezmj`. Migration-deploy pipeline shipped in PR #175 but DORMANT (`vars.MIGRATION_DEPLOY_ENABLED` defaults `false`). | **🚨 PRODUCTION-INCIDENT** |
+| [#173](https://github.com/cargotapan-collab/tac-express/issues/173) | Landing color-contrast WCAG AA | OPEN; PR #176 partial fix (landing-desktop + landing-tablet → 0 serious). 3 remaining serious nodes: landing-mobile, pricing badge, /track/[awb]. | **LAUNCH-BLOCKER** |
+| [#169](https://github.com/cargotapan-collab/tac-express/issues/169) | POST-LAUNCH: LOCATE tracking-[0.3em] → token | OPEN. Pre-existing inconsistency. POST-LAUNCH per its own title. | POST-LAUNCH |
+| [#167](https://github.com/cargotapan-collab/tac-express/issues/167) | Autonomous launch-readiness run — 2026-05-18 | OPEN; meta tracking issue for Run 1/2/3. Not launch-gating. Close after launch-ready. | META (not launch-gating) |
+| [#158](https://github.com/cargotapan-collab/tac-express/issues/158) | POST-LAUNCH: request-signing sweep | OPEN; security-sensitive. | POST-LAUNCH-SECURITY (Tier 3) |
+| [#157](https://github.com/cargotapan-collab/tac-express/issues/157) | POST-LAUNCH: TOCTOU in retryWhatsappSend | OPEN; security-sensitive. | POST-LAUNCH-SECURITY (Tier 3) |
+| [#154](https://github.com/cargotapan-collab/tac-express/issues/154) | RBAC auth-error handling sweep | OPEN; lean POST-LAUNCH per OD-1. Security-sensitive. | POST-LAUNCH-SECURITY (Tier 3; promotable if OD-1 = ship-blocker) |
+| [#151](https://github.com/cargotapan-collab/tac-express/issues/151) | `as unknown as` cleanup in apps/web/proxy.ts | OPEN; 30-min hygiene. | POST-LAUNCH |
+| [#145](https://github.com/cargotapan-collab/tac-express/issues/145) | Immutability sentinel for whatsapp_sends | OPEN; defense-in-depth. | POST-LAUNCH |
+| [#144](https://github.com/cargotapan-collab/tac-express/issues/144) | Meta delivery-callback webhook | OPEN; adds `delivered`/`read` status. | POST-LAUNCH |
+| [#143](https://github.com/cargotapan-collab/tac-express/issues/143) | Automated WhatsApp retry job | OPEN; operator-triggered retry is the floor. | POST-LAUNCH |
+| [#131](https://github.com/cargotapan-collab/tac-express/issues/131) | ServiceLevel branded type | OPEN; structural. | POST-LAUNCH |
+| [#130](https://github.com/cargotapan-collab/tac-express/issues/130) | regex-alternation LAW gate | OPEN; tooling. | POST-LAUNCH |
+
+### 1.3 Recently-closed / merged (the Run-series, for context)
+
+All 14 PRs in the #162–#177 range are CLOSED or MERGED, except #176 (deliberately held). Key contributions to launch state:
+
+- **#175** shipped `.github/workflows/migration-deploy.yml` — the **automation that fixes #174 once activated**. Dormant by default; opt-in via `vars.MIGRATION_DEPLOY_ENABLED=true` + two secrets.
+- **#177** shipped `.github/workflows/e2e-web.yml` — gates apps/web smoke+a11y on every PR. `AXE_FAIL_ON_VIOLATIONS=0` until #173 lands.
+- **#168** merged the `contact_leads` migration file + `/api/contact` route + service — code-complete; **infrastructure-blocked** by #174.
+- **#170, #171, #172** completed PL-1/PL-3/PL-4 (rendered + axe-verified).
+- **#139, #140, #142** closed as FIXED on tracker.
+- **#94** (SB-2's tracker) remains CLOSED but the owner-runnable work still exists as a tracker-less DoD gate.
+
+### 1.4 Workstream reconciliation
+
+Three workstreams existed before this session:
+
+| Workstream | Authority file | Outstanding items pre-reconciliation |
+|---|---|---|
+| Engineering DoD | `definition-of-done.md` | SB-2 only; SB-3 P1–P4 prereqs |
+| Product-launch readiness | `product-launch-readiness.md` | PL-2b live-activation; 3 contrast sites; visual-snapshot baselines |
+| Run-series (#167–#177) | — (tracked via #167 + retros) | #173, #174 surfaced; #175 + #177 shipped; #176 held |
+
+**The reconciliation:** every Run-series finding maps onto a row in the unified list below. Specifically:
+- #174 promotes to **PRODUCTION-INCIDENT** — NOT previously accounted for in either authority file.
+- The migration-deploy pipeline (PR #175) is the closeout mechanism for #174 — NOT previously accounted for in DoD.
+- #173 escalates to **LAUNCH-BLOCKER** — WCAG AA is a launch-credibility gate for enterprise B2B, not a polish item.
+
+---
+
+## 2. The unified classified list (FINITE)
+
+### 2.1 PRODUCTION-INCIDENT — 1
+
+| ID | Item | Done criterion (testable) | Owner / Agent | Estimate |
+|---|---|---|---|---|
+| **PI-1** | **Activate the migration-deploy pipeline + run the one-time backfill (#174)** | `SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('contact_leads','whatsapp_sends')` returns BOTH rows on remote `mdvnphbucrpspntrezmj`. Verified via Supabase MCP `list_tables` post-deploy. | **OWNER** (irreversible production write; secret-bearing) | ~10 min after secrets set |
+
+### 2.2 LAUNCH-BLOCKER — 4 (finite, closeable)
+
+| ID | Item | Done criterion (testable) | Owner / Agent | Estimate | Depends on |
+|---|---|---|---|---|---|
+| **LB-1** | **SB-2 — Sentry alert provisioning** | `scripts/sentry/create-alert-rules.mjs` run with `project:write` token; at least one rule fires end-to-end; an `api/diagnostics`-tagged synthetic event visible via Sentry MCP `search_issues` for `tapan-cargo-az/javascript-nextjs` | **OWNER** (owner-only credential per handoff do-NOT list #4) | ~20 min |
+| **LB-2** | **PL-2b activation — live lead notification end-to-end** | Submit `/contact` on production. `contact_leads` row lands with `notification_status='sent'`; recipient phone receives the WhatsApp template message; the row's `whatsapp_send_id` resolves to a `whatsapp_sends` row with `status='sent'` | **OWNER** (template approval + WPBOX env + production submit; bundled because all three are owner-only inputs feeding the same e2e verification) | ~30 min after PI-1 + template approval lands | PI-1; Meta template approval |
+| **LB-3** | **#173 — design call on contrast approach + apply to 3 remaining sites** | All 9 carve pages × 3 viewports return **0 serious** color-contrast violations from `apps/web/e2e/carve.a11y.spec.ts`. Then `AXE_FAIL_ON_VIOLATIONS=1` flipped in `.github/workflows/e2e-web.yml` to gate regressions. | **OWNER decides approach** (token bump vs class redirect vs per-site shim — PR #176 demonstrates one path) → **AGENT applies** to the 3 sites + flips the env var | ~1 owner session + ~1 agent session | #176 design sign-off |
+| **LB-4** | **SB-3 P1–P4 owner-prerequisites — verify in Supabase dashboard** | The 4 fill-in blocks in [`DATABASE-RESTORE.md § 2`](../runbooks/DATABASE-RESTORE.md#2-prerequisites-owner-confirmed--verify-before-launch) all checked: P1 Pro plan, P2 PITR enabled + retention, P3 daily backups, P4 Owner role | **OWNER** | ~10 min in Supabase dashboard | — |
+
+**Total finite launch surface:** 1 production-incident + 4 launch-blockers = **5 closeable items.** Three are owner-only credential/permission acts (PI-1, LB-1, LB-4); one is owner-only template approval bundled with a production e2e (LB-2); one is owner-design + agent-execute (LB-3). The agent has zero independently-actionable launch-blocker work pending owner inputs.
+
+### 2.3 POST-LAUNCH — 7
+
+Real work; not launch-gating. Per Convention A, follow-up issues default here; promotion requires explicit owner decision matching the hard test.
+
+| # | Item |
+|---|---|
+| [#169](https://github.com/cargotapan-collab/tac-express/issues/169) | LOCATE tracking-[0.3em] → token |
+| [#151](https://github.com/cargotapan-collab/tac-express/issues/151) | `as unknown as` cleanup in apps/web/proxy.ts |
+| [#145](https://github.com/cargotapan-collab/tac-express/issues/145) | App-layer immutability sentinel for whatsapp_sends |
+| [#144](https://github.com/cargotapan-collab/tac-express/issues/144) | Meta delivery-callback webhook |
+| [#143](https://github.com/cargotapan-collab/tac-express/issues/143) | Automated WhatsApp retry job |
+| [#131](https://github.com/cargotapan-collab/tac-express/issues/131) | ServiceLevel branded type at data-layer |
+| [#130](https://github.com/cargotapan-collab/tac-express/issues/130) | regex-alternation LAW gate |
+
+Plus the visual-snapshot baselines for apps/web (deferred follow-up to PR #172 + #177).
+
+### 2.4 POST-LAUNCH-SECURITY — 3 (Tier 3, leave OPEN for human review)
+
+Per the autonomous-run policy: security-sensitive sweeps get their own PRs, kept OPEN for human security review, never auto-merged.
+
+| # | Item |
+|---|---|
+| [#158](https://github.com/cargotapan-collab/tac-express/issues/158) | request-signing sweep across state-changing dashboard API routes |
+| [#157](https://github.com/cargotapan-collab/tac-express/issues/157) | TOCTOU race in retryWhatsappSend |
+| [#154](https://github.com/cargotapan-collab/tac-express/issues/154) | RBAC auth-error handling sweep (OD-1: promotable to LB if owner reclassifies) |
+
+### 2.5 WONTFIX-WATCH — 2
+
+| ID | Item | Re-evaluate |
+|---|---|---|
+| X1 | Form variant canonical pick | 2026-08-16 |
+| X2 | On-call schedule + escalation policy | 2026-08-16 |
+
+---
+
+## 3. Burn-down sequence (dependency-ordered)
+
+```
+PI-1 ──┬──> LB-2 (depends on PI-1's tables existing + template approval + WPBOX env)
+       │
+LB-1 ──┘  (independent — owner can run in parallel with PI-1)
+
+LB-4 (independent — owner-only Supabase-dashboard verification)
+
+LB-3 ──> agent execute (depends on owner design call from #176 review)
+```
+
+**Critical-path estimate:** ~1 hour of owner work + Meta template-approval latency (external, typically 24–48h) + ~1 agent session for LB-3 follow-through. The launch verdict flips to READY once all 5 items pass their done-criteria.
+
+---
+
+## 4. OWNER TASK list (consolidated; the only thing the owner needs to act on)
+
+Numbered + copy-pasteable. Most urgent first.
+
+### 4.1 🚨 PI-1 — Activate migration-deploy pipeline + run backfill (production-incident)
+
+```text
+# Step 1 — Generate a Supabase personal-access token:
+https://supabase.com/dashboard/account/tokens  (scope: project:write)
+
+# Step 2 — Set GitHub Actions secrets + variable:
+Repository → Settings → Secrets and variables → Actions
+
+  Secrets (new):
+    SUPABASE_ACCESS_TOKEN = <the PAT>
+    SUPABASE_DB_PASSWORD  = <production DB password from Supabase Dashboard → Project Settings → Database>
+
+  Variables (new):
+    MIGRATION_DEPLOY_ENABLED = true
+
+# Step 3 — Trigger the one-time backfill:
+gh workflow run migration-deploy.yml
+
+# Step 4 — Verify in Supabase SQL editor (or Supabase MCP):
+SELECT table_name FROM information_schema.tables
+WHERE table_schema='public'
+AND table_name IN ('contact_leads','whatsapp_sends');
+-- BOTH rows must appear.
+```
+
+### 4.2 🚀 LB-1 — Run SB-2 Sentry alert provisioning (~20 min)
+
+```text
+# Step 1 — Generate a Sentry user-auth token at
+https://de.sentry.io/settings/account/api/auth-tokens/
+(scope: project:write — a `sntryu_…` token covers this.)
+
+# Step 2 — Run the canonical alert-rule script:
+SENTRY_AUTH_TOKEN=sntryu_xxx node scripts/sentry/create-alert-rules.mjs
+
+# Step 3 — Verify one rule fires end-to-end by tripping the synthetic event:
+curl -X POST https://<deploy>/api/diagnostics/sentry
+# Then check Sentry MCP:
+mcp__sentry__search_issues organizationSlug=tapan-cargo-az projectSlugOrId=javascript-nextjs query="api/diagnostics"
+# A new issue must appear in the result.
+
+# Step 4 — Update docs/runbooks/sentry-alert-rules.md § 5.3 with the
+# actual notification channel used (email or Slack).
+```
+
+### 4.3 🚀 LB-2 — Activate PL-2b live notifications (after PI-1)
+
+```text
+# Step 1 — Set production env vars (Vercel / hosting provider):
+SUPABASE_SERVICE_ROLE_KEY=<from Supabase Dashboard>
+WPBOX_API_TOKEN=<from WPBox account>
+WPBOX_USER_ID=<from WPBox account>
+WPBOX_LEAD_NOTIFICATION_PHONE=918765432100   # team WhatsApp inbox, E.164 digits
+# Optional overrides:
+WPBOX_LEAD_TEMPLATE_NAME=lead_notification
+WPBOX_LEAD_TEMPLATE_LANGUAGE=en
+
+# Step 2 — Submit `lead_notification` WhatsApp template for Meta approval
+# via WhatsApp Business Manager / WPBox / LeminAi UI. Template body:
+#
+#   New {{1}} lead — {{2}} ({{3}}).
+#
+#   Message: {{4}}
+#
+# Parameter mapping (positional):
+#   {{1}} reason label, {{2}} name, {{3}} email, {{4}} first 200 chars of message body.
+#
+# Meta approval typically 24–48h.
+
+# Step 3 — End-to-end verification (after PI-1 + steps 1–2):
+# Submit /contact on production. Confirm:
+#   - contact_leads row exists with notification_status='sent'
+#   - WhatsApp message arrives on the configured number
+#   - whatsapp_send_id resolves to whatsapp_sends row with status='sent'
+```
+
+### 4.4 🛠️ LB-3 — Design call on #173 contrast approach (review PR #176)
+
+```text
+# Review PR #176 demo:
+gh pr view 176
+gh pr diff 176
+
+# Decide on the approach for the 3 remaining serious sites:
+#   - landing-mobile (a 1-node selector visible only at 375w)
+#   - pricing "Most popular" badge (--primary-mono-label on bg-primary)
+#   - /track/[awb] AWB number (.tabular-nums.text-primary.font-mono)
+#
+# Three viable approaches (pick one or a hybrid):
+#   A) Token-scoped: extend --primary-mono-label coverage; require explicit
+#      text-* overrides on bg-primary contexts.
+#   B) Class redirect: drop tac-mono-label from bg-primary contexts; add
+#      explicit text-primary-foreground.
+#   C) Per-site shim: inline brighter color on the 3 selectors only.
+#
+# After decision: a follow-up agent session applies the choice to the
+# 3 sites, then flips AXE_FAIL_ON_VIOLATIONS=1 in .github/workflows/e2e-web.yml.
+```
+
+### 4.5 🛠️ LB-4 — Verify SB-3 prerequisites in Supabase dashboard
+
+```text
+# Open Supabase Dashboard → Project mdvnphbucrpspntrezmj.
+# Confirm + tick the 4 fill-in blocks in
+# docs/runbooks/DATABASE-RESTORE.md § 2:
+#   P1 — Pro plan or higher (PITR requires Pro+)
+#   P2 — PITR enabled + retention window confirmed
+#   P3 — Daily backups visible in dashboard
+#   P4 — Owner role on the project (recovery requires Owner)
+```
+
+### 4.6 📋 Housekeeping (not launch-gating, but tidies the tracker)
+
+```text
+# Per prior-session audits + this reconciliation:
+
+# Reopen #94 OR accept as tracker-less DoD item — issue closed prematurely
+# 2026-05-15; owner-runnable work still remains (LB-1 above).
+gh issue reopen 94
+# OR — record in DoD: "SB-2 surfaces as tracker-less DoD item by owner choice."
+
+# Close #167 (autonomous-run tracking issue) once launch-ready.
+# (Leave OPEN for now — it's the ledger.)
+
+# OD-1 — Reclassify #154 (RBAC sweep)?  Lean: POST-LAUNCH-SECURITY.
+# OD-2 — Reclassify the other 4 E1 flows?  Lean: payment-only sufficient.
+
+# CodeRabbit billing — if relevant; previously flagged in PRs as a
+# "payment past 72h" warning. Update payment method.
+```
+
+---
+
+## 5. AGENT TASK list (sequenced)
+
+| Order | Item | Pre-requisite | Estimate |
+|---|---|---|---|
+| 1 | LB-3 follow-through: apply owner-chosen contrast approach to landing-mobile + pricing badge + /track/[awb]; flip `AXE_FAIL_ON_VIOLATIONS=1` | Owner approves an approach on PR #176 | ~1 session |
+| 2 | Visual-snapshot baselines for apps/web (PL-4 follow-up) | LB-3 done so the carve is contrast-stable for snapshot capture | ~1 session |
+| 3 | POST-LAUNCH burn-down (one PR per item: #130, #131, #143, #144, #145, #151, #169) | Launch DONE | per-item |
+| — | POST-LAUNCH-SECURITY (#154, #157, #158) | Launch DONE; leave OPEN for human review | n/a |
+
+**The agent's launch-blocker queue is empty until owner inputs land.** No PHASE 2 burn-down candidate exists this session — all four LBs are owner-gated. See § 7.
+
+---
+
+## 6. Maintenance contract
+
+This file is the rollup. Per-bar detail stays in `definition-of-done.md` and `product-launch-readiness.md`; they remain authoritative for the SB-N / PL-N / OD-P-N nomenclature and the per-item testable-done criteria.
+
+When the unified picture changes (a launch-blocker promotes/demotes, a new production-incident surfaces, the verdict flips), update **this file's § 0–§ 4** first; the per-bar files cross-reference here.
+
+The CI `Backlog references drift check` gate continues to guard `docs/backlog/production-readiness.md` reference integrity — that file remains the open-item ledger and is unchanged by this reconciliation.
+
+---
+
+## 7. PHASE 2 evaluation (this session)
+
+Brief: "If the first agent-task is small, self-contained, low-risk, and does NOT touch a money-flow or production-incident surface — execute it as a second PR this session. Otherwise STOP. Default to STOP."
+
+**The first agent-task on the burn-down (§ 5) is LB-3 follow-through.** It is OWNER-GATED on PR #176 review. The agent cannot start it without the design decision. Tier 2 and Tier 3 items are explicitly NOT on the launch burn-down. There is no trivial first agent-task to execute this session.
+
+**PHASE 2 STOPS.** This session ships PHASE 1 — the master plan — only.

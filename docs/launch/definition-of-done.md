@@ -1,8 +1,10 @@
 # TAC Express — Definition of Done
 
-> **This file is authoritative for launch scope.** It defines, finitely, what must be true for TAC Express to go to production. The list ENDS. Once these criteria are met, work shifts from "what's next" to "first customer."
+> **Read [`MASTER-LAUNCH-PLAN.md`](MASTER-LAUNCH-PLAN.md) FIRST.** That file is the reconciled rollup across all workstreams (engineering + product + production-incidents). This file remains authoritative for the SHIP-BLOCKER (SB-N) nomenclature, the engineering hard-test, and per-item testable-done criteria. Master plan supersedes the *scope* (no item gates launch unless it appears in MASTER's § 2); this file supersedes the *detail* (per-SB definitions live here).
 >
-> **Pair file:** [`docs/backlog/production-readiness.md`](../backlog/production-readiness.md) is the open-item backlog (engineering hygiene + post-launch enhancements). This file is the launch-gating subset of that backlog plus owner actions.
+> **Authoritative for launch scope:** this file defines, finitely, what must be true for TAC Express to go to production from an *operability* standpoint. The list ENDS. Once these criteria are met, work shifts from "what's next" to "first customer."
+>
+> **Pair file:** [`docs/backlog/production-readiness.md`](../backlog/production-readiness.md) is the open-item backlog (engineering hygiene + post-launch enhancements). This file is the launch-gating triage of it.
 
 **Version:** 1.3 — 2026-05-17, **launch-readiness reconciliation pass.** SB-1/SB-3/SB-4 DONE on tracker + repo. **SB-2 remains the sole ship-blocker** — independently verified via Sentry MCP (project exists; zero `api/diagnostics` synthetic events ever recorded; zero unresolved Sentry issues in last 30 days = no evidence the SB-2 script has been run). Verdict: **1 GATE REMAINING — SB-2 (~20-min owner task).**
 **Version:** 1.2 — 2026-05-17, **SB-4 DONE** (payment-recording E2E shipped in PR #160). 2 → 1 ship-blockers remaining.
