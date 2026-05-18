@@ -92,7 +92,7 @@ export default function PricingPage() {
               )}
             >
               {plan.featured && (
-                <span className="absolute -top-3 left-4 inline-flex items-center bg-primary px-2 py-0.5 tac-mono-label text-primary-foreground">
+                <span className="absolute -top-3 left-4 inline-flex items-center bg-primary px-2 py-0.5 tac-mono-label-base text-primary-foreground">
                   Most popular
                 </span>
               )}

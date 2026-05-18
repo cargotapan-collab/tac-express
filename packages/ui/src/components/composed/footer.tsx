@@ -71,7 +71,7 @@ export function Footer() {
             {["Imphal", "New Delhi", "Northeast India"].map((loc) => (
               <span
                 key={loc}
-                className="border border-primary/20 font-mono text-2xs uppercase tracking-widest px-2.5 py-1 text-primary"
+                className="border border-primary/20 tac-mono-label px-2.5 py-1"
               >
                 {loc}
               </span>

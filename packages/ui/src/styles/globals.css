@@ -294,6 +294,22 @@
   --popover-foreground: oklch(0.9556 0.0074 264.5319);
   --primary: oklch(0.6132 0.2294 291.7437);
   --primary-foreground: oklch(0.1573 0.0062 271.1393);
+  /* WCAG AA contrast variant of --primary for 11px mono-label text on dark
+   * backgrounds. The brand --primary at L=0.6132 yields 3.8:1 against
+   * --background; below the 4.5:1 normal-text minimum.
+   *
+   * Bumps L to 0.78 with slightly trimmed chroma (hue 291.7 unchanged —
+   * same violet, more luminous). sRGB ~ #bb9fff; computed contrast vs
+   * --background ~ 5.8:1.
+   *
+   * Used by .tac-mono-label ONLY — does NOT replace --primary anywhere
+   * else; buttons, focus rings, signal glows, and chart primary keep the
+   * brand violet. On bg-primary contexts, callers use .tac-mono-label-base
+   * + .text-primary-foreground (Option B / LB-3 / issue #173).
+   *
+   * Light mode has no override — .tac-mono-label there falls back to
+   * --primary, which already passes AA on the light background. */
+  --primary-mono-label: oklch(0.78 0.18 291.7437);
   --secondary: oklch(0.3003 0.0094 271.1393);
   --secondary-foreground: oklch(0.9556 0.0074 264.5319);
   --muted: oklch(0.3003 0.0094 271.1393);
@@ -902,14 +918,35 @@
     box-shadow: 0 0 8px color-mix(in oklch, var(--primary) 40%, transparent);
   }
 
-  /* 3. Mono Label */
+  /* 3. Mono Label
+   *
+   * Two-class split (LB-3 / Option B):
+   *
+   *   .tac-mono-label-base — non-color typography only (mono font family,
+   *     11px, semibold, 0.08em tracking, uppercase). Use on surfaces
+   *     where the design specifies a non-default color — most notably
+   *     bg-primary contexts, where pairing with the existing
+   *     text-primary-foreground token is the legible choice. Because
+   *     this class doesn't declare a color, the explicit text-* class
+   *     wins cleanly without cascade gymnastics.
+   *
+   *   .tac-mono-label — base typography + brand --primary color, with the
+   *     brighter --primary-mono-label variant in dark mode for WCAG AA
+   *     contrast on neutral surfaces. Light mode falls back to --primary
+   *     (already passes AA on the light background).
+   *
+   * Issue #173 / PR #176 / LB-3. */
+  .tac-mono-label-base,
   .tac-mono-label {
     font-family: var(--font-mono);
     font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--primary);
+  }
+
+  .tac-mono-label {
+    color: var(--primary-mono-label, var(--primary));
   }
 
   /* 4. Signal Glow */
