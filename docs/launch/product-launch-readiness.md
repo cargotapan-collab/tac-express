@@ -98,6 +98,7 @@ Per page/surface, the gap between today and a credible customer-launch bar:
 | No password-reset flow surfaced — if an operator forgets their password, the recovery path is admin-side via Supabase | OWNER DECISION (acceptable at launch?) | auth-completeness |
 | No OAuth / magic link options | OWNER DECISION | auth-completeness |
 | No customer sign-up flow exists — TAC Express today is operator-only; customer journey is "landing → contact / quote / track" | OWNER DECISION | product model |
+| **Stale Clerk-shaped routing** — `[[...sign-in]]` / `[[...sign-up]]` optional-catch-all folders are Clerk's canonical mounting convention but no Clerk dep exists (verified 2026-05-18 — see § J). The catch-all has no functional effect with Supabase password auth (a single `page.tsx` would behave identically) but actively misleads future readers ("is Clerk involved here?"). | LOW | hygiene / readability |
 
 ### B.4 Customer journey (the gating question)
 
@@ -132,6 +133,8 @@ The hard test: **can a real customer credibly land on the site, understand the p
 - Performance / Lighthouse audit on landing (`#33` in the existing OUT-OF-SCOPE backlog)
 - i18n infrastructure (`#35` — explicitly out-of-scope per re-validation)
 - Mobile-responsive treatment for the other 11 marketing routes (extends PL-3)
+- **Rename the Clerk-shaped catch-all folders** to plain `app/sign-in/page.tsx` (and remove the `sign-up` stub if OD-P1 resolves sales-led — no customer sign-up exists). Pure routing-shape cleanup. See § J.
+- **Fix 3 stale "TAC Orbital" comment headers** in `packages/ui/src/components/composed/auth/sign-in-split-layout.tsx`, `…/maps/maplibre-map.tsx`, `…/shipments/shipping-label.tsx` — they refer to the *design system* and should read "TAC Express v5.0 Violet Grid". (The `orbital.service.ts` / `orbital.types.ts` / `charts/` references are the legitimate **telemetry subsystem** name — KEEP.) See § J.
 
 ### C.3 WONTFIX-WATCH
 
@@ -207,3 +210,72 @@ This file follows the same maintenance pattern as `definition-of-done.md`:
 - Launch happens (both bars passed) → both DoD files move to `docs/_archive/` with the final footer.
 
 The list IS finite. The product launch IS reachable.
+
+---
+
+## J. Post-#162 follow-up audit (2026-05-18) — closing five open threads
+
+The audit-debrief session that produced this file (PR #162) left five open threads. The 2026-05-18 follow-up resolves them. Each row below is the verdict + the evidence trail, copy-paste-stable.
+
+### J.1 Auth provider — verdict: **Supabase email+password only; Clerk-shaped routing is dead scaffolding**
+
+The #162 audit noticed `apps/web/app/sign-in/[[...sign-in]]/page.tsx` and `apps/dashboard/app/(public)/sign-in/[[...sign-in]]/page.tsx` use Clerk's canonical optional-catch-all routing convention, and reframed the thread as "operator-facing only" without resolving the source question. This session resolves it.
+
+| Check | Result |
+|---|---|
+| `apps/web/package.json` dependencies | No `@clerk/*` package; auth surface uses `@workspace/database` + `@workspace/services` |
+| Repo-wide `grep -ri clerk` | Zero hits in tracked source (`git ls-files \| grep -i clerk` = empty) |
+| Sign-in form implementation (`packages/ui/src/components/composed/auth/sign-in-page-client.tsx`) | Calls `createBrowserClient().auth.signInWithPassword({ email, password })` — pure Supabase |
+| Sign-up route (`apps/dashboard/app/(public)/sign-up/[[...sign-up]]/page.tsx`) | `redirect("/sign-in")` — sign-up intentionally disabled, operator accounts admin-side |
+
+**Classification:** (b) Supabase with dead Clerk-shaped routing — **NOT a violation; NOT a PL-blocker**. The catch-all has no functional effect with Supabase password auth (a single `page.tsx` would behave identically) but actively misleads future readers. Filed as POST-LAUNCH-POLISH in § C.2. Do **NOT** rewire auth.
+
+### J.2 Design-system naming — verdict: **"TAC Express v5.0 Violet Grid" is canonical; "TAC Orbital" is a scoped subsystem name**
+
+The follow-up brief stated "standing project conventions name it 'TAC Orbital'". That premise is incorrect on current main:
+
+| Authoritative source | Names the design system as |
+|---|---|
+| [`AGENTS.md`](../../AGENTS.md) § 3 + § 9 | "TAC Express v5.0 — Violet Grid" |
+| [`DESIGN_SYSTEM.md`](../../DESIGN_SYSTEM.md) | "TAC Express v5.0 — Violet Grid" |
+| [`CLAUDE.md`](../../CLAUDE.md) | "TAC Express v5.0 — Violet Grid" |
+| [`README.md`](../../README.md) | Violet Grid |
+| Every `.claude/skills/**/SKILL.md` that names the system | "Violet Grid v5.0" / "TAC Express v5.0 Violet Grid" |
+
+**"TAC Express v5.0 Violet Grid" wins** — it is the canonical name in **every** authoritative rule file. AGENTS.md § 9's corrections table explicitly retires "TAC Orbital" as a legacy design-system label.
+
+**"TAC Orbital" survives legitimately as the name of the telemetry/charts subsystem**, NOT the design system as a whole:
+- `packages/services/src/orbital.service.ts` — service adapter for chart aggregation
+- `packages/types/src/orbital.types.ts` — chart contracts
+- `packages/ui/src/components/charts/index.ts` — chart-system index
+- `packages/ui/src/styles/globals.css` — telemetry-token blocks (`--telemetry-*`)
+- `docs/CHARTS-ORBITAL.md` — subsystem spec
+
+That subsystem uses Violet Grid tokens; the name is scoped to that adapter, not the visual identity. KEEP these references.
+
+**Three stale design-system-name comment headers were identified** (these refer to the *design system*, not the telemetry subsystem) and filed as POST-LAUNCH-POLISH in § C.2:
+- `packages/ui/src/components/composed/auth/sign-in-split-layout.tsx:26`
+- `packages/ui/src/components/composed/maps/maplibre-map.tsx:47`
+- `packages/ui/src/components/composed/shipments/shipping-label.tsx:71`
+
+The fixes are sub-mechanical (comment-header text only). They're scoped out of PR A (docs/scope only) and are folded into the source PR (PR B / PL-1).
+
+### J.3 Worktree cleanup + process fix — verdict: **DONE**
+
+- The untracked `tac-whatsapp-sends-102/` directory at the repo root (an old clone that was never tracked or registered as a worktree) has been removed.
+- A new **"Worktree & artifact hygiene"** section was added to [`.claude/skills/tac-karpathy-discipline/SKILL.md`](../../.claude/skills/tac-karpathy-discipline/SKILL.md) — codifies the end-of-session teardown checklist + the convention that worktrees live OUTSIDE the repo root (`C:/tac/tw-<task-name>`).
+
+### J.4 #162 self-report verification — verdict: **all claims hold**
+
+| Claim | Verification |
+|---|---|
+| #162 merged to main | ✅ Merge SHA `5755520bf1f142e8e4874d92734153c0254fb7ac` on main (`git log 5755520 -1`); GH state `MERGED` at `2026-05-18T00:22:20Z` |
+| `backlog-refs-drift` sentinel passes | ✅ `Backlog references drift check` CI run on merge commit: `success` (via `gh api .../commits/5755520.../check-runs`) |
+| CI state on merge commit | ✅ All 9 jobs `success`: Bundle size · Unit tests · @tac registry sync + smoke · Migrations apply on fresh DB · Backlog references drift check · Sentry alert-rule structure lint · LAW gates · npm audit (production deps) · visual + a11y |
+| PR #162 file scope | ✅ 4 files (`AGENTS.md`, `docs/NEXT-SESSION-HANDOFF.md`, `docs/launch/product-launch-readiness.md` ADD, `docs/retros/2026-05-17-product-launch-scope.md` ADD); zero application source touched |
+
+No discrepancies. The #162 self-report is accurate.
+
+### J.5 PL-1 — opened as the only unblocked task
+
+Implemented in a separate source PR (PR B). Adds the `metadata` export at `apps/web/app/(public)/page.tsx` with title / description / `openGraph` / `twitter` fields per `docs/launch/product-launch-readiness.md` § C.1's testable-done criterion. No OD-P gating; ~1 hour.
