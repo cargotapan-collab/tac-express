@@ -157,12 +157,16 @@ function LogisticsHero() {
           <span className="tac-mono-label text-muted-foreground">
             NOT TRACKING A SHIPMENT?
           </span>
-          <div className="flex flex-col sm:flex-row gap-3">
+          {/* PL-3 — buttons span the full width at <640w so the tap target
+              hits the recommended minimum and matches the LOCATE button's
+              w-full/sm:w-auto pattern above. At sm+ they revert to
+              content-width so the row reads as paired CTAs. */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs sm:max-w-none">
             <Button
               asChild
               variant="default"
               size="lg"
-              className="h-12 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 focus-visible:outline-none focus-visible:tac-focus-premium"
+              className="h-12 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 w-full sm:w-auto focus-visible:outline-none focus-visible:tac-focus-premium"
             >
               <Link href="/quote">
                 <Icon name="calculator" className="mr-3 w-5 h-5" />
@@ -173,7 +177,7 @@ function LogisticsHero() {
               asChild
               variant="outline"
               size="lg"
-              className="h-12 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 focus-visible:outline-none focus-visible:tac-focus-premium"
+              className="h-12 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 w-full sm:w-auto focus-visible:outline-none focus-visible:tac-focus-premium"
             >
               <Link href="/contact">
                 <Icon name="mail" className="mr-3 w-5 h-5" />

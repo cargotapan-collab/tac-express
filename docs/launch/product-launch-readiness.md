@@ -330,3 +330,25 @@ Template specification (for owner to submit in WhatsApp Business Manager):
 - `WPBOX_LEAD_TEMPLATE_LANGUAGE` — optional; defaults to `en`.
 
 **/quote audit (PL-2b sibling check):** `apps/web/app/(public)/quote/rate-calculator.tsx` is a CLIENT-SIDE COMPUTE (stub rate formula). It claims no POST and does not deceive the visitor. Different shape from the /contact stub; nothing to fix. Documented here so future audits don't re-investigate.
+
+### J.7 PL-3 — mobile-responsiveness static audit (autonomous run 2026-05-18)
+
+Per OD-P5 (9-page MVP carve) + OD-P6 (375w + 768w breakpoints), audited each page for mobile-breaking patterns. The codebase is **mobile-first by Tailwind default** — `md:` (768w+) prefixes layer in desktop variants, so the base classes describe the mobile view. That's the same pattern PR #166's sales CTA row already followed (`flex flex-col sm:flex-row`).
+
+| Page | Risk patterns scanned | Result |
+|---|---|---|
+| `/` (landing) | `hidden md:block` HUD decoration · AWB form `flex flex-col sm:flex-row` · hero image `aspect-[16/9] md:aspect-[21/9]` · BusinessUtility/ResultsChart/SystemCompatibility sections | Designed mobile-first; HUD decoration correctly hidden on mobile. The one finding: PL-2a's sales CTA buttons (GET A QUOTE / CONTACT SALES) were content-width on mobile, breaking the visual rhythm with the LOCATE button's `w-full sm:w-auto`. **Fixed in this PR** — same pattern now applied + a `max-w-xs` constraint so the buttons feel grouped at mobile widths instead of edge-to-edge. |
+| `/about` | 2× `md:grid-cols-N` blocks | Defaults to single-column at mobile (Tailwind default). No fix needed. |
+| `/pricing` | `md:grid-cols-3` plan tiles | Same — defaults to single-column at mobile. No fix needed. |
+| `/contact` | `md:grid-cols-[1fr_2fr]` for sidebar + form, contact-form.tsx itself with `md:grid-cols-2` field pairs | Mobile collapses to single column. The form's honeypot block is `sr-only` post-PR #168 (no arbitrary offscreen positioning). No fix needed. |
+| `/quote` | RateCalculator's `md:grid-cols-2` field grid | Single-column mobile. No fix needed. |
+| `/track/[awb]` | dynamic-only route; existing Playwright a11y/smoke/visual specs cover an analogous `/track` index in apps/dashboard | Out of static-audit scope; structural form is mobile-first by the same convention. |
+| `/legal/cookies`, `/legal/privacy`, `/legal/terms` | mostly text + `prose` containers | No grid/breakpoint complexity; mobile-safe by construction. |
+
+**The audit's surprising finding:** the landing's mobile readiness is essentially "as designed." The single concrete issue (CTA button widths) ships in this PR. Everything else is structurally correct because the codebase has been written mobile-first throughout.
+
+**Touch-target compliance:** all interactive CTAs use `h-12` (48px) or `h-14` (56px), exceeding both Apple HIG (44px) and Material (48px) minimums.
+
+**What this PR does NOT do:** verify the static audit against actual mobile viewport rendering. The Next.js dev server can't run from a worktree, and the existing Playwright config doesn't cover apps/web. That validation is **PL-4** — extending Playwright to test apps/web at 375w + 768w viewports. Begun in a sibling PR.
+
+**Burn-down impact:** PL-3 was the longest-looking blocker on paper; in practice the mobile-first Tailwind discipline already in the codebase means the work was ~85% audit, ~15% targeted fix.
