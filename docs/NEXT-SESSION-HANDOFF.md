@@ -1,29 +1,28 @@
 # Next-Session Handoff — Start Here
 
-> **TAC Express is ONE OWNER ACTION (~20 min) from launch. SB-2 remains.**
+> **TAC Express now has TWO independent launch bars.** Engineering DoD: 3 of 4 SBs done; SB-2 is the last engineering gate (~20-min owner task). Product-launch readiness (NEW workstream this session): 0 of 4 PLs done; PL-1 is agent-ready; PL-2/3/4 gated on owner decisions (OD-P1–OD-P7).
 >
-> This session ran an evidence-based reconciliation: GitHub MCP for the issue tracker, Sentry MCP for the SB-2 verification. The tracker is healthy; the Sentry MCP shows ZERO `api/diagnostics` synthetic events have ever been recorded, and ZERO unresolved Sentry issues in the last 30 days — **SB-2 has not been run.** Owner-pending items (P1–P4 confirmation, OD-1, OD-2) recorded as still-pending, not fabricated.
+> A credible launch = `engineering_ready AND product_ready`. Both bars must pass. They are independent — engineering can be 4/4 done with product 0/4 done, or vice versa.
 
 **Last code commit on `main`:** PR #160 — `test(e2e): payment-recording money-flow E2E (SB-4 / E1 carve-out)`.
-**Last governance PR (THIS one):** TBD — Launch-readiness reconciliation.
-**Date this doc was written:** 2026-05-17 (twelfth substantive session today — second META reconciliation in the arc).
-**Author of last session:** Claude Code (Opus 4.7) in PM-mode + CTO + Sentry-MCP-verification.
+**Last governance PR (THIS one):** TBD — Product-launch scope (customer-facing surface).
+**Date this doc was written:** 2026-05-17 (thirteenth substantive session today — second scoping META in the arc).
+**Author of last session:** Claude Code (Opus 4.7) in PM + frontend-architect + design lenses.
 
-**LAUNCH STATUS (evidenced):**
-- ✅ SB-1 — failed-send retry action (PR #156)
-- 🔴 **SB-2 — Sentry alert provisioning — THE LAUNCH GATE — owner task, ~20 min** (verified NOT-run via Sentry MCP this session)
-- ✅ SB-3 — PITR playbook (PR #159) — owner-pending P1–P4 confirmation
-- ✅ SB-4 — payment-recording E2E (PR #160)
+**LAUNCH STATUS — TWO BARS:**
 
-See [`docs/launch/definition-of-done.md`](launch/definition-of-done.md) — version 1.3, includes a "LAUNCH VERDICT (evidenced)" section in § 3a.
+| Bar | Authority | Status |
+|---|---|---|
+| Engineering readiness | [`docs/launch/definition-of-done.md`](launch/definition-of-done.md) | 3/4 done; **SB-2** (Sentry alerting) remains — owner task |
+| Customer-facing readiness | [`docs/launch/product-launch-readiness.md`](launch/product-launch-readiness.md) (NEW) | 0/4 done; **PL-1/2/3/4** outstanding; PL-2/3/4 gated on owner decisions OD-P1–OD-P7 |
 
 ---
 
-## 1. NO AGENT TASK GATES LAUNCH
+## 1. TWO INDEPENDENT WORKSTREAMS
 
-The owner runs SB-2 ([`docs/runbooks/sentry-alert-rules.md § 5.3`](runbooks/sentry-alert-rules.md)). After that, a follow-up Sentry MCP query will show the `api/diagnostics` synthetic event in the issue stream — that's the evidence channel that flips SB-2 to DONE in the next reconciliation pass.
+The engineering DoD closeout (SB-2 + SB-3 P1–P4 + OD-1/OD-2) and the product-launch workstream (PL-1 → PL-4 + OD-P1–OD-P7) are independent. Owner can address them in parallel. **They are not in conflict; they are not sequential; both must pass for launch.**
 
-If the owner instead wants to advance a POST-LAUNCH item, that is a fresh agent session — but **none of those gate launch**, and Convention A explicitly says follow-up items default POST-LAUNCH unless owner-promoted.
+The agent-actionable next step is **PL-1 (landing page metadata)** — pure-UI, no owner-decision gating, ~1 hour. SB-2 remains owner-only.
 
 ---
 
@@ -38,8 +37,8 @@ If the owner instead wants to advance a POST-LAUNCH item, that is a fresh agent 
 5. **Do NOT regress to `console.*` in the three pino-migrated API routes.**
 6. **Do NOT attempt to merge from an agent session without typed per-PR authorization.** Owner types `merge PR <N>` exactly.
 7. **Do NOT derive task references from `#102`-the-GitHub-issue.** [`docs/backlog/production-readiness.md`](backlog/production-readiness.md) is authoritative.
-8. **Do NOT promote a POST-LAUNCH item to SHIP-BLOCKER without explicit owner decision.** Convention A.
-9. **NEW: Do NOT mark SB-2 done on the owner's word alone.** The Sentry MCP must show the `api/diagnostics` synthetic event in the issue stream as evidence the runbook's § 5.3 procedure ran end-to-end.
+8. **Do NOT promote a POST-LAUNCH item to SHIP-BLOCKER or PRODUCT-LAUNCH-BLOCKER without explicit owner decision.** Convention A.
+9. **Do NOT mark SB-2 done on the owner's word alone.** The Sentry MCP must show the `api/diagnostics` synthetic event in the issue stream as evidence the runbook's § 5.3 procedure ran end-to-end.
 
 ---
 
@@ -55,9 +54,9 @@ node scripts/sentry/lint-alert-rules.mjs
 
 Then read in order:
 
-1. [`docs/launch/definition-of-done.md`](launch/definition-of-done.md) — § 3a LAUNCH VERDICT (evidenced) tells you the state in 2 sentences.
-2. [`docs/runbooks/sentry-alert-rules.md § 5.3`](runbooks/sentry-alert-rules.md) — the SB-2 owner procedure (if you're the owner).
-3. This handoff § 6 — your first task (depends on whether the owner has run SB-2 since).
+1. [`docs/launch/definition-of-done.md`](launch/definition-of-done.md) § 3a — engineering verdict (SB-2 remaining).
+2. [`docs/launch/product-launch-readiness.md`](launch/product-launch-readiness.md) — product-launch scope (4 PLs + 7 OD-Ps).
+3. This handoff § 6 — your first task.
 
 ---
 
@@ -65,54 +64,56 @@ Then read in order:
 
 ### Open PRs: 0 (after THIS one merges).
 
-### Open issues (9 total, verified 2026-05-17 via GitHub MCP)
+### Open issues (9, all POST-LAUNCH per the engineering DoD § 6 + this session left tracker unchanged)
 
-| Tracker | Title | Bucket | Notes |
-|---|---|---|---|
-| [#94](https://github.com/cargotapan-collab/tac-express/issues/94) (CLOSED on tracker) | Sentry alert provisioning | **SHIP-BLOCKER SB-2 — THE LAUNCH GATE** | Owner reopens OR accepts tracker-less; either way SB-2 work outstanding |
-| [#130](https://github.com/cargotapan-collab/tac-express/issues/130) | Regex-alternation LAW gate | POST-LAUNCH | DoD § 6 |
-| [#131](https://github.com/cargotapan-collab/tac-express/issues/131) | Branded `ServiceLevel` cluster | POST-LAUNCH | DoD § 6 |
-| [#143](https://github.com/cargotapan-collab/tac-express/issues/143) | Automated retry job (W3) | POST-LAUNCH | DoD § 6 |
-| [#144](https://github.com/cargotapan-collab/tac-express/issues/144) | Meta delivery webhook (W4) | POST-LAUNCH | DoD § 6 |
-| [#145](https://github.com/cargotapan-collab/tac-express/issues/145) | Immutability sentinel (W5) | POST-LAUNCH | DoD § 6 |
-| [#151](https://github.com/cargotapan-collab/tac-express/issues/151) | proxy.ts cast cleanup | POST-LAUNCH | DoD § 6 |
-| [#154](https://github.com/cargotapan-collab/tac-express/issues/154) | RBAC auth-error sweep | POST-LAUNCH (pending OD-1) | DoD § 5 |
-| [#157](https://github.com/cargotapan-collab/tac-express/issues/157) | TOCTOU retry concurrency hardening | POST-LAUNCH | DoD § 6 |
-| [#158](https://github.com/cargotapan-collab/tac-express/issues/158) | Request-signing sweep | POST-LAUNCH | DoD § 6 |
+| Tracker | Title | Bucket |
+|---|---|---|
+| [#94](https://github.com/cargotapan-collab/tac-express/issues/94) (CLOSED on tracker) | Sentry alert provisioning | **ENGINEERING SHIP-BLOCKER SB-2 — the launch gate** |
+| [#130](https://github.com/cargotapan-collab/tac-express/issues/130) | Regex-alternation LAW gate | POST-LAUNCH |
+| [#131](https://github.com/cargotapan-collab/tac-express/issues/131) | Branded `ServiceLevel` cluster | POST-LAUNCH |
+| [#143](https://github.com/cargotapan-collab/tac-express/issues/143) | Automated retry job (W3) | POST-LAUNCH |
+| [#144](https://github.com/cargotapan-collab/tac-express/issues/144) | Meta delivery webhook (W4) | POST-LAUNCH |
+| [#145](https://github.com/cargotapan-collab/tac-express/issues/145) | Immutability sentinel (W5) | POST-LAUNCH |
+| [#151](https://github.com/cargotapan-collab/tac-express/issues/151) | proxy.ts cast cleanup | POST-LAUNCH |
+| [#154](https://github.com/cargotapan-collab/tac-express/issues/154) | RBAC auth-error sweep | POST-LAUNCH (pending OD-1) |
+| [#157](https://github.com/cargotapan-collab/tac-express/issues/157) | TOCTOU retry concurrency hardening | POST-LAUNCH |
+| [#158](https://github.com/cargotapan-collab/tac-express/issues/158) | Request-signing sweep | POST-LAUNCH |
 
-**Already-closed by owner since the prior handoff (verified 2026-05-17 via GitHub MCP):** #139, #140, #142 — all CLOSED at 2026-05-17T15:39:05Z.
+### NEW — Customer-facing surface (product-launch workstream)
+
+| PL-N | Item | Status |
+|---|---|---|
+| **PL-1** | Landing page metadata (title + description + OG + Twitter) | OPEN — agent-ready, no OD-P gating |
+| PL-2 | Customer-journey + CTA finalized | OPEN — gated on **OD-P1** (load-bearing) |
+| PL-3 | Mobile responsiveness on landing + contact + quote + track | OPEN — gated on OD-P2 + OD-P5 + OD-P6 |
+| PL-4 | Visual + a11y e2e baseline for landing + critical paths | OPEN — gated on OD-P5 |
 
 ### Backlog-only items
 
 | ID | Title | Bucket |
 |---|---|---|
-| **O3** | Sentry alert provisioning (= #94 work) | **SHIP-BLOCKER SB-2 — last gate** |
-| ~~D1~~ | ~~PITR playbook~~ | **DONE 2026-05-17** |
-| D2 | Upstash outage runbook | POST-LAUNCH |
-| D3 | Monitoring dashboard URLs | POST-LAUNCH |
-| D4 | WhatsApp rate-limit JSDoc | POST-LAUNCH |
-| D5 | RELEASE-CHECKLIST.md | POST-LAUNCH |
-| ~~E1 (carve-out)~~ | ~~Payment-recording E2E~~ | **DONE 2026-05-17** |
-| E1 (other 4) | Shipment / manifest / RBAC RLS / exception E2Es | POST-LAUNCH (pending OD-2) |
-| X1, X2 | Form variant; on-call schedule | WONTFIX-WATCH (re-eval 2026-08-16) |
+| **O3** | Sentry alert provisioning (= #94 work) | **SHIP-BLOCKER SB-2 — engineering gate** |
+| D2 / D3 / D4 / D5 | Runbook / monitoring / JSDoc / RELEASE-CHECKLIST | POST-LAUNCH |
+| E1 (other 4 flows) | Shipment / manifest / RBAC RLS / exception E2Es | POST-LAUNCH (pending OD-2) |
+| X1 / X2 | Form variant / on-call | WONTFIX-WATCH |
 
 ---
 
 ## 5. Critical context
 
-### 5.1 – 5.16 (unchanged; see prior handoffs)
+### 5.1 – 5.17 (unchanged; see prior handoffs)
 
-### 5.17 NEW: Sentry MCP verification is the SB-2 evidence channel
+### 5.18 NEW: TWO launch bars — both authoritative, both independent
 
-The Sentry MCP exposes `find_projects` / `search_issues` / `search_events` / `whoami` — enough to verify SB-2 indirectly. **It does NOT expose `GET /api/0/projects/{org}/{project}/rules/`** (alert-rule listing). But the runbook's § 5.3 Step 5 deliberately produces a Sentry ISSUE (`POST /api/diagnostics/sentry` throws a tagged exception) as the verification signal. So the SB-2 check shape is:
+`docs/launch/definition-of-done.md` (engineering) and `docs/launch/product-launch-readiness.md` (customer-facing) are sibling authorities. AGENTS.md § "Launch-scope authority — TWO files, TWO bars" codifies this. The launch verdict = `engineering_ready AND product_ready`.
 
-```
-mcp__sentry__search_issues({ query: "api/diagnostics", limit: 10 })
-→ if results > 0 with recent timestamp: SB-2 was run (and an issue was created from the synthetic POST)
-→ if 0 results: SB-2 has not been run
-```
+### 5.19 NEW: Customer-facing surface audit results
 
-The next reconciliation session should re-run this query.
+Verified 2026-05-17 against main `f53cab4f`:
+- **apps/web** has 15 marketing routes (landing + 11 other public + 2 special + redirect). All sampled marketing pages have Metadata except the **landing page itself**.
+- **Landing component** is named `WastelandLanding` (legacy naming per AGENTS.md § 9) but USES current Violet Grid tokens. Renaming is cosmetic.
+- **Auth surface** is operator-only via Supabase email+password. `apps/dashboard/(public)/sign-up` redirects to sign-in (intentional). No customer-sign-up flow exists.
+- The customer-journey question (sales-led B2B vs self-serve) is **OD-P1** in the new product-launch readiness file — the load-bearing owner decision.
 
 ---
 
@@ -120,35 +121,35 @@ The next reconciliation session should re-run this query.
 
 ### If you are the OWNER reading this:
 
-**Run SB-2 — the last ship-blocker.** Procedure at [`docs/runbooks/sentry-alert-rules.md § 5.3`](runbooks/sentry-alert-rules.md). ~20 minutes. After this, the next reconciliation session can mark SB-2 DONE with MCP evidence.
+Two independent tracks; pick either or both:
+
+**Track A — engineering gate (~20 min):**
+Run SB-2 per [`docs/runbooks/sentry-alert-rules.md § 5.3`](runbooks/sentry-alert-rules.md). After this, the next engineering reconciliation pass marks SB-2 DONE.
+
+**Track B — product-launch unblock:**
+Answer at least **OD-P1** (customer-journey model: sales-led B2B vs self-serve) so the agent can scope PL-2. Ideally also OD-P2 + OD-P5 + OD-P6 so PL-3 + PL-4 can start. See [`docs/launch/product-launch-readiness.md § D`](launch/product-launch-readiness.md).
 
 ### If you are an AGENT picking up the next session:
 
-No agent task gates launch. Three legitimate options, in order:
+**PL-1 is the only agent-ready blocker that needs zero owner input** — landing page `metadata` export (title + description + Open Graph + Twitter Card). Pure UI / SEO; ~1 hour. See [`docs/launch/product-launch-readiness.md § C.1`](launch/product-launch-readiness.md) for the testable DONE criterion.
 
-1. **The owner has explicitly directed you to re-run the reconciliation** (presumably after running SB-2) — query the Sentry MCP for `api/diagnostics` issues; if found, mark SB-2 DONE in the DoD and flip the verdict to LAUNCH-READY. The DoD § 9 "Maintenance" rule then archives the file with a "Launched on YYYY-MM-DD" footer.
-2. **The owner has provided SB-3 P1–P4 confirmations** — fill in the runbook § 2 confirmation block + commit as `chore(docs):`.
-3. **The owner has explicitly directed you to a specific POST-LAUNCH item** — promote per OD-1/OD-2 process (Convention A), then execute.
+For PL-2 / PL-3 / PL-4, wait for the relevant OD-P answer.
 
-**Without explicit owner direction, the right answer is "wait for SB-2."** Do not regenerate maintenance-loop work by picking POST-LAUNCH items autonomously.
-
-### Post-launch (after SB-2 lands)
-
-The DoD § 9 maintenance rule: this file moves to `docs/_archive/` with a final "Launched on YYYY-MM-DD" footer. A successor file (or just the backlog) takes over post-launch tracking. **Recommended one-time follow-up:** a triage session that re-ranks the POST-LAUNCH pool using real Sentry data from the now-armed alert rules (the Sentry MCP becomes a useful prioritization tool once real user traffic is flowing).
+For SB-2 — DO NOT run from an agent session (owner-only). For SB-2 verification only — query the Sentry MCP for `api/diagnostics` issues (see § 5.17 of the prior handoff).
 
 ---
 
 ## 7. Cumulative discipline observations (carry-forward)
 
-### 7.1 – 7.41 (see prior handoffs/retros)
+### 7.1 – 7.43 (see prior handoffs/retros)
 
-### 7.42 NEW (this session): An MCP without a list-X tool can still verify X by its observable side-effects
+### 7.44 NEW (this session): "Production-ready" is two bars, not one
 
-The Sentry MCP doesn't list alert rules. But the SB-2 verification procedure deliberately produces a visible side-effect (a Sentry issue from a known endpoint) that the MCP CAN observe. The trick was to map the verification claim ("SB-2 was run") to an observable proxy ("an `api/diagnostics` issue exists in the stream"). Decision tree fits the available tooling cleanly. **Pattern: when an MCP doesn't expose direct introspection of X, look for X's observable side-effects.**
+The original DoD framed production-readiness as engineering operability. The owner correctly identified a SECOND bar — customer-facing readiness — that the engineering DoD never measured. **Pattern: when a single "ready" definition starts feeling incomplete, the right move is usually splitting it into independent bars, not adding more items to the existing list.** The two-files-two-bars framing is the durable codification.
 
-### 7.43 NEW (this session): Honest reporting cost ≈ 0; honest reporting value = the launch
+### 7.45 NEW (this session): A scoping session whose anti-pattern list says "do not build" produces a finite list when the build temptations are sharply rejected
 
-The temptation under PM-mode reconciliation pressure is to call something done if it MIGHT be done. The brief enforced the opposite: evidence required, fabrication forbidden. The MCP query was unambiguous — zero `api/diagnostics` events ever — and so the verdict was unambiguous. A reconciliation that says LAUNCH-READY when SB-2 isn't done risks production with no alerting, which is exactly what SB-2 was promoted to ship-blocker to prevent.
+The audit found concrete UI gaps. Each was triaged into a bucket; none was acted on. The PRODUCT-LAUNCH-BLOCKER list is 4 items — same disciplined size as the engineering DoD's original 4. **The finite list is the deliverable; the buildable items live in their own subsequent per-blocker PRs.**
 
 ---
 
@@ -157,18 +158,15 @@ The temptation under PM-mode reconciliation pressure is to call something done i
 ```bash
 pnpm typecheck && pnpm lint && pnpm test && pnpm audit --prod --audit-level moderate
 node scripts/sentry/lint-alert-rules.mjs
-# E2E (full suite):
+# E2E:
 pnpm --filter dashboard exec playwright test
 # Sentinels:
 pnpm vitest run apps/dashboard/__tests__/backlog-refs-drift.test.ts
 node scripts/ci-watch-pr.mjs <pr-number>
-# Sentry MCP — the SB-2 verification query:
-# mcp__sentry__search_issues({
-#   organizationSlug: "tapan-cargo-az",
-#   regionUrl: "https://de.sentry.io",
-#   projectSlugOrId: "javascript-nextjs",
-#   query: "api/diagnostics",
-# })
+# Sentry MCP — SB-2 verification:
+# mcp__sentry__search_issues({ organizationSlug: "tapan-cargo-az",
+#   regionUrl: "https://de.sentry.io", projectSlugOrId: "javascript-nextjs",
+#   query: "api/diagnostics" })
 ```
 
 ---
@@ -176,37 +174,49 @@ node scripts/ci-watch-pr.mjs <pr-number>
 ## 9. Key file locations (additions this PR — docs only)
 
 ```
-EDITED:
-  docs/launch/definition-of-done.md          # version 1.3 + § 3a LAUNCH VERDICT (evidenced) + SB-2 verification trail
-  docs/NEXT-SESSION-HANDOFF.md               # this file
 NEW:
-  docs/retros/2026-05-17-launch-readiness-reconcile.md   # session retro
+  docs/launch/product-launch-readiness.md         # the new product-launch authority file
+  docs/retros/2026-05-17-product-launch-scope.md  # this session's retro
+EDITED:
+  AGENTS.md                                        # two-files-two-bars authority block
+  docs/NEXT-SESSION-HANDOFF.md                     # this file
 ```
 
-Zero application source touched. No issue mutations (the work was already done by the owner: #139/#140/#142 closed at 2026-05-17T15:39).
+Zero application source touched. Zero UI built or modified.
 
 ---
 
 ## 10. The honest read
 
-The project is one ~20-minute owner task from launch. The reconciliation pass confirmed the tracker is healthy and the DoD is accurate. The Sentry MCP confirmed the launch gate is real (SB-2 has not been run) — it did not confirm something convenient (rules exist, owner ran something) that wasn't evidenced.
+The project is closer to launch than the previous handoff implied — SB-2 was always the ENGINEERING gate, and that part hasn't changed (still owner-task, ~20 min). What this session surfaced: there's a second, distinct PRODUCT bar that the engineering DoD wasn't measuring. The audit found that bar is largely built (15 public pages, working auth, comprehensive chrome) — the gap to a credible customer-launch is 4 finite items, with the load-bearing question being a single owner decision (OD-P1: sales-led B2B vs self-serve).
 
-**Recommended one-line summary for the next session's prompt:** "Run the Sentry MCP `api/diagnostics` query — if an issue exists, SB-2 is done; mark it in the DoD and flip the verdict to LAUNCH-READY. Otherwise wait for SB-2."
+**Recommended one-line summary for the next session's prompt:** "Build PL-1 — landing page `metadata` export. Pure UI / SEO. ~1 hour. No owner-decision gating. See `docs/launch/product-launch-readiness.md § C.1` for the testable DONE criterion."
 
 ---
 
 ## 11. OWNER ACTIONS — before launch
 
-Per AGENTS.md Convention B. Numbered, copy-pasteable, single block. **Item 1 is THE launch gate.**
+Per AGENTS.md Convention B. Numbered, copy-pasteable, single block. Combines the engineering DoD closeout + the NEW product-launch decisions.
 
-1. **🚀 RUN SB-2 — THE last ship-blocker.** Procedure: [`docs/runbooks/sentry-alert-rules.md § 5.3`](runbooks/sentry-alert-rules.md). `scripts/sentry/create-alert-rules.mjs` with a `project:write` token + verify one rule fires end-to-end (the `POST /api/diagnostics/sentry` synthetic event) + update the runbook. ~20 minutes. **After this, the next reconciliation pass will see the synthetic event in the Sentry MCP stream and mark SB-2 DONE.**
-2. **Verify SB-3 PREREQUISITES P1–P4** against the Supabase dashboard per [`DATABASE-RESTORE.md § 2`](runbooks/DATABASE-RESTORE.md#2-prerequisites-owner-confirmed--verify-before-launch). Fill the runbook's confirmation block + commit as small `chore(docs):` PR.
-3. **(Optional but recommended)** Run the SB-3 dry-run walkthrough per [`DATABASE-RESTORE.md § 9`](runbooks/DATABASE-RESTORE.md#9-dry-run-walkthrough-validate-the-runbook-itself) (~30 min).
-4. **Decide OD-1** — is [#154](https://github.com/cargotapan-collab/tac-express/issues/154) a SHIP-BLOCKER? DoD lean: POST-LAUNCH.
-5. **Decide OD-2** — should any of the other 4 E1 flows be SHIP-BLOCKERS? DoD lean: payment-only-sufficient.
-6. **Reopen [#94](https://github.com/cargotapan-collab/tac-express/issues/94)** OR accept as tracker-less DoD item. (Same activity as item 1.)
+### Engineering DoD closeout (carry-forward)
+
+1. **🚀 RUN SB-2 — the engineering launch gate.** `scripts/sentry/create-alert-rules.mjs` + verify one rule fires (POST `/api/diagnostics/sentry`) + update [`docs/runbooks/sentry-alert-rules.md`](runbooks/sentry-alert-rules.md). ~20 min.
+2. **Verify SB-3 PREREQUISITES P1–P4** per [`DATABASE-RESTORE.md § 2`](runbooks/DATABASE-RESTORE.md#2-prerequisites-owner-confirmed--verify-before-launch).
+3. **(Optional)** Run the SB-3 dry-run walkthrough per `DATABASE-RESTORE.md § 9` (~30 min).
+4. **Decide OD-1** — is [#154](https://github.com/cargotapan-collab/tac-express/issues/154) a SHIP-BLOCKER? Lean: POST-LAUNCH.
+5. **Decide OD-2** — should any of the other 4 E1 flows be SHIP-BLOCKERS? Lean: payment-only-sufficient.
+6. **Reopen [#94](https://github.com/cargotapan-collab/tac-express/issues/94)** OR accept as tracker-less DoD item.
 7. **Delete `C:\tac\tac-express\tac-whatsapp-sends-102/`** (untracked worktree artifact).
 8. **CodeRabbit billing** — update payment method or pay pending invoices.
 
-**Already-completed owner actions (verified 2026-05-17 in this session via GitHub MCP):**
-- ✅ #139, #140, #142 closed on tracker (auto-closed 2026-05-17T15:39:05Z).
+### Product-launch decisions (NEW — from this scoping session)
+
+9. **OD-P1 (gating)** — Customer-journey model: sales-led B2B or self-serve? Lean: current surface is sales-led B2B (no customer sign-up exists).
+10. **OD-P2** — Brand reference: Figma/mockup, or is the current Violet Grid the brand?
+11. **OD-P3** — Target audience confirmation + language scope (English-only?).
+12. **OD-P4** — Auth methods at launch: email+password only / OAuth / magic link / password-reset?
+13. **OD-P5** — Public marketing scope at launch: all 15 pages, or MVP carve?
+14. **OD-P6** — Mobile breakpoint priorities (375w / 390w / 768w?).
+15. **OD-P7** — SEO/discoverability goal: organic ranking / outreach-linked / both?
+
+**Fifteen owner actions. Item 1 closes the engineering bar; items 9–15 unblock the product-launch workstream. The two workstreams are independent.**

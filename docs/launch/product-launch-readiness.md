@@ -1,0 +1,208 @@
+# TAC Express — Product-Launch Readiness (customer-facing surface)
+
+> **This file is authoritative for product-launch scope of the customer-facing surface.** Sibling to [`docs/launch/definition-of-done.md`](definition-of-done.md), which is authoritative for the **engineering** ship-blocker list. The two are DISTINCT bars. Both must pass for a credible production launch.
+
+**Version:** 1.0 — initial scoping, 2026-05-17.
+**Authority chain:** AGENTS.md § 0 → this file (customer-facing surface) → `definition-of-done.md` (engineering).
+**Not modified by this scoping session:** `definition-of-done.md` engineering DoD; SB-2 closeout; OD-1 / OD-2; SB-3 prerequisites.
+
+---
+
+## 0. Why this file exists — two distinct readiness bars
+
+`definition-of-done.md` measured ENGINEERING readiness: audit trail, restore playbook, payment E2E, error alerting. That bar is essentially met (3 of 4 SBs done; SB-2 is a ~20-min owner task).
+
+**Engineering-ready ≠ Product-ready.** A project can have green CI, alerts armed, and a documented restore playbook AND still have a customer-facing surface that is not credible to a real visitor. Engineering readiness is about *running* the product; product readiness is about *meeting* the customer. They are independent dimensions; both must pass.
+
+This document does for the customer-facing surface what PR #155 did for the engineering backlog: it scopes the work into a FINITE, ordered, triaged checklist BEFORE any building. **No UI is built here.** Construction happens in later PRs, each against this list.
+
+---
+
+## A. Surface inventory (audit performed 2026-05-17 against main `f53cab4f`)
+
+### A.1 `apps/web` — the public marketing host (port 3000)
+
+| Route | File | State today |
+|---|---|---|
+| `/` (landing) | [`apps/web/app/(public)/page.tsx`](../../apps/web/app/(public)/page.tsx) → `WastelandLanding` (481 LoC) | Exists; substantial implementation; uses Violet Grid tokens (`tac-mono-label`, `text-primary`) AND motion/react entrances; **no `metadata` export** (no SEO title/description/OG/Twitter cards on the most important route) |
+| `/about` | exists | Has Metadata, uses Violet Grid tokens, real copy |
+| `/careers` | exists | Has Metadata (assumed; sample of 6 of 7 marketing routes all had Metadata) |
+| `/case-studies` | exists | same |
+| `/contact` + `/contact/contact-form.tsx` | exists | Has Metadata |
+| `/developers` | exists | same |
+| `/legal/cookies`, `/legal/privacy`, `/legal/terms` | exist | Has Metadata (privacy verified) |
+| `/pricing` | exists | Has Metadata |
+| `/quote` + `/quote/rate-calculator.tsx` | exists | Has Metadata |
+| `/services` + `/services/[slug]` | exist | Has Metadata |
+| `/status` | exists | (not sampled) |
+| `/track/[awb]` | exists | Has 3 Playwright specs (a11y / smoke / visual) — the ONLY public route with automated visual+a11y coverage |
+| `/not-found.tsx` | exists | (not sampled for brand consistency) |
+| `/sign-in/[[...sign-in]]` | exists | Operator-facing sign-in (heading: "Operator sign in"); uses `SignInSplitLayout` + `SignInPageClient` from packages/ui; redirects to `/dashboard` on success; **no `metadata` export** |
+| `/dashboard` | redirect to `NEXT_PUBLIC_DASHBOARD_URL` (port 3001) | Bridge to the operator console |
+| `(public)/layout.tsx` | uses `PublicNav` + `Footer` from packages/ui | Shared chrome — both well-developed |
+
+Root `apps/web/app/layout.tsx` is locked to `className="dark"` (no theme toggling) and declares the canonical Plus Jakarta Sans + IBM Plex Mono + Lora fonts. No `metadata` export at the root layout.
+
+### A.2 `apps/dashboard` — the operator console host (port 3001)
+
+| Route | File | State today |
+|---|---|---|
+| `/(public)/sign-in/[[...sign-in]]` | exists | Operator sign-in (heading: "Mission control access"); same `SignInSplitLayout` + `SignInPageClient`; redirects to `/home` on success; **has** `metadata` export with `robots: { index: false, follow: false }` |
+| `/(public)/sign-up/[[...sign-up]]` | exists | Stub: `redirect("/sign-in")` — sign-up is intentionally DISABLED |
+
+### A.3 Shared auth components (`packages/ui/src/components/composed/auth/`)
+
+| Component | Lines | Purpose |
+|---|---|---|
+| `sign-in-form.tsx` | (small) | `react-hook-form` + `zod` form; email + password fields; submit button |
+| `sign-in-page-client.tsx` | 37 | Wraps `SignInForm`; calls `createBrowserClient().auth.signInWithPassword({ email, password })` — Supabase email+password auth ONLY (no OAuth, no magic link, no password-reset link visible) |
+| `sign-in-split-layout.tsx` | 135 | Layout chrome with eyebrow, heading, description, image caption, and a `topRightSlot` |
+| `login.lottie.json` | (asset) | Lottie animation file |
+
+### A.4 Auth mechanism (verified)
+
+**Email + password only via Supabase.** No third-party OAuth (Google / GitHub / etc.); no magic link; no password-reset flow surfaced. New operators are added by Supabase admins (the `sign-up` route redirects to `sign-in`).
+
+---
+
+## B. Gap analysis
+
+Per page/surface, the gap between today and a credible customer-launch bar:
+
+### B.1 Landing page (`/`)
+
+| Gap | Severity | Type |
+|---|---|---|
+| No `metadata` export — no title / description / Open Graph / Twitter Card | **HIGH** | SEO + social-sharing |
+| Component name `WastelandLanding` uses legacy design-system label (per AGENTS.md § 9, current is "TAC Express v5.0 Violet Grid") — IMPLEMENTATION uses current tokens; only the NAME is stale | LOW | hygiene |
+| Desktop-first treatment: `hidden md:block` chunks in the HUD overlay imply some HUD elements only render on `md+` viewports | MEDIUM | UX (mobile) |
+| Zero automated visual / a11y coverage (only `/track` has Playwright specs in `e2e/`) | MEDIUM | testing |
+| Brand/visual-design subjective verdict against a customer-launch bar — agent cannot assess | OWNER DECISION | design |
+
+### B.2 Marketing pages (`/about`, `/pricing`, `/contact`, `/quote`, `/services`, `/services/[slug]`, `/legal/*`, `/careers`, `/case-studies`, `/developers`, `/status`)
+
+| Gap | Severity | Type |
+|---|---|---|
+| All sampled (6 of 7) have `metadata` exports + use Violet Grid tokens + real copy | — | already-OK on the dimensions checked |
+| Zero automated visual / a11y coverage | LOW | testing — most likely POST-LAUNCH; manual smoke is sufficient at launch volume |
+| Mobile-responsive treatment per page unverified at scale | LOW | UX |
+| Copy quality / brand voice consistency — subjective | OWNER DECISION | content |
+
+### B.3 Auth surface (operator sign-in on both hosts; sign-up disabled)
+
+| Gap | Severity | Type |
+|---|---|---|
+| `apps/web/sign-in` has no `metadata` export (the operator sign-in on the marketing host) | LOW | SEO/title |
+| Auth flow correctness — `signInWithPassword` round-trips through Supabase; no automated E2E covers this end-to-end | MEDIUM | auth-correctness |
+| No password-reset flow surfaced — if an operator forgets their password, the recovery path is admin-side via Supabase | OWNER DECISION (acceptable at launch?) | auth-completeness |
+| No OAuth / magic link options | OWNER DECISION | auth-completeness |
+| No customer sign-up flow exists — TAC Express today is operator-only; customer journey is "landing → contact / quote / track" | OWNER DECISION | product model |
+
+### B.4 Customer journey (the gating question)
+
+The current customer journey on the public site is: **landing → (about / pricing / services / quote / contact) → human follow-up (sales / quote / contact form) → operator-side onboarding by an admin.** There is no self-serve "customer sign-up → customer dashboard" flow. Whether THAT is the intended launch model is an owner decision (OD-P1 below). The answer governs everything else about the auth surface and the landing's primary CTA.
+
+---
+
+## C. Triage — PRODUCT-LAUNCH-BLOCKER / POST-LAUNCH-POLISH / WONTFIX-WATCH
+
+The hard test: **can a real customer credibly land on the site, understand the product, and complete the intended journey** (today: reach a contact / quote form to start a sales conversation)?
+
+### C.1 PRODUCT-LAUNCH-BLOCKERS — the finite list (4 items)
+
+| ID | Item | Why it gates launch | Testable DONE |
+|---|---|---|---|
+| **PL-1** | **Landing page `metadata` export** (title, description, Open Graph image + tags, Twitter Card) | The landing is the most-shared, most-search-indexed URL. Without metadata, every social share and search result is "Home" with no preview — actively undermines credibility | `metadata` export present at `apps/web/app/(public)/page.tsx` covering title / description / `openGraph` / `twitter` fields; a Playwright assertion (or static check) confirms each is non-empty |
+| **PL-2** | **Customer-journey decision + landing CTA finalized (OWNER DECISION OD-P1 first)** | The landing's primary CTA today must EITHER point at the contact/quote sales path (sales-led B2B) OR at a customer-sign-up flow (self-serve). Today's surface has only operator sign-in. The CTA must match the chosen journey, or the visitor click goes nowhere coherent | OD-P1 answered; landing's primary CTA points at the appropriate path AND that path completes (sales-led: visitor reaches a working contact form; self-serve: customer-sign-up flow exists and accepts a real signup — that would itself be a NEW workstream beyond this scope) |
+| **PL-3** | **Mobile responsiveness on the critical customer paths** (landing, contact, quote, track) | A modern customer who lands on a broken mobile page closes the tab. Today's landing has desktop-only HUD elements (`hidden md:block`); the rest of the breakpoints are unverified | Each of the 4 critical paths renders correctly at 375×667 (small mobile) and 390×844 (mid mobile) without horizontal scroll, broken layout, or unclickable CTAs. Verifiable via a Playwright mobile-viewport project (cheap to add to existing config) |
+| **PL-4** | **Visual + a11y baseline coverage for landing + the 4 critical paths** | The existing `e2e/` directory has visual+a11y specs only for `/track/[awb]`. Extending the same pattern to landing + contact + quote (and any other critical customer path per OD-P5) is the mechanical guarantee against silent regressions at launch | New specs in `e2e/` matching the `public-tracking.{a11y,smoke,visual}.spec.ts` shape for landing + contact + quote; CI gate green |
+
+**Estimate:** PL-1 ≈ 1 hour. PL-3 + PL-4 ≈ 1-2 sessions combined (overlap heavily — the e2e harness covers both). PL-2 is the OWNER-decision unblock; agent-side work after that depends on the answer.
+
+### C.2 POST-LAUNCH-POLISH — real, NOT gating
+
+- Rename `WastelandLanding` → `LandingPage` (cosmetic; current tokens already on the current design system)
+- Visual + a11y e2e coverage for the other 11 public routes (about, pricing, services, services/[slug], legal × 3, careers, case-studies, developers, status)
+- `apps/web/sign-in` metadata export (parallel to `apps/dashboard` sign-in which already has it)
+- Password-reset flow (if OD-P4 says it's needed at launch, this becomes PL-5 — currently parked POST-LAUNCH)
+- OAuth / magic link sign-in (if OD-P4 says it's needed)
+- Polish loading + error states on each marketing page (4 states discipline applied broadly)
+- `not-found.tsx` brand consistency audit
+- Performance / Lighthouse audit on landing (`#33` in the existing OUT-OF-SCOPE backlog)
+- i18n infrastructure (`#35` — explicitly out-of-scope per re-validation)
+- Mobile-responsive treatment for the other 11 marketing routes (extends PL-3)
+
+### C.3 WONTFIX-WATCH
+
+- A self-serve customer sign-up flow IF OD-P1 resolves as "sales-led B2B" — building it would be answer-the-wrong-question work. Re-evaluates if the business model shifts to self-serve.
+
+---
+
+## D. OWNER DECISIONS REQUIRED (the gating questions)
+
+The agent cannot answer any of these. They must come from the owner before the PL-2 / PL-3 / PL-4 work is built (PL-1 can ship without any of them, as the landing's CTA target doesn't constrain its metadata).
+
+| # | Question | Lean (not a decision; surfaces the path of least resistance) | Gates |
+|---|---|---|---|
+| **OD-P1** | **Customer-journey model** — sales-led B2B (landing → contact/quote → human onboarding by admin) OR self-serve (landing → customer sign-up → customer dashboard)? | The current surface state IS sales-led B2B (no customer sign-up exists; operator-only auth). Switching to self-serve is a NEW workstream beyond product-launch scope | PL-2 + every auth-surface decision |
+| **OD-P2** | **Brand reference / mockup** — does a Figma / design reference exist that the landing + marketing pages must hit? Or is the current Violet Grid implementation considered the brand? | Current implementation appears to use Violet Grid tokens correctly; if no external mockup exists, the bar IS the current visual — PL-3 + PL-4 then focus on responsiveness + a11y, not redesign | PL-3, PL-4 |
+| **OD-P3** | **Target audience** — North-East India focus per the about page (tea growers, handicraft cooperatives, defense contractors, e-commerce sellers)? Confirms copy register, language (English only or multilingual?), tone | If confirmed English-only, no i18n work; if regional languages are required, that becomes a NEW workstream | All copy/UX |
+| **OD-P4** | **Auth methods at launch** — email+password only (current), OR add OAuth (which provider — Google? GitHub?), OR magic link, OR password-reset flow? | Current = email+password only; password reset is admin-side via Supabase | Auth surface scope |
+| **OD-P5** | **Public marketing scope at launch** — all 15 pages live, or carve a smaller MVP set (e.g., landing + about + pricing + contact + quote + track + legal × 3 = 9 pages)? | Carving lets the launch ship a tighter, more-tested surface | PL-3, PL-4 scope |
+| **OD-P6** | **Mobile breakpoint priorities** — which device class is launch-critical (small phone 375w, mid phone 390w, tablet 768w)? | 375w + 768w is the typical credible coverage | PL-3 spec range |
+| **OD-P7** | **SEO/discoverability goal at launch** — is the landing meant to organically rank, or be linked from outreach, or both? | "Both" is most common; informs the depth of PL-1's metadata work (basic Title + OG vs Title + OG + Twitter + JSON-LD + sitemap) | PL-1 depth |
+
+---
+
+## E. Sequence (recommended build order; assumes owner answers OD-P1 + OD-P2 + OD-P5 before PL-2/3/4 start)
+
+| Order | Item | Risk | Touches auth-correctness? | Pre-reqs |
+|---|---|---|---|---|
+| 1 | **PL-1** — landing `metadata` export | LOW | NO (pure UI/metadata) | None |
+| 2 | **PL-3** — mobile responsiveness on critical paths | MEDIUM | NO (pure UI) | OD-P2 (brand reference), OD-P5 (which paths), OD-P6 (breakpoints) |
+| 3 | **PL-4** — visual+a11y e2e for landing + critical paths | MEDIUM | NO (pure UI; extends existing harness) | OD-P5; benefits from PL-3 having already settled the breakpoints |
+| 4 | **PL-2** — customer-journey resolution (the CTA + the journey-completion check) | **HIGH** if OD-P1 resolves as self-serve (would mean building a new customer-sign-up auth flow — its own ship-blocker scope); LOW if sales-led B2B (CTA points at existing contact/quote, verify the journey completes) | YES if self-serve | OD-P1 (load-bearing) |
+
+**Risk distinction:** PL-1 / PL-3 / PL-4 are pure-UI work — no auth-correctness exposure. PL-2 is the one that MAY touch auth (only if OD-P1 resolves as self-serve). If PL-2 expands into a customer-sign-up flow, that flow needs its OWN PHASE-0 scoping (auth + RLS + customer-side data model + new packages/services surface) — not part of this scope.
+
+---
+
+## 3. Current standing
+
+| PRODUCT-LAUNCH-BLOCKER | Status | Owner-decision dependency |
+|---|---|---|
+| PL-1 — Landing metadata | OPEN | — |
+| PL-2 — Customer-journey + CTA | OPEN | OD-P1 (gating) |
+| PL-3 — Mobile responsiveness on critical paths | OPEN | OD-P2 + OD-P5 + OD-P6 |
+| PL-4 — Visual+a11y e2e for landing + critical paths | OPEN | OD-P5 |
+
+**Open PRODUCT-LAUNCH-BLOCKERS:** 4 of 4.
+**Realistic burn-down:** 2-3 agent sessions IF the owner answers OD-P1 + OD-P2 + OD-P5 + OD-P6 promptly. If OD-P1 resolves as self-serve and a customer-sign-up flow is built, that's a separate, larger workstream (likely 2-3 additional sessions).
+
+---
+
+## 4. Bailout-clause findings (PHASE-0 honest read)
+
+The audit did NOT reveal a fundamentally broken auth flow or a missing page. The customer-facing surface is materially built — 15 marketing pages, working operator sign-in via Supabase, comprehensive footer/nav, shared layout, Violet Grid tokens. The product-launch bar is real but not catastrophic — bailout does NOT fire.
+
+The single most surprising finding: the **landing page has no `metadata` export**, which means social-shared and search-indexed previews are empty/default. The PR closing PL-1 fixes this.
+
+---
+
+## 5. Relationship to the engineering DoD
+
+- **Engineering DoD ([`definition-of-done.md`](definition-of-done.md))** — concerns *running* the product safely. Status: 3 of 4 done; SB-2 (Sentry alerting) is the last engineering gate, an owner-runnable ~20-min task.
+- **This file** — concerns *meeting* the customer. Status: 4 PRODUCT-LAUNCH-BLOCKERS identified; PL-2 is the load-bearing owner-decision dependency.
+- **Both bars must pass for a credible launch.** They are independent — engineering can be 4/4 done with this file 0/4 done, or vice versa. The launch verdict is `engineering_ready AND product_ready`.
+
+---
+
+## 6. Maintenance
+
+This file follows the same maintenance pattern as `definition-of-done.md`:
+
+- A PRODUCT-LAUNCH-BLOCKER goes DONE → strike its row in § C.1 + update § 3's current standing.
+- The owner promotes a POST-LAUNCH-POLISH item to PRODUCT-LAUNCH-BLOCKER → add as new PL-N with justification matching the hard test.
+- Launch happens (both bars passed) → both DoD files move to `docs/_archive/` with the final footer.
+
+The list IS finite. The product launch IS reachable.
