@@ -85,11 +85,17 @@ Adding a new skill OR a new trigger phrase REQUIRES a corresponding line in [`.c
 
 Mandatory pre-read when writing tests, mock-builders, sentinels, regex parsers, or marker comments: [`docs/patterns/coderabbit-catalog.md`](docs/patterns/coderabbit-catalog.md). 9 entries across 4 categories (test-assertion-strength, code-reference-stability, type-safety, abstraction-timing). Several are permanent CodeRabbit-memory learnings — writing the pattern correctly first time saves the review round.
 
-### Launch-scope authority — `docs/launch/definition-of-done.md`
+### Launch-scope authority — TWO files, TWO bars
 
-The launch-gating subset of the backlog lives at [`docs/launch/definition-of-done.md`](docs/launch/definition-of-done.md). **That file is AUTHORITATIVE for what "production-ready" means.** It defines, finitely, the SHIP-BLOCKER list whose criteria must all be true for TAC Express to go to production. The full open-item list (including POST-LAUNCH items) remains in `docs/backlog/production-readiness.md`; the DoD file is the launch-gating triage of it.
+A credible launch requires BOTH bars to pass. They are independent.
 
-**When asked "what's left to launch?" — read the DoD file, not the backlog.** When a SHIP-BLOCKER ships, update the DoD file's § 3 status table. When the owner promotes a POST-LAUNCH item to SHIP-BLOCKER, update both the DoD file (add the new SB-N) and the backlog file (update the item's `**Bucket:**` line).
+**Bar 1 — Engineering readiness — [`docs/launch/definition-of-done.md`](docs/launch/definition-of-done.md)**
+Authoritative for what "production-ready" means from an *operability* standpoint (audit trail, restore playbook, payment E2E, error alerting). Defines, finitely, the SHIP-BLOCKER (SB-N) list. The full open-item list (including POST-LAUNCH items) lives in `docs/backlog/production-readiness.md`; the DoD file is the launch-gating triage of it.
+
+**Bar 2 — Customer-facing readiness — [`docs/launch/product-launch-readiness.md`](docs/launch/product-launch-readiness.md)**
+Authoritative for what "product-ready" means from a *customer-facing* standpoint (landing page, marketing pages, auth surface, journey clarity). Defines, finitely, the PRODUCT-LAUNCH-BLOCKER (PL-N) list and the OWNER DECISIONS REQUIRED (OD-P-N) gating them.
+
+**When asked "what's left to launch?" — read BOTH files.** A SHIP-BLOCKER lives in DoD; a PRODUCT-LAUNCH-BLOCKER lives in product-launch-readiness. The launch verdict = `engineering_ready AND product_ready`. When an SB-N ships, update DoD § 3 (the engineering current-standing table); when a PL-N ships, update product-launch-readiness § F (the product current-standing table). When the owner promotes a POST-LAUNCH item to either bucket, update the respective authority file AND the backlog file's `**Bucket:**` line.
 
 ### Production-readiness backlog — authoritative file (NOT the GitHub issue)
 
