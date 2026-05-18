@@ -43,6 +43,21 @@ export const authRateLimit = redis
     })
   : null
 
+/**
+ * Contact-form rate limit: tight bucket to deter bulk-submission spam on
+ * /api/contact. 5 submissions / 10 minutes / identifier (IP). Combined with
+ * the form's honeypot field and zod validation, this gives three independent
+ * lines of defense before a lead row is written.
+ */
+export const contactFormRateLimit = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(5, "10 m"),
+      analytics: true,
+      prefix: "ratelimit:contact",
+    })
+  : null
+
 export interface RateLimitResult {
   success: boolean
   limit: number
@@ -65,4 +80,11 @@ export async function checkPublicApi(identifier: string): Promise<RateLimitResul
 export async function checkAuth(identifier: string): Promise<RateLimitResult> {
   if (!authRateLimit) return noopResult
   return authRateLimit.limit(identifier)
+}
+
+export async function checkContactForm(
+  identifier: string,
+): Promise<RateLimitResult> {
+  if (!contactFormRateLimit) return noopResult
+  return contactFormRateLimit.limit(identifier)
 }

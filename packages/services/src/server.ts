@@ -1,4 +1,8 @@
-import { createServerClient } from "@workspace/database/client"
+import {
+  createServerClient,
+  createServiceRoleClient,
+} from "@workspace/database/client"
+import { createContactLeadService, type ContactLeadService } from "./contact-lead.service"
 import { createDashboardService } from "./dashboard.service"
 import { createShipmentService } from "./shipment.service"
 import { createManifestService } from "./manifest.service"
@@ -65,4 +69,36 @@ export function createTrackedWhatsAppServerService(
   cookieStore: CookieStore,
 ): TrackedWhatsAppService {
   return createTrackedWhatsAppServiceFromEnv(createServerClient(cookieStore))
+}
+
+/**
+ * Public-form contact-lead service (PL-2b).
+ *
+ * Constructed with the SERVICE-ROLE Supabase client because the /api/contact
+ * route handles UNAUTHENTICATED visitors — RLS would otherwise block both
+ * the `contact_leads` INSERT and the `whatsapp_sends` INSERT that the
+ * tracked WhatsApp service performs. The service-role client bypasses RLS
+ * for this server-only path; visitor input is validated with zod at the
+ * route + a honeypot guard before the service is invoked.
+ *
+ * Lead-recipient phone / template name + language are env-derived:
+ *   WPBOX_LEAD_NOTIFICATION_PHONE   (required for live notifications)
+ *   WPBOX_LEAD_TEMPLATE_NAME        (optional; default "lead_notification")
+ *   WPBOX_LEAD_TEMPLATE_LANGUAGE    (optional; default "en")
+ *
+ * If `WPBOX_LEAD_NOTIFICATION_PHONE` is unset, the lead is still captured
+ * and the row's notification_status transitions to 'failed' with a clear
+ * marker — the system NEVER loses a lead just because the notification
+ * channel is misconfigured.
+ */
+export function createContactLeadServerService(): ContactLeadService {
+  const db = createServiceRoleClient()
+  const whatsapp = createTrackedWhatsAppServiceFromEnv(db)
+  return createContactLeadService(db, whatsapp, {
+    notificationPhone: process.env.WPBOX_LEAD_NOTIFICATION_PHONE?.trim() || null,
+    templateName:
+      process.env.WPBOX_LEAD_TEMPLATE_NAME?.trim() || "lead_notification",
+    templateLanguage:
+      process.env.WPBOX_LEAD_TEMPLATE_LANGUAGE?.trim() || "en",
+  })
 }
