@@ -116,6 +116,8 @@ The hard test: **can a real customer credibly land on the site, understand the p
 |---|---|---|---|
 | **PL-1** | **Landing page `metadata` export** (title, description, Open Graph image + tags, Twitter Card) | The landing is the most-shared, most-search-indexed URL. Without metadata, every social share and search result is "Home" with no preview — actively undermines credibility | `metadata` export present at `apps/web/app/(public)/page.tsx` covering title / description / `openGraph` / `twitter` fields; a Playwright assertion (or static check) confirms each is non-empty |
 | **PL-2** | **Customer-journey decision + landing CTA finalized (OWNER DECISION OD-P1 first)** | The landing's primary CTA today must EITHER point at the contact/quote sales path (sales-led B2B) OR at a customer-sign-up flow (self-serve). Today's surface has only operator sign-in. The CTA must match the chosen journey, or the visitor click goes nowhere coherent | OD-P1 answered; landing's primary CTA points at the appropriate path AND that path completes (sales-led: visitor reaches a working contact form; self-serve: customer-sign-up flow exists and accepts a real signup — that would itself be a NEW workstream beyond this scope) |
+| **PL-2a** | **Primary sales CTA added to the landing** (OD-P1 = sales-led B2B) | Without a primary sales CTA, the journey to a sales conversation depended on the top-nav only — failing the hard test | DONE — PR #166 added the `NOT TRACKING A SHIPMENT?` row with GET A QUOTE → `/quote` and CONTACT SALES → `/contact` buttons in the hero |
+| **PL-2b** | **`/contact` form actually captures + notifies — no fake success** (OD-P8 = WhatsApp) | The form was stubbed (`contact-form.tsx:31` had `setSubmitted(true)` + TODO; no `/api/contact` route existed). For sales-led B2B the customer-journey terminator MUST durably capture and notify the team or shipping is deceptive UX | `contact_leads` table + `/api/contact` route + `createContactLeadService` (DB-first, WhatsApp-notify second; a failed notification does NOT lose the lead). WhatsApp template `lead_notification` pending Meta approval; the LEAD IS CAPTURED regardless. See § J.6. |
 | **PL-3** | **Mobile responsiveness on the critical customer paths** (landing, contact, quote, track) | A modern customer who lands on a broken mobile page closes the tab. Today's landing has desktop-only HUD elements (`hidden md:block`); the rest of the breakpoints are unverified | Each of the 4 critical paths renders correctly at 375×667 (small mobile) and 390×844 (mid mobile) without horizontal scroll, broken layout, or unclickable CTAs. Verifiable via a Playwright mobile-viewport project (cheap to add to existing config) |
 | **PL-4** | **Visual + a11y baseline coverage for landing + the 4 critical paths** | The existing `e2e/` directory has visual+a11y specs only for `/track/[awb]`. Extending the same pattern to landing + contact + quote (and any other critical customer path per OD-P5) is the mechanical guarantee against silent regressions at launch | New specs in `e2e/` matching the `public-tracking.{a11y,smoke,visual}.spec.ts` shape for landing + contact + quote; CI gate green |
 
@@ -279,3 +281,52 @@ No discrepancies. The #162 self-report is accurate.
 ### J.5 PL-1 — opened as the only unblocked task
 
 Implemented in a separate source PR (PR B). Adds the `metadata` export at `apps/web/app/(public)/page.tsx` with title / description / `openGraph` / `twitter` fields per `docs/launch/product-launch-readiness.md` § C.1's testable-done criterion. No OD-P gating; ~1 hour.
+
+### J.6 PL-2b — `/contact` form is durably wired (autonomous run 2026-05-18)
+
+Audit found `apps/web/app/(public)/contact/contact-form.tsx:31` was stubbed
+(`setSubmitted(true)` + TODO; no `/api/contact` route existed). For OD-P1 =
+sales-led B2B, the customer journey terminator MUST durably capture and
+notify the team. This run ships the full code path:
+
+| Layer | File(s) | What |
+|---|---|---|
+| Migration | [`supabase/migrations/20260518000001_contact_leads.sql`](../../supabase/migrations/20260518000001_contact_leads.sql) | `contact_leads` table with form columns + CRM `status` + `notification_status` + `whatsapp_send_id` FK to `whatsapp_sends`; RLS `SELECT/UPDATE` scoped to MANAGER+; NO insert/delete policies (route uses service-role) |
+| Types | [`packages/types/src/contact-lead.types.ts`](../../packages/types/src/contact-lead.types.ts) | Reason/status enums + form input + submission-result types |
+| Service-role client | [`packages/database/src/client.ts`](../../packages/database/src/client.ts) | New `createServiceRoleClient()` for server-only RLS-bypass writes from public surfaces |
+| Service | [`packages/services/src/contact-lead.service.ts`](../../packages/services/src/contact-lead.service.ts) | `submitContactLead`: INSERT lead row FIRST → call `whatsapp.sendTemplate` SECOND. Best-effort notification: a send failure transitions the row to `notification_status='failed'` and STILL returns `{ ok: true }` — the lead is captured |
+| Server factory | [`packages/services/src/server.ts`](../../packages/services/src/server.ts) | `createContactLeadServerService()` (service-role-bound + env-derived template config) |
+| Route | [`apps/web/app/api/contact/route.ts`](../../apps/web/app/api/contact/route.ts) | POST handler with rate limit (5 / 10 min / IP) → zod validation → honeypot check → service call |
+| Rate limiter | [`apps/web/lib/rate-limit.ts`](../../apps/web/lib/rate-limit.ts) | New `contactFormRateLimit` (5 req / 10 min / IP) |
+| Form rewire | [`apps/web/app/(public)/contact/contact-form.tsx`](../../apps/web/app/(public)/contact/contact-form.tsx) | Real `fetch("/api/contact", …)`. Idle / submitting / success / error states. Hidden honeypot input. `noValidate` so server errors surface |
+| Env example | [`apps/web/.env.example`](../../apps/web/.env.example) | New vars: `SUPABASE_SERVICE_ROLE_KEY`, `WPBOX_LEAD_NOTIFICATION_PHONE`, `WPBOX_LEAD_TEMPLATE_NAME`, `WPBOX_LEAD_TEMPLATE_LANGUAGE`, `UPSTASH_REDIS_REST_*` |
+
+**WhatsApp template `lead_notification`** — pending Meta-side approval.
+Until approved, `sendTemplate` returns `{ ok: false, error: … }` and the
+lead transitions to `notification_status='failed'`. **The lead IS still
+captured.** Manual follow-up via the `contact_leads` table (MANAGER+ SELECT)
+works immediately.
+
+Template specification (for owner to submit in WhatsApp Business Manager):
+- **Name:** `lead_notification`
+- **Category:** `UTILITY` (or `MARKETING` if Meta requires)
+- **Language:** `en`
+- **Body** (4 positional parameters):
+  ```
+  New {{1}} lead — {{2}} ({{3}}).
+
+  Message: {{4}}
+  ```
+- **Parameter mapping** (the service passes these on every send):
+  - `{{1}}` reason label (e.g. "Sales")
+  - `{{2}}` contact name
+  - `{{3}}` contact email
+  - `{{4}}` first 200 chars of the message body (truncated with "…")
+
+**Owner env-var setup** (required for live notifications):
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase project's service-role key. WITHOUT THIS, `/api/contact` returns 500 on every submission (the service-role client throws at construction).
+- `WPBOX_LEAD_NOTIFICATION_PHONE` — the team's WhatsApp inbox phone in E.164-digits form (e.g. `"918765432100"`). If unset, leads still capture but every notification fails.
+- `WPBOX_LEAD_TEMPLATE_NAME` — optional; defaults to `lead_notification`.
+- `WPBOX_LEAD_TEMPLATE_LANGUAGE` — optional; defaults to `en`.
+
+**/quote audit (PL-2b sibling check):** `apps/web/app/(public)/quote/rate-calculator.tsx` is a CLIENT-SIDE COMPUTE (stub rate formula). It claims no POST and does not deceive the visitor. Different shape from the /contact stub; nothing to fix. Documented here so future audits don't re-investigate.

@@ -13,6 +13,11 @@ import {
 } from "@workspace/ui/components/select"
 import { RiSendPlaneLine } from "@workspace/ui/icons"
 
+// PL-2b — real POST to /api/contact replaces the previous fake setSubmitted
+// stub. The form captures the lead durably via the contact_leads table
+// before attempting a WhatsApp notification (service-layer contract in
+// packages/services/src/contact-lead.service.ts).
+
 const REASONS = [
   { value: "sales", label: "Sales — pricing & onboarding" },
   { value: "support", label: "Support — existing shipment" },
@@ -21,17 +26,73 @@ const REASONS = [
   { value: "other", label: "Other" },
 ] as const
 
+type FormStatus =
+  | { kind: "idle" }
+  | { kind: "submitting" }
+  | { kind: "success" }
+  | { kind: "error"; message: string }
+
 export function ContactForm() {
-  const [submitted, setSubmitted] = React.useState(false)
+  const [status, setStatus] = React.useState<FormStatus>({ kind: "idle" })
   const [reason, setReason] = React.useState<string>(REASONS[0].value)
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setSubmitted(true)
-    // Real implementation would post to /api/contact (TODO).
+    if (status.kind === "submitting") return
+
+    const form = e.currentTarget
+    const formData = new FormData(form)
+    // Hidden honeypot field — bots fill it; humans don't see it.
+    const honeypot = ((formData.get("website") as string | null) ?? "").trim()
+    const payload = {
+      name: ((formData.get("name") as string | null) ?? "").trim(),
+      email: ((formData.get("email") as string | null) ?? "").trim(),
+      company:
+        ((formData.get("company") as string | null) ?? "").trim() || undefined,
+      reason,
+      message: ((formData.get("message") as string | null) ?? "").trim(),
+      website: honeypot,
+    }
+
+    setStatus({ kind: "submitting" })
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean
+        error?: string
+      }
+
+      if (res.ok && data.ok !== false) {
+        // The API returns { ok: true } on legitimate success AND when the
+        // honeypot fires (silent reject). The visitor UX is identical;
+        // bots can't probe their way around.
+        setStatus({ kind: "success" })
+        return
+      }
+
+      const fallback =
+        res.status === 429
+          ? "Too many submissions. Please try again in a few minutes."
+          : "Something went wrong. Please try again."
+      setStatus({ kind: "error", message: data.error ?? fallback })
+    } catch (err) {
+      setStatus({
+        kind: "error",
+        message:
+          err instanceof Error && err.message
+            ? `Network error: ${err.message}`
+            : "Network error. Please check your connection and try again.",
+      })
+    }
   }
 
-  if (submitted) {
+  if (status.kind === "success") {
     return (
       <div className="tac-fui-panel border-l-4 border-l-accent-success p-8 text-center">
         <p className="tac-mono-label text-accent-success">Sent</p>
@@ -43,23 +104,25 @@ export function ContactForm() {
     )
   }
 
+  const submitting = status.kind === "submitting"
+
   return (
-    <form className="tac-fui-panel space-y-4 p-6" onSubmit={onSubmit}>
+    <form className="tac-fui-panel relative space-y-4 p-6" onSubmit={onSubmit} noValidate>
       <p className="border-b border-border pb-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
         Send us a note
       </p>
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="Your name" required>
-          <Input name="name" required />
+          <Input name="name" required disabled={submitting} />
         </Field>
         <Field label="Work email" required>
-          <Input name="email" type="email" required />
+          <Input name="email" type="email" required disabled={submitting} />
         </Field>
         <Field label="Company">
-          <Input name="company" />
+          <Input name="company" disabled={submitting} />
         </Field>
         <Field label="Reason">
-          <Select name="reason" value={reason} onValueChange={setReason}>
+          <Select name="reason" value={reason} onValueChange={setReason} disabled={submitting}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -72,12 +135,40 @@ export function ContactForm() {
         </Field>
       </div>
       <Field label="Message" required>
-        <Textarea name="message" rows={5} required />
+        <Textarea name="message" rows={5} required disabled={submitting} />
       </Field>
+
+      {/* Honeypot — visible to bots, hidden from humans + screen-readers.
+          Bots that auto-fill every text input populate this; legitimate
+          submissions leave it empty. The server returns 200 silently on
+          a hit (no lead row written, no signal to the bot). */}
+      <div aria-hidden className="absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden">
+        <label htmlFor="website">
+          Website (leave blank)
+          <input
+            id="website"
+            name="website"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            defaultValue=""
+          />
+        </label>
+      </div>
+
+      {status.kind === "error" && (
+        <p
+          role="alert"
+          className="font-mono text-xs uppercase tracking-wider text-accent-danger"
+        >
+          {status.message}
+        </p>
+      )}
+
       <div className="flex justify-end">
-        <Button type="submit">
+        <Button type="submit" disabled={submitting}>
           <RiSendPlaneLine className="mr-2 size-4" aria-hidden="true" />
-          Send message
+          {submitting ? "Sending…" : "Send message"}
         </Button>
       </div>
     </form>

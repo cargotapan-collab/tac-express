@@ -1,0 +1,69 @@
+/**
+ * Contact-lead types (PL-2b).
+ *
+ * The /contact form on apps/web posts to /api/contact, which captures the
+ * lead in the contact_leads table and notifies the team via the tracked
+ * WhatsApp service. These types mirror the table columns + the route's
+ * request/response shapes.
+ *
+ * Schema source of truth: supabase/migrations/20260518000001_contact_leads.sql.
+ */
+
+/** Reason categories the contact form offers. Mirrors the form's REASONS
+ *  constant + the CHECK constraint on contact_leads.reason. */
+export const CONTACT_LEAD_REASONS = [
+  "sales",
+  "support",
+  "partner",
+  "press",
+  "other",
+] as const
+
+export type ContactLeadReason = (typeof CONTACT_LEAD_REASONS)[number]
+
+/** CRM stage of the lead. */
+export const CONTACT_LEAD_STATUSES = ["new", "contacted", "closed"] as const
+export type ContactLeadStatus = (typeof CONTACT_LEAD_STATUSES)[number]
+
+/** WhatsApp notification delivery state for the lead. */
+export const CONTACT_LEAD_NOTIFICATION_STATUSES = [
+  "pending",
+  "sent",
+  "failed",
+] as const
+export type ContactLeadNotificationStatus =
+  (typeof CONTACT_LEAD_NOTIFICATION_STATUSES)[number]
+
+/** Public form input (the visitor-side payload). */
+export interface ContactLeadFormInput {
+  name: string
+  email: string
+  /** Optional. Empty string is normalized to undefined at the service boundary. */
+  company?: string
+  reason: ContactLeadReason
+  message: string
+  /** Honeypot field. Must be empty on every legitimate submission. */
+  honeypot?: string
+}
+
+/** A row as stored. Returned to operator-side reads (NOT to the public form). */
+export interface ContactLeadRow {
+  id: string
+  name: string
+  email: string
+  company: string | null
+  reason: ContactLeadReason
+  message: string
+  status: ContactLeadStatus
+  notification_status: ContactLeadNotificationStatus
+  notification_sent_at: string | null
+  whatsapp_send_id: string | null
+  ip_address: string | null
+  user_agent: string | null
+  created_at: string
+}
+
+/** Outcome returned by the service-layer `submitContactLead`. */
+export type ContactLeadSubmissionResult =
+  | { ok: true; id: string; notificationStatus: ContactLeadNotificationStatus }
+  | { ok: false; error: string }

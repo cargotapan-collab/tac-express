@@ -48,6 +48,62 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_leads: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          ip_address: string | null
+          message: string
+          name: string
+          notification_sent_at: string | null
+          notification_status: string
+          reason: string
+          status: string
+          user_agent: string | null
+          whatsapp_send_id: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          ip_address?: string | null
+          message: string
+          name: string
+          notification_sent_at?: string | null
+          notification_status?: string
+          reason: string
+          status?: string
+          user_agent?: string | null
+          whatsapp_send_id?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          ip_address?: string | null
+          message?: string
+          name?: string
+          notification_sent_at?: string | null
+          notification_status?: string
+          reason?: string
+          status?: string
+          user_agent?: string | null
+          whatsapp_send_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_leads_whatsapp_send_id_fkey"
+            columns: ["whatsapp_send_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_sends"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address_line1: string
