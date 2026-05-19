@@ -106,15 +106,15 @@ The audit's PR-B / PR-C / PR-D roadmap maps onto four coherent sub-PRs:
 ### 3.2 WS-2B — Landing premium polish (6-group section-by-section)
 
 **Bucket:** POST-LAUNCH-POLISH (premium-tier rubric lift from 80 → 90+).
-**Status:** OPEN — PHASE 1 plan in place (this PR); PHASE 2 ships as 3 batched PRs.
-**Estimate:** 3 small build sessions (~30-60 min each).
+**Status:** OPEN — PHASE 1 plan merged (PR #183); **PR-2B-1 closed (rubric 80 → 82)**; PR-2B-2 + PR-2B-3 remain.
+**Estimate:** 2 small build sessions remaining.
 
 **Re-scoping note (2026-05-19):** the original WS-2B scope was a closing-CTA conversion-funnel section. After review of the post-PR-#181 state, the owner re-scoped WS-2B to a **section-by-section premium polish workstream** targeting six specific defect groups identified in the live screenshots: hero input/CTA proportions, section spacing voids, motion-overlap, testimonial → un-attributed case study, integration-card consistency, footer type-scale + lone social icon. The closing-CTA section is deferred to a future POST-LAUNCH-POLISH session and is no longer WS-2B.
 
 **Full spec:** [`docs/launch/WS-2B-LANDING-POLISH.md`](WS-2B-LANDING-POLISH.md).
 
 **PR batching (PHASE 2):**
-- **PR-2B-1** — Hero refinement (Group 1: AWB input shell + secondary-CTA proportions).
+- ~~**PR-2B-1**~~ — ✅ DONE 2026-05-19. Hero refinement (Group 1: AWB input shell + secondary-CTA proportions). Rubric criterion 4 + 8 each +1.
 - **PR-2B-2** — Page rhythm + motion-overlap (Groups 2 + 3).
 - **PR-2B-3** — Content sections (Groups 4 + 5 + 6: testimonial-to-case-study, integration, footer).
 
