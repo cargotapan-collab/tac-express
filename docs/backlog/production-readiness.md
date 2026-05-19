@@ -10,7 +10,8 @@
 >
 > Each item has a fenced ```` ```refs ... ``` ```` block. Lines are `<kind>: <value>` where `<kind>` ∈ {`file`, `symbol`, `table`, `rpc`}. Items without code artifacts use `` `refs: none — not-sentinel-checked (reason)` `` to be explicit about why the sentinel skips them.
 
-**Date last refreshed:** 2026-05-17 (re-framing pass: launch-buckets added per [`docs/launch/definition-of-done.md`](../launch/definition-of-done.md))
+**Date last refreshed:** 2026-05-19 (customer-facing reconciliation: customer-facing workstream items live in [`docs/launch/CUSTOMER-FACING-PLAN.md`](../launch/CUSTOMER-FACING-PLAN.md), not duplicated here; LB-5 + LB-6 from that plan land in [`docs/launch/MASTER-LAUNCH-PLAN.md § 2.2`](../launch/MASTER-LAUNCH-PLAN.md) — the launch-blocker rollup remains single-sourced there).
+**Previous refresh:** 2026-05-17 (re-framing pass: launch-buckets added per [`docs/launch/definition-of-done.md`](../launch/definition-of-done.md))
 **Seed:** [`docs/audits/2026-05-16-102-revalidation.md`](../audits/2026-05-16-102-revalidation.md) + the two known deltas since (whatsapp_sends DONE in #141; #142–#145 filed alongside #141).
 **Re-frame:** [`docs/audits/2026-05-17-launch-reframe-triage.md`](../audits/2026-05-17-launch-reframe-triage.md) — reconciled every item against main; assigned a launch-bucket. **`**Bucket:**` lines below classify each item as SHIP-BLOCKER (gates launch — see DoD § 2), POST-LAUNCH (real work; not launch-gating), or WONTFIX-WATCH (CLAUDE.md § 6 deferral).**
 

@@ -99,6 +99,7 @@ Skipping the resolver is explicitly non-conforming — restart the loop.
 | Bug fix | `tac-debug` → `tac-tdd` | Root cause identified before fix |
 | Refactor | `tac-code-review` → `tac-tdd` | Tests green before and after |
 | UI component | `tac-ui-authoring` + `tac-premium-patterns` | Token compliance + premium composition |
+| **Customer-facing UI (apps/web)** | [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) FIRST, then `tac-ui-authoring` + `tac-premium-patterns` | 8-area discipline + pre-PR checklist in § 8 |
 | Data / service layer | `tac-data-layer` | Architecture flow respected |
 | Schema / RLS / migrations / RPC | `tac-supabase-schema` | RLS by role + SECURITY DEFINER patterns |
 | Domain (shipments / manifests / AWBs) | `tac-domain-logistics` | Status lifecycles + branded types |

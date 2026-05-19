@@ -38,6 +38,7 @@ If no row matches, fall through to **§ 99 Defaults** — but flag the gap and c
 
 | Trigger phrase | Load |
 |---|---|
+| Any customer-facing surface in `apps/web/` — landing, marketing, public pages | [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](../../docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) **FIRST**, then the relevant specialist below |
 | "Build a component", "add a [button/card/form/table]" | [`tac-ui-authoring`](tac-ui-authoring/SKILL.md) |
 | "Build a hero", "KPI dashboard", "polish this section" | [`tac-premium-patterns`](tac-premium-patterns/SKILL.md) |
 | "Add hover", "animate this", "feels static", "polish the interaction" | [`tac-micro-interactions`](tac-micro-interactions/SKILL.md) |
