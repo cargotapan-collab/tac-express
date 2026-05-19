@@ -99,7 +99,7 @@ Four workstreams now exist (v1.2 added the customer-facing one):
 | **LB-2** | **PL-2b activation — live lead notification end-to-end** | Submit `/contact` on production. `contact_leads` row lands with `notification_status='sent'`; recipient phone receives the WhatsApp template message; the row's `whatsapp_send_id` resolves to a `whatsapp_sends` row with `status='sent'` | **OWNER** (template approval + WPBOX env + production submit; bundled because all three are owner-only inputs feeding the same e2e verification) | ~30 min after PI-1 + template approval lands | PI-1; Meta template approval |
 | ~~**LB-3**~~ | ~~#173 — design call on contrast approach + apply to remaining sites~~ | ✅ DONE 2026-05-19 — Option B class-redirect applied across 4 sites; `AXE_FAIL_ON_VIOLATIONS=1` flipped; all 9 carve pages × 3 viewports = 0 serious/critical | AGENT (Run 4 → PR #179) | closed | — |
 | **LB-4** | **SB-3 P1–P4 owner-prerequisites — verify in Supabase dashboard** | The 4 fill-in blocks in [`DATABASE-RESTORE.md § 2`](../runbooks/DATABASE-RESTORE.md#2-prerequisites-owner-confirmed--verify-before-launch) all checked: P1 Pro plan, P2 PITR enabled + retention, P3 daily backups, P4 Owner role | **OWNER** | ~10 min in Supabase dashboard | — |
-| **LB-5** | **Customer-facing WS-1.1 — replace hardcoded `localhost:3001` dashboard link in PublicNav with `NEXT_PUBLIC_DASHBOARD_URL`** | Reads from env var with build-time fallback that fails build if unset on production. Unit test asserts non-localhost in `VERCEL_ENV='production'`. Playwright smoke-test confirms working dashboard nav. See [`CUSTOMER-FACING-PLAN.md § 2.1`](CUSTOMER-FACING-PLAN.md). | **AGENT** | ~30 min agent session | Owner sets `NEXT_PUBLIC_DASHBOARD_URL` on apps/web Vercel project — see § 4.7 |
+| **LB-5** | **Customer-facing WS-1.1 — replace hardcoded `localhost:3001` dashboard link in PublicNav with `NEXT_PUBLIC_DASHBOARD_URL`** | Reads from env var with build-time fallback that fails build if unset on production. Unit test asserts non-localhost in `VERCEL_ENV='production'`. Playwright smoke-test confirms working dashboard nav. See [`CUSTOMER-FACING-PLAN.md § 2.1`](CUSTOMER-FACING-PLAN.md). | **AGENT** | ~30 min agent session | Owner sets `NEXT_PUBLIC_DASHBOARD_URL` on apps/web Vercel project — see § 4.6 |
 | **LB-6** | **Customer-facing WS-1.2 — wire 11 dead in-page anchors (`#features` / `#how-it-works` / `#tracking`) to real sections** | All 11 anchor links resolve. Playwright `landing.spec.ts` asserts navigation to each anchor produces `scrollTop > 100`. Owner-decided naming/IDs documented in PR. See [`CUSTOMER-FACING-PLAN.md § 2.2`](CUSTOMER-FACING-PLAN.md). | **AGENT** (bundled with LB-5 in one PR) | ~15 min agent session | — |
 
 **Total finite launch surface:** 1 production-incident + 5 launch-blockers = **6 closeable items.** Three are owner-only credential/permission acts (PI-1, LB-1, LB-4); one is owner-only template approval bundled with a production e2e (LB-2); **two are agent-only with a trivial owner env-var input (LB-5, LB-6)**. The agent now has an actionable launch-blocker queue.
@@ -261,7 +261,7 @@ Run 4 applied the owner-chosen Option B (class-redirect + typography-preserved) 
 #   P4 — Owner role on the project (recovery requires Owner)
 ```
 
-### 4.7 🚀 LB-5 — Set `NEXT_PUBLIC_DASHBOARD_URL` on apps/web Vercel project (~2 min)
+### 4.6 🚀 LB-5 — Set `NEXT_PUBLIC_DASHBOARD_URL` on apps/web Vercel project (~2 min)
 
 ```text
 # This single env-var set is the only owner input needed for LB-5.
@@ -281,7 +281,7 @@ Vercel → Project: apps/web → Settings → Environment Variables → Add:
 
 LB-6 has no owner action — it ships in the same PR as LB-5 and only needs the agent's section-id assignments + Playwright assertions.
 
-### 4.8 📋 Housekeeping (not launch-gating, but tidies the tracker)
+### 4.7 📋 Housekeeping (not launch-gating, but tidies the tracker)
 
 ```text
 # Per prior-session audits + this reconciliation:
@@ -307,7 +307,7 @@ gh issue reopen 94
 
 | Order | Item | Pre-requisite | Estimate |
 |---|---|---|---|
-| 1 | **LB-5 + LB-6 — WS-1 customer-facing launch-blockers (single PR)**: replace `localhost:3001` hardcode with `NEXT_PUBLIC_DASHBOARD_URL` + wire 11 dead in-page anchors | Owner sets `NEXT_PUBLIC_DASHBOARD_URL` on apps/web Vercel project (§ 4.7) — ~2 min owner action | ~45 min agent session |
+| 1 | **LB-5 + LB-6 — WS-1 customer-facing launch-blockers (single PR)**: replace `localhost:3001` hardcode with `NEXT_PUBLIC_DASHBOARD_URL` + wire 11 dead in-page anchors | Owner sets `NEXT_PUBLIC_DASHBOARD_URL` on apps/web Vercel project (§ 4.6) — ~2 min owner action | ~45 min agent session |
 | 2 | ~~LB-3 follow-through~~ | ✅ DONE 2026-05-19 (PR #179) | — |
 | 3 | Visual-snapshot baselines for apps/web (PL-4 follow-up) | Carve is contrast-stable as of 2026-05-19 (PR #179) — snapshots can be captured against current main | ~1 session |
 | 4 | POST-LAUNCH burn-down (one PR per item: #130, #131, #143, #144, #145, #151, #169) | Launch DONE | per-item |

@@ -35,7 +35,7 @@ Three artifacts shipped (zero feature code):
 
 - **[`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md)** — the new standing standard for customer-facing UI sessions. Eight discipline areas, codebase examples, copy-pasteable PR checklist in § 8.
 - **[`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md)** — WS-1 through WS-4 sequenced, bucketed, dependency-noted. Honest bucketing: 2 LBs + 18 POST-LAUNCH.
-- **[`docs/launch/MASTER-LAUNCH-PLAN.md` v1.2](launch/MASTER-LAUNCH-PLAN.md)** — added LB-5 + LB-6 + § 4.7 owner env-var input + § 1.4 customer-facing workstream entry (on top of v1.1's LB-3 closure).
+- **[`docs/launch/MASTER-LAUNCH-PLAN.md` v1.2](launch/MASTER-LAUNCH-PLAN.md)** — added LB-5 + LB-6 + § 4.6 owner env-var input + § 1.4 customer-facing workstream entry (on top of v1.1's LB-3 closure).
 
 Workflow integration:
 - AGENTS.md § 0 now points at the playbook as the customer-facing UI standard.
@@ -59,7 +59,7 @@ Then read in order:
 
 1. [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) — the new standing standard.
 2. [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md) — § 2 (WS-1, the next task's spec) + § 9 (audit source references).
-3. [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md) — § 2.2 (LB-5 + LB-6) + § 4.7 (owner env-var input).
+3. [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md) — § 2.2 (LB-5 + LB-6) + § 4.6 (owner env-var input).
 4. [`docs/retros/2026-05-19-ux-playbook-and-plan.md`](retros/2026-05-19-ux-playbook-and-plan.md) — full session retro.
 5. § 6 of this file — the next task.
 
@@ -97,7 +97,7 @@ Then read in order:
 - **Scope:** see [`CUSTOMER-FACING-PLAN.md § 2`](launch/CUSTOMER-FACING-PLAN.md) for the full WS-1 spec.
   - LB-5: replace hardcoded `http://localhost:3001` in `packages/ui/src/components/composed/public-nav.tsx` with `NEXT_PUBLIC_DASHBOARD_URL`. Both mobile + desktop nav share the source. Build-time fallback fails build (NOT silently renders localhost) if env var unset.
   - LB-6: add `id="features"` / `id="how-it-works"` / `id="tracking"` to the SystemCompatibility, BusinessUtility, and Hero LOCATE-form sections respectively in `packages/ui/src/components/composed/wasteland-landing.tsx`. Or, owner-decision: rewire nav labels to dedicated routes. Default: keep labels, assign IDs.
-- **Gated on:** owner sets `NEXT_PUBLIC_DASHBOARD_URL` on the apps/web Vercel project per [`MASTER-LAUNCH-PLAN.md § 4.7`](launch/MASTER-LAUNCH-PLAN.md). ~2 min owner action. Once set, the agent can run the WS-1 PR start-to-finish in ~45 min.
+- **Gated on:** owner sets `NEXT_PUBLIC_DASHBOARD_URL` on the apps/web Vercel project per [`MASTER-LAUNCH-PLAN.md § 4.6`](launch/MASTER-LAUNCH-PLAN.md). ~2 min owner action. Once set, the agent can run the WS-1 PR start-to-finish in ~45 min.
 - **Done criterion:** Playwright `apps/web/e2e/landing.spec.ts` asserts (a) Dashboard nav goes to non-localhost in `VERCEL_ENV='production'` and (b) navigation to `#features` / `#how-it-works` / `#tracking` produces `scrollTop > 100`. Five quality gates green. UI playbook § 8 checklist filled in PR body.
 - **Pre-PR skill load:** load [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) FIRST, then `tac-ui-authoring`, then `tac-tdd` for the smoke tests.
 - **Estimate:** ~45 min agent session.
@@ -114,7 +114,7 @@ See [`docs/retros/2026-05-19-ux-playbook-and-plan.md § 8`](retros/2026-05-19-ux
 2. 🚀 **LB-1** — Run SB-2 Sentry alert provisioning (~20 min). See [`§ 4.2`](launch/MASTER-LAUNCH-PLAN.md).
 3. 🚀 **LB-2** — Activate PL-2b live notifications (after PI-1 + template approval). See [`§ 4.3`](launch/MASTER-LAUNCH-PLAN.md). ~30 min.
 4. 🛠️ **LB-4** — Verify SB-3 prereqs in Supabase dashboard. See [`§ 4.5`](launch/MASTER-LAUNCH-PLAN.md). ~10 min.
-5. 🚀 **NEW v1.2 — LB-5 env-var input** — Set `NEXT_PUBLIC_DASHBOARD_URL` on the apps/web Vercel project (Production + Preview + Development). ~2 min. The single input that unblocks WS-1. See [`§ 4.7`](launch/MASTER-LAUNCH-PLAN.md).
+5. 🚀 **NEW v1.2 — LB-5 env-var input** — Set `NEXT_PUBLIC_DASHBOARD_URL` on the apps/web Vercel project (Production + Preview + Development). ~2 min. The single input that unblocks WS-1. See [`§ 4.6`](launch/MASTER-LAUNCH-PLAN.md).
 6. **Cross-feature dependency note:** WS-3 and WS-4 both depend on PI-1 for production functionality. PI-1 is the load-bearing dependency for the customer-facing workstream's value-realization.
 
 🤖 Handoff written by Claude (Opus 4.7), 2026-05-19, v1.2.

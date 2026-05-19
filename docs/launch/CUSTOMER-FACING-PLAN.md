@@ -356,7 +356,7 @@ WS-2A / WS-2B / WS-2C / WS-2D / WS-3 / WS-4A / WS-4B are all POST-LAUNCH; they a
 - MASTER-LAUNCH-PLAN.md § 1.4 workstream reconciliation — adds "Customer-Facing — `CUSTOMER-FACING-PLAN.md`" as a fourth workstream.
 - MASTER-LAUNCH-PLAN.md § 2.2 — adds LB-5 and LB-6 rows.
 - MASTER-LAUNCH-PLAN.md § 3 burn-down — adds LB-5/LB-6 as independent (parallel to PI-1, LB-1, LB-4).
-- MASTER-LAUNCH-PLAN.md § 4 OWNER tasks — adds § 4.7 for `NEXT_PUBLIC_DASHBOARD_URL` env-var setting (the only owner side of LB-5).
+- MASTER-LAUNCH-PLAN.md § 4 OWNER tasks — adds § 4.6 for `NEXT_PUBLIC_DASHBOARD_URL` env-var setting (the only owner side of LB-5); the existing Housekeeping section renumbers § 4.6 → § 4.7.
 
 The actual edits to MASTER-LAUNCH-PLAN.md ship in this same PR.
 
