@@ -20,9 +20,11 @@
 #   horizontal-overflow check per page
 # - a11y (desktop / 375w mobile / 768w tablet) — axe-core WCAG 2.1 AA scan
 #
-# AXE_FAIL_ON_VIOLATIONS is OFF here. The apps/web carve has known
-# color-contrast findings (issue #173) that are in design-review. Flip the
-# env var when #173 is resolved.
+# AXE_FAIL_ON_VIOLATIONS is ON. LB-3 / issue #173 closed: the 4 contrast
+# sites the carve scan surfaced (landing-mobile testimonial, pricing
+# "Most popular" badge, /track/[awb] AWB number + helper text) all
+# render at WCAG 2.1 AA contrast. This gate is what stops a future PR
+# from regressing the carve.
 
 name: e2e-web
 
@@ -51,10 +53,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      # OFF until #173 (landing color-contrast) is resolved + the remaining
-      # 3 sites surfaced by the carve.a11y scan are cleaned up. After that,
-      # flip to "1" to gate future regressions.
-      AXE_FAIL_ON_VIOLATIONS: "0"
+      # ON: LB-3 / #173 fully resolved (PR superseding #176). All 9 carve
+      # pages × 3 viewports return 0 serious/critical color-contrast
+      # findings. Keep this at "1" so a future regression on any of the
+      # 4 sites (or anywhere on the carve) fails CI.
+      AXE_FAIL_ON_VIOLATIONS: "1"
       # apps/web's dev server needs Supabase env to import the database
       # client without throwing — the actual values can be any well-formed
       # placeholder for the static-render pages, but the contact form

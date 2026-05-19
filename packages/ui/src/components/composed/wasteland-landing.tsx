@@ -321,7 +321,7 @@ function MetricCard({
       }}
       className={`bg-background border-2 border-border p-8 relative flex flex-col group hover:border-primary transition-colors shadow-brutal ${colSpanClass ?? ""}`}
     >
-      <div className="absolute -top-3 left-6 bg-primary text-primary-foreground px-2 py-0.5 tac-mono-label">{id}</div>
+      <div className="absolute -top-3 left-6 bg-primary text-primary-foreground px-2 py-0.5 tac-mono-label-base">{id}</div>
       <div className="tac-mono-label text-muted-foreground mb-8 border-b border-border pb-2">{title}</div>
       <div className="t-data text-foreground mb-2">{metric}</div>
       <div className="tac-mono-label text-primary mb-4 normal-case">{subtitle}</div>
@@ -360,13 +360,22 @@ function ResultsChart() {
              <span aria-hidden className="w-2 h-2 bg-secondary"></span>
            </div>
 
+           {/* LB-3 / #173 — Option B redirect (landing-mobile): the testimonial's
+             * inline "TAC Express" highlight used text-primary on bg-card at
+             * 18px bold = 3.8:1, failing AA (normal-text bucket for bold-18px
+             * since WCAG large-text floor is 14pt = 18.67px bold). The brand
+             * mention is already typographically differentiated by font-bold
+             * + the parent's font-mono + tracking-wide + uppercase. Inheriting
+             * text-foreground from the parent removes the failing color
+             * override; the bracketed "reduced costs by 27%" callout keeps
+             * its inverse bg-foreground/text-background emphasis path. */}
            <p className="font-mono text-lg md:text-xl text-foreground font-medium uppercase tracking-wide leading-relaxed max-w-2xl mb-8">
-             &quot;Since implementing the telematics system from <span className="text-primary font-bold">TAC Express</span>, our fleet has reached an entirely new level of efficiency. Over six months, we have <span className="bg-foreground text-background px-2 py-1 font-bold">reduced costs by 27%</span>.&quot;
+             &quot;Since implementing the telematics system from <span className="font-bold">TAC Express</span>, our fleet has reached an entirely new level of efficiency. Over six months, we have <span className="bg-foreground text-background px-2 py-1 font-bold">reduced costs by 27%</span>.&quot;
            </p>
 
            <div className="flex items-center gap-4 mb-12 border-b border-border pb-8">
              <div className="w-12 h-12 bg-primary border-2 border-primary flex items-center justify-center flex-shrink-0">
-               <span className="tac-mono-label text-primary-foreground select-none">TH</span>
+               <span className="font-mono font-bold text-sm tracking-wider uppercase text-primary-foreground select-none">TH</span>
              </div>
              <div>
                <div className="tac-mono-label text-foreground normal-case">Tapan Hidangmayum</div>

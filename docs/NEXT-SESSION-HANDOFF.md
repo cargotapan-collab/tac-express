@@ -1,10 +1,10 @@
 # Next-Session Handoff — Start Here
 
-> **The launch authority is now [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md).** That single file is the reconciled rollup across every workstream (engineering DoD + product-launch readiness + Run-series outputs incl. #173/#174). Read it FIRST. The per-bar files (`definition-of-done.md` / `product-launch-readiness.md`) keep their SB-N / PL-N nomenclature and per-item testable-done criteria; the master plan is the rollup.
+> **The launch authority is [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md).** That single file is the reconciled rollup across every workstream (engineering DoD + product-launch readiness + Run-series outputs incl. #173/#174). Read it FIRST. The per-bar files (`definition-of-done.md` / `product-launch-readiness.md`) keep their SB-N / PL-N nomenclature and per-item testable-done criteria; the master plan is the rollup.
 
 **Last code commit on `main`:** PR #177 — `ci: apps/web e2e workflow — smoke + a11y across 3 viewports (PL-4 followup)`. Merge SHA `180b93a`.
-**This handoff covers:** the master-reconciliation session (2026-05-18) which produced MASTER-LAUNCH-PLAN.md and reclassified #174 as a PRODUCTION-INCIDENT. See [`docs/retros/2026-05-18-master-reconciliation.md`](retros/2026-05-18-master-reconciliation.md).
-**Author of last session:** Claude Code (Opus 4.7) in PM + CTO mode (delegated by owner).
+**Pending merge (Run 4):** `feat/lb3-contrast-option-b` — closes LB-3 / #173. Supersedes PR #176.
+**Author of last session:** Claude Code (Run 4, 2026-05-19). See [`docs/retros/2026-05-19-lb3-contrast-option-b.md`](retros/2026-05-19-lb3-contrast-option-b.md).
 
 ---
 
@@ -12,26 +12,26 @@
 
 > # **NOT READY** (BOOLEAN per the master plan)
 
-**The finite launch surface is 5 items** (1 PRODUCTION-INCIDENT + 4 LAUNCH-BLOCKERs). Every Tier-1 item is currently owner-gated. The agent's launch-blocker queue is empty until owner inputs land.
+LB-3 closed by Run 4. **The remaining finite launch surface is 4 items** (1 PRODUCTION-INCIDENT + 3 LAUNCH-BLOCKERs). All four are owner-gated. The agent's launch-blocker queue is empty.
 
 | | |
 |---|---|
 | 🚨 PI-1 | Activate migration-deploy pipeline + backfill 4 migrations (`contact_leads` + `whatsapp_sends` + 2 audit-logs migrations) |
 | 🚀 LB-1 | SB-2 Sentry alert provisioning (~20 min owner-runnable) |
 | 🚀 LB-2 | PL-2b live notifications (env vars + Meta template approval + e2e verify) |
-| 🛠️ LB-3 | #173 contrast — owner design call on PR #176, then agent applies to 3 sites |
+| ~~🛠️ LB-3~~ | ✅ **DONE 2026-05-19** — Run 4 PR applies Option B (class-redirect, typography-preserved) across all 4 sites the carve scan surfaced; `AXE_FAIL_ON_VIOLATIONS=1` flipped |
 | 🛠️ LB-4 | SB-3 P1–P4 prerequisites in Supabase dashboard |
 
-Critical path: ~1 hour of owner work + Meta template-approval latency (24–48h external) + ~1 agent session for LB-3 follow-through. See the full sequence in [`MASTER-LAUNCH-PLAN.md § 3`](launch/MASTER-LAUNCH-PLAN.md).
+Critical path: ~1 hour of owner work + Meta template-approval latency (24–48h external). See the full sequence in [`MASTER-LAUNCH-PLAN.md § 3`](launch/MASTER-LAUNCH-PLAN.md).
 
 ---
 
-## 2. Master-reconciliation evidence summary
+## 2. Run-4 evidence summary (re-verified 2026-05-19)
 
-- **#174 PRODUCTION-INCIDENT confirmed via Supabase MCP** — `mcp__supabase__list_tables` on project `mdvnphbucrpspntrezmj` returned 13 tables; neither `contact_leads` nor `whatsapp_sends` is in remote `public`. `/api/contact` would 500 on first real submission.
-- **SB-2 NOT-RUN confirmed via Sentry MCP** — zero `api/diagnostics`-tagged issues across project lifetime; zero unresolved last 7 days. The synthetic event from the runbook's § 5.3 has never landed.
-- **No active production error signal** — separate from SB-2 (no plumbing means a real incident wouldn't notify the owner anyway).
-- **WastelandLanding "deprecated" claim** — false. Component uses current Violet Grid tokens; rename is cosmetic POST-LAUNCH-POLISH. Documented across runs.
+- **#174 PRODUCTION-INCIDENT still open** — `mcp__supabase__list_tables` on project `mdvnphbucrpspntrezmj` continues to show `contact_leads` + `whatsapp_sends` ABSENT. `/api/contact` still 500s on first real submission.
+- **SB-2 still NOT-RUN** — zero `api/diagnostics`-tagged issues across project lifetime. Owner-runnable per LB-1.
+- **LB-3 closed via empirical axe verification.** Production build of `apps/web` served locally; axe scan across 27 tests (9 pages × 3 viewports) — 0 serious/critical color-contrast findings. `.github/workflows/e2e-web.yml` now gates regressions.
+- **PR #176 superseded** — Run 4 carries the full fix (including the 3 sites #176 deliberately left open for design review).
 
 ---
 
@@ -40,15 +40,15 @@ Critical path: ~1 hour of owner work + Meta template-approval latency (24–48h 
 ```bash
 git checkout main && git pull origin main
 pnpm typecheck && pnpm lint && pnpm test
-# Expected: all green; 774+ unit tests + 117+ Playwright tests passing.
+# Expected: all green.
 pnpm audit --prod --audit-level moderate
 node scripts/sentry/lint-alert-rules.mjs
 ```
 
 Then read in order:
 
-1. [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md) — § 0–§ 3 for the 5-item finite picture.
-2. [`docs/retros/2026-05-18-master-reconciliation.md`](retros/2026-05-18-master-reconciliation.md) — § 1–§ 6 for the reconciliation discipline.
+1. [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md) — § 0–§ 3 for the 4-item finite picture.
+2. [`docs/retros/2026-05-19-lb3-contrast-option-b.md`](retros/2026-05-19-lb3-contrast-option-b.md) — § 2 PHASE-0 decision, § 4 verification, § 6 verdict reconciliation.
 3. § 6 of this file — the next task.
 
 ---
@@ -71,26 +71,31 @@ Then read in order:
 
 ## 5. Open items snapshot
 
-- **Open PRs:** 1 — [#176](https://github.com/cargotapan-collab/tac-express/pull/176) (a11y contrast demo; deliberately held for owner design review).
-- **Open issues:** 13 — all reconciled into [`MASTER-LAUNCH-PLAN.md` § 1.2](launch/MASTER-LAUNCH-PLAN.md).
+- **Open PRs:** 1 — Run 4 `feat/lb3-contrast-option-b` (this branch; closes LB-3). After merge → 0 open PRs.
+- **Open issues:** 12 (one less than prior — #173 closes on Run-4 merge). All reconciled into [`MASTER-LAUNCH-PLAN.md` § 1.2](launch/MASTER-LAUNCH-PLAN.md).
 
 ---
 
 ## 6. Next session's lead task
 
-**LB-3 follow-through — apply owner-chosen contrast approach to the 3 remaining sites + flip `AXE_FAIL_ON_VIOLATIONS=1`.**
+The agent's launch-blocker queue is **empty.** All 4 remaining items (PI-1 / LB-1 / LB-2 / LB-4) require owner inputs (credentials, template approval, or Supabase-dashboard verification) before any agent-actionable follow-up can begin.
 
-- **Gated on:** owner decision on PR #176 (which of token-scoped / class-redirect / per-site-shim approaches A/B/C — see master plan § 4.4).
-- **Owner-actionable or agent-actionable?** Currently **owner-gated**. The agent cannot start until a comment on PR #176 names an approach.
-- **Estimate:** 1 owner session (review + decision) + 1 agent session (apply to landing-mobile + pricing badge + /track/[awb] + flip env var + open follow-up PR).
-- **Cross-reference:** [`MASTER-LAUNCH-PLAN.md § 4.4`](launch/MASTER-LAUNCH-PLAN.md).
+Post-launch agent work available (non-launch-gating):
 
-If the owner instead prioritizes the PRODUCTION-INCIDENT or other LBs first (recommended), the agent has **no actionable launch-burn-down task** until at least one of PI-1 / LB-1 / LB-2 / LB-3 / LB-4 returns an actionable agent-side follow-up.
+- **Visual-snapshot baselines for apps/web** (PL-4 follow-up). The carve is now contrast-stable thanks to Run 4. Visual snapshots can be captured against the same production-build output. ~1 session.
+- **POST-LAUNCH burn-down** — one PR per item: #130, #131, #143, #144, #145, #151, #169. Each ~30 min to 1 hour. Per-item.
 
-Tier 2 / Tier 3 issues remain available (POST-LAUNCH burn-down once launch is READY), but the brief explicitly excludes them from PHASE 2 trivial-execution.
+POST-LAUNCH-SECURITY (#154, #157, #158) remain leave-OPEN-for-human-review per the autonomous-run policy.
 
 ---
 
 ## 7. OWNER ACTIONS — before next session
 
-See [`docs/retros/2026-05-18-master-reconciliation.md § 8`](retros/2026-05-18-master-reconciliation.md) — the consolidated 6-item list (5 launch-surface + 1 housekeeping). Most-urgent first: **PI-1** (production-incident → activate migration-deploy pipeline). Cross-referenced to [`MASTER-LAUNCH-PLAN.md § 4`](launch/MASTER-LAUNCH-PLAN.md).
+See [`MASTER-LAUNCH-PLAN.md § 4`](launch/MASTER-LAUNCH-PLAN.md) for the copy-pasteable steps:
+
+1. **PI-1 — activate migration-deploy pipeline** (most urgent; production-incident). 2 secrets + 1 variable + 1 `gh workflow run`.
+2. **LB-1 — provision Sentry alert rules** (~20 min). 1 `project:write` PAT + 1 script run + 1 verification curl.
+3. **LB-2 — PL-2b live notifications.** Depends on PI-1 + Meta template approval (24–48h external).
+4. **LB-4 — verify SB-3 prerequisites** in Supabase dashboard (~10 min).
+
+🤖 Handoff written by Claude (Run 4), 2026-05-19.

@@ -26,9 +26,28 @@ function TrackingResultView({ awb, shipment, events, className }: TrackingResult
         <RiSearchLine aria-hidden className="size-10 text-muted-foreground" />
         <span className="tac-mono-label text-muted-foreground">NOT FOUND</span>
         <h2 className="t-h3 text-foreground">
-          No shipment for <span className="font-mono text-primary tabular-nums">{awb}</span>
+          {/* LB-3 / #173 — Option B redirect (not-found state): the AWB
+            * echo in the NOT FOUND message used text-primary on the dashed
+            * empty-state card, computing 3.99:1 on dark mode at 18px (axe
+            * normal-text bucket). The error state already carries semantic
+            * emphasis via the SEARCH icon + "NOT FOUND" mono label — the
+            * brand-violet color was decorative, not load-bearing. The AWB
+            * span inherits the parent h2's text-foreground for AA-compliant
+            * contrast while keeping font-mono + tabular-nums for the
+            * data-emphasis affordance. */}
+          No shipment for <span className="font-mono tabular-nums">{awb}</span>
         </h2>
-        <p className="t-body-sm text-muted-foreground max-w-prose">
+        {/* LB-3 / #173 — Option B redirect (track-awb empty state): the
+          * helper text was text-muted-foreground (#6b6e73) on the dashed
+          * bg-muted/20 container (#1d1e21), computing 3.25:1 at 13px =
+          * fails AA (4.5:1). The empty-state container darkens the
+          * effective bg below what muted-foreground was tuned for; lifting
+          * to text-foreground/85 keeps the secondary-emphasis hierarchy
+          * relative to the h2 headline while crossing the AA floor. The
+          * /85 modifier is an existing Tailwind opacity utility (not a new
+          * token); on dark mode foreground (oklch 0.97) the 15% mix
+          * preserves contrast comfortably above 4.5:1. */}
+        <p className="t-body-sm text-foreground/85 max-w-prose">
           Verify the AWB and retry. AWBs follow the format TAC + 8–11 digits.
         </p>
         <Link
@@ -51,7 +70,16 @@ function TrackingResultView({ awb, shipment, events, className }: TrackingResult
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <p className="tac-mono-label text-muted-foreground mb-1">AWB Number</p>
-            <p className="t-h1 font-mono tabular-nums text-primary tracking-widest">
+            {/* LB-3 / #173 — Option B redirect: the AWB headline used
+              * text-primary (brand violet) on the surface-elevated card
+              * background, computing 3.99:1 contrast (just below the 4.5:1
+              * WCAG AA minimum for normal text — and this is 18pt, which
+              * counts as normal under WCAG large-text rules). The brand
+              * violet's role at this scale is "data-emphasis" — the
+              * existing text-foreground token is the design's neutral
+              * high-contrast pair for the elevated surface and reads as
+              * "data, important, not decorative". */}
+            <p className="t-h1 font-mono tabular-nums text-foreground tracking-widest">
               {shipment.awbNumber}
             </p>
           </div>
