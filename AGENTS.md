@@ -81,6 +81,10 @@ Adding a new skill OR a new trigger phrase REQUIRES a corresponding line in [`.c
 | [`conventions/subagent-routing.md`](.claude/skills/conventions/subagent-routing.md) | Native Agent tool vs inline work |
 | [`conventions/friction-protocol.md`](.claude/skills/conventions/friction-protocol.md) | Response when asked to violate a law |
 
+### Customer-facing UI playbook — MANDATORY for any apps/web surface
+
+[`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) is the standing operating procedure for every customer-facing UI session. Load it BEFORE writing or modifying any landing page, marketing page, public surface, or shared primitive consumed by `apps/web`. It codifies eight discipline areas (token discipline, type scale, spacing rhythm, component location, opacity-modifier rule, state choreography, pre-merge gate, copy-pasteable PR checklist) with concrete codebase examples. Established 2026-05-19 after the landing audit found drift in five of those areas at once. The pre-PR UI checklist in § 8 of the playbook is a required section in every customer-facing UI PR body.
+
 ### Pattern catalog (CodeRabbit findings)
 
 Mandatory pre-read when writing tests, mock-builders, sentinels, regex parsers, or marker comments: [`docs/patterns/coderabbit-catalog.md`](docs/patterns/coderabbit-catalog.md). 9 entries across 4 categories (test-assertion-strength, code-reference-stability, type-safety, abstraction-timing). Several are permanent CodeRabbit-memory learnings — writing the pattern correctly first time saves the review round.

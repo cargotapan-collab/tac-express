@@ -34,3 +34,6 @@
 {"intent":"audit the dashboard for design drift","expected":["tac-code-review","tac-design-tokens"],"tags":["review","design"]}
 {"intent":"mock the database for this test","expected":["tac-tdd","tac-data-layer"],"tags":["tdd","anti-pattern"]}
 {"intent":"the invoice page won't print correctly","expected":["tac-debug","tac-domain-logistics"],"tags":["debug","domain","print"]}
+{"intent":"work on the landing page or any customer-facing public surface","expected":["docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md","tac-ui-authoring"],"tags":["ui","customer-facing","playbook"]}
+{"intent":"add a hero or marketing section to apps/web","expected":["docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md","tac-premium-patterns"],"tags":["ui","customer-facing","playbook","premium"]}
+{"intent":"review a customer-facing UI PR before merge","expected":["docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md","tac-ui-rubric","tac-code-review"],"tags":["ui","review","playbook","pre-merge"]}

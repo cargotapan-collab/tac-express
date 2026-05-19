@@ -1,10 +1,11 @@
 # TAC Express — MASTER LAUNCH PLAN
 
-> **Authority:** this file is the single, reconciled launch plan. It supersedes the *scope* of [`docs/launch/definition-of-done.md`](definition-of-done.md) (engineering) and [`docs/launch/product-launch-readiness.md`](product-launch-readiness.md) (product) as the **unified** burn-down. Those two files remain the per-bar detail; this file is the rollup + ordering.
+> **Authority:** this file is the single, reconciled launch plan. It supersedes the *scope* of [`docs/launch/definition-of-done.md`](definition-of-done.md) (engineering) and [`docs/launch/product-launch-readiness.md`](product-launch-readiness.md) (product) AND the customer-facing slice of [`docs/launch/CUSTOMER-FACING-PLAN.md`](CUSTOMER-FACING-PLAN.md) as the **unified** burn-down. Those three files remain the per-workstream detail; this file is the rollup + ordering.
 
-**Version:** 1.1 — LB-3 closed; reconciled 2026-05-19.
-**Authority chain:** [`AGENTS.md` § 0](../../AGENTS.md) → THIS FILE → `definition-of-done.md` + `product-launch-readiness.md` → [`docs/backlog/production-readiness.md`](../backlog/production-readiness.md).
-**Main HEAD at last reconciliation:** `180b93a` (`ci: apps/web e2e workflow — smoke + a11y across 3 viewports (PL-4 followup) (#177)`).
+**Version:** 1.2 — customer-facing reconciliation (LB-5 + LB-6 added), 2026-05-19.
+**Previous versions:** 1.1 — LB-3 closed (2026-05-19, PR #179). 1.0 — initial master reconciliation (2026-05-18, PR #178).
+**Authority chain:** [`AGENTS.md` § 0](../../AGENTS.md) → THIS FILE → `definition-of-done.md` + `product-launch-readiness.md` + `CUSTOMER-FACING-PLAN.md` → [`docs/backlog/production-readiness.md`](../backlog/production-readiness.md).
+**Main HEAD at v1.2 reconciliation:** `c21e56b` (`fix(a11y): close LB-3 / #173 — Option B class-redirect for WCAG AA contrast (#179)`).
 
 ---
 
@@ -12,7 +13,7 @@
 
 > # **NOT READY**
 
-The verdict is BOOLEAN — `engineering_ready AND product_ready`. **Three** launch-blockers remain — all owner-gated. LB-3 (contrast / #173) closed by the PR superseding #176; the agent-actionable burn-down is now empty. PI-1, LB-1, LB-2, LB-4 stay open and owner-blocked.
+The verdict is BOOLEAN — `engineering_ready AND product_ready AND customer_facing_ready`. **Five** launch-blockers remain. v1.1 closed LB-3 (contrast / #173). v1.2 added LB-5 + LB-6 from the customer-facing workstream — **both agent-actionable**, gated only on a 2-min owner env-var input. The agent-actionable launch-blocker queue is no longer empty. PI-1, LB-1, LB-2, LB-4 stay owner-blocked.
 
 **Evidence trail (re-verified 2026-05-19):**
 
@@ -66,13 +67,14 @@ All 14 PRs in the #162–#177 range are CLOSED or MERGED, except #176 (deliberat
 
 ### 1.4 Workstream reconciliation
 
-Three workstreams existed before this session:
+Four workstreams now exist (v1.2 added the customer-facing one):
 
-| Workstream | Authority file | Outstanding items pre-reconciliation |
+| Workstream | Authority file | Outstanding items |
 |---|---|---|
 | Engineering DoD | `definition-of-done.md` | SB-2 only; SB-3 P1–P4 prereqs |
-| Product-launch readiness | `product-launch-readiness.md` | PL-2b live-activation; 3 contrast sites; visual-snapshot baselines |
-| Run-series (#167–#177) | — (tracked via #167 + retros) | #173, #174 surfaced; #175 + #177 shipped; #176 held |
+| Product-launch readiness | `product-launch-readiness.md` | PL-2b live-activation; visual-snapshot baselines (contrast closed) |
+| Run-series (#167–#179) | — (tracked via #167 + retros) | #173, #174 surfaced; #175 + #177 + #179 shipped (#179 closes #173); #176 superseded by #179 |
+| **Customer-facing (v1.2)** | [`CUSTOMER-FACING-PLAN.md`](CUSTOMER-FACING-PLAN.md) | **WS-1** (LB-5 + LB-6 — added to § 2.2); WS-2 / WS-3 / WS-4 (POST-LAUNCH; tracked in the customer-facing plan, not duplicated here) |
 
 **The reconciliation:** every Run-series finding maps onto a row in the unified list below. Specifically:
 - #174 promotes to **PRODUCTION-INCIDENT** — NOT previously accounted for in either authority file.
@@ -89,16 +91,18 @@ Three workstreams existed before this session:
 |---|---|---|---|---|
 | **PI-1** | **Activate the migration-deploy pipeline + run the one-time backfill (#174)** | `SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('contact_leads','whatsapp_sends')` returns BOTH rows on remote `mdvnphbucrpspntrezmj`. Verified via Supabase MCP `list_tables` post-deploy. | **OWNER** (irreversible production write; secret-bearing) | ~10 min after secrets set |
 
-### 2.2 LAUNCH-BLOCKER — 3 (finite, closeable; LB-3 closed 2026-05-19)
+### 2.2 LAUNCH-BLOCKER — 5 (finite, closeable; LB-3 closed 2026-05-19; LB-5 + LB-6 added 2026-05-19 v1.2)
 
 | ID | Item | Done criterion (testable) | Owner / Agent | Estimate | Depends on |
 |---|---|---|---|---|---|
 | **LB-1** | **SB-2 — Sentry alert provisioning** | `scripts/sentry/create-alert-rules.mjs` run with `project:write` token; at least one rule fires end-to-end; an `api/diagnostics`-tagged synthetic event visible via Sentry MCP `search_issues` for `tapan-cargo-az/javascript-nextjs` | **OWNER** (owner-only credential per handoff do-NOT list #4) | ~20 min |
 | **LB-2** | **PL-2b activation — live lead notification end-to-end** | Submit `/contact` on production. `contact_leads` row lands with `notification_status='sent'`; recipient phone receives the WhatsApp template message; the row's `whatsapp_send_id` resolves to a `whatsapp_sends` row with `status='sent'` | **OWNER** (template approval + WPBOX env + production submit; bundled because all three are owner-only inputs feeding the same e2e verification) | ~30 min after PI-1 + template approval lands | PI-1; Meta template approval |
-| ~~**LB-3**~~ | ~~#173 — design call on contrast approach + apply to remaining sites~~ | ✅ DONE 2026-05-19 — Option B class-redirect applied across 4 sites; `AXE_FAIL_ON_VIOLATIONS=1` flipped; all 9 carve pages × 3 viewports = 0 serious/critical | AGENT (Run 4) | closed | — |
+| ~~**LB-3**~~ | ~~#173 — design call on contrast approach + apply to remaining sites~~ | ✅ DONE 2026-05-19 — Option B class-redirect applied across 4 sites; `AXE_FAIL_ON_VIOLATIONS=1` flipped; all 9 carve pages × 3 viewports = 0 serious/critical | AGENT (Run 4 → PR #179) | closed | — |
 | **LB-4** | **SB-3 P1–P4 owner-prerequisites — verify in Supabase dashboard** | The 4 fill-in blocks in [`DATABASE-RESTORE.md § 2`](../runbooks/DATABASE-RESTORE.md#2-prerequisites-owner-confirmed--verify-before-launch) all checked: P1 Pro plan, P2 PITR enabled + retention, P3 daily backups, P4 Owner role | **OWNER** | ~10 min in Supabase dashboard | — |
+| **LB-5** | **Customer-facing WS-1.1 — replace hardcoded `localhost:3001` dashboard link in PublicNav with `NEXT_PUBLIC_DASHBOARD_URL`** | Reads from env var with build-time fallback that fails build if unset on production. Unit test asserts non-localhost in `VERCEL_ENV='production'`. Playwright smoke-test confirms working dashboard nav. See [`CUSTOMER-FACING-PLAN.md § 2.1`](CUSTOMER-FACING-PLAN.md). | **AGENT** | ~30 min agent session | Owner sets `NEXT_PUBLIC_DASHBOARD_URL` on apps/web Vercel project — see § 4.6 |
+| **LB-6** | **Customer-facing WS-1.2 — wire 11 dead in-page anchors (`#features` / `#how-it-works` / `#tracking`) to real sections** | All 11 anchor links resolve. Playwright `landing.spec.ts` asserts navigation to each anchor produces `scrollTop > 100`. Owner-decided naming/IDs documented in PR. See [`CUSTOMER-FACING-PLAN.md § 2.2`](CUSTOMER-FACING-PLAN.md). | **AGENT** (bundled with LB-5 in one PR) | ~15 min agent session | — |
 
-**Total finite launch surface:** 1 production-incident + 3 launch-blockers = **4 closeable items.** Three are owner-only credential/permission acts (PI-1, LB-1, LB-4); one is owner-only template approval bundled with a production e2e (LB-2). The agent has zero independently-actionable launch-blocker work pending owner inputs.
+**Total finite launch surface:** 1 production-incident + 5 launch-blockers = **6 closeable items.** Three are owner-only credential/permission acts (PI-1, LB-1, LB-4); one is owner-only template approval bundled with a production e2e (LB-2); **two are agent-only with a trivial owner env-var input (LB-5, LB-6)**. The agent now has an actionable launch-blocker queue.
 
 ### 2.3 POST-LAUNCH — 7
 
@@ -143,11 +147,13 @@ PI-1 ──┬──> LB-2 (depends on PI-1's tables existing + template approva
 LB-1 ──┘  (independent — owner can run in parallel with PI-1)
 
 LB-4 (independent — owner-only Supabase-dashboard verification)
+
+LB-5 + LB-6 (independent — single agent PR; only owner input is the NEXT_PUBLIC_DASHBOARD_URL env-var setting on Vercel)
 ```
 
-LB-3 closed 2026-05-19 (Run 4 PR supersedes #176).
+LB-3 closed 2026-05-19 (PR #179 supersedes #176).
 
-**Critical-path estimate:** ~1 hour of owner work + Meta template-approval latency (external, typically 24–48h). The launch verdict flips to READY once all 4 remaining items pass their done-criteria.
+**Critical-path estimate:** ~1 hour of owner work + Meta template-approval latency (external, typically 24–48h) + ~45 min agent session for WS-1 (LB-5 + LB-6 together). The launch verdict flips to READY once all 5 remaining items pass their done-criteria.
 
 ---
 
@@ -255,7 +261,27 @@ Run 4 applied the owner-chosen Option B (class-redirect + typography-preserved) 
 #   P4 — Owner role on the project (recovery requires Owner)
 ```
 
-### 4.6 📋 Housekeeping (not launch-gating, but tidies the tracker)
+### 4.6 🚀 LB-5 — Set `NEXT_PUBLIC_DASHBOARD_URL` on apps/web Vercel project (~2 min)
+
+```text
+# This single env-var set is the only owner input needed for LB-5.
+# Without it, the agent's WS-1 PR cannot ship — the build-time fallback
+# fails the build deliberately to prevent another localhost regression.
+
+Vercel → Project: apps/web → Settings → Environment Variables → Add:
+
+  Key:    NEXT_PUBLIC_DASHBOARD_URL
+  Value:  https://dashboard.tacexpress.com         # production
+          (or the verified production dashboard hostname)
+  Env:    Production + Preview + Development (all 3)
+
+# After setting: trigger a redeploy to pick the value up, OR let the
+# next WS-1 PR's CI build verify the env is visible.
+```
+
+LB-6 has no owner action — it ships in the same PR as LB-5 and only needs the agent's section-id assignments + Playwright assertions.
+
+### 4.7 📋 Housekeeping (not launch-gating, but tidies the tracker)
 
 ```text
 # Per prior-session audits + this reconciliation:
@@ -281,12 +307,14 @@ gh issue reopen 94
 
 | Order | Item | Pre-requisite | Estimate |
 |---|---|---|---|
-| 1 | ~~LB-3 follow-through~~ | ✅ DONE 2026-05-19 (Run 4) | — |
-| 2 | Visual-snapshot baselines for apps/web (PL-4 follow-up) | Carve is contrast-stable as of 2026-05-19 — snapshots can be captured against this branch's `apps/web build` output | ~1 session |
-| 3 | POST-LAUNCH burn-down (one PR per item: #130, #131, #143, #144, #145, #151, #169) | Launch DONE | per-item |
+| 1 | **LB-5 + LB-6 — WS-1 customer-facing launch-blockers (single PR)**: replace `localhost:3001` hardcode with `NEXT_PUBLIC_DASHBOARD_URL` + wire 11 dead in-page anchors | Owner sets `NEXT_PUBLIC_DASHBOARD_URL` on apps/web Vercel project (§ 4.6) — ~2 min owner action | ~45 min agent session |
+| 2 | ~~LB-3 follow-through~~ | ✅ DONE 2026-05-19 (PR #179) | — |
+| 3 | Visual-snapshot baselines for apps/web (PL-4 follow-up) | Carve is contrast-stable as of 2026-05-19 (PR #179) — snapshots can be captured against current main | ~1 session |
+| 4 | POST-LAUNCH burn-down (one PR per item: #130, #131, #143, #144, #145, #151, #169) | Launch DONE | per-item |
+| 5 | Customer-facing WS-2 / WS-3 / WS-4 (POST-LAUNCH; see [`CUSTOMER-FACING-PLAN.md`](CUSTOMER-FACING-PLAN.md)) | Per-WS dependencies; mostly launch-DONE | per-WS |
 | — | POST-LAUNCH-SECURITY (#154, #157, #158) | Launch DONE; leave OPEN for human review | n/a |
 
-**The agent's launch-blocker queue is empty until owner inputs land.** All three remaining LBs are owner-gated. See § 7.
+**The agent's launch-blocker queue now has order 1 (WS-1) as an actionable task.** LB-1 / LB-2 / LB-4 / PI-1 remain owner-only credential/permission work. See § 7.
 
 ---
 
@@ -300,10 +328,12 @@ The CI `Backlog references drift check` gate continues to guard `docs/backlog/pr
 
 ---
 
-## 7. PHASE 2 evaluation (this session)
+## 7. PHASE 2 evaluation (last updated v1.2, 2026-05-19)
 
 Brief: "If the first agent-task is small, self-contained, low-risk, and does NOT touch a money-flow or production-incident surface — execute it as a second PR this session. Otherwise STOP. Default to STOP."
 
-**The first agent-task on the burn-down (§ 5) was LB-3 follow-through.** Closed by Run 4 (this PR). The remaining § 5 items — visual-snapshot baselines + POST-LAUNCH burn-down — are explicitly post-launch / non-launch-gating. Tier 2 and Tier 3 items are explicitly NOT on the launch burn-down.
+**v1.0 (2026-05-18):** First agent-task was LB-3 follow-through, owner-gated on PR #176 review. PHASE 2 stopped.
+**v1.1 (2026-05-19, Run 4 / PR #179):** LB-3 closed; remaining § 5 items were all owner-gated or POST-LAUNCH. PHASE 2 stopped.
+**v1.2 (2026-05-19, this session):** Customer-facing reconciliation added LB-5 + LB-6 as agent-actionable. They are small (~45 min combined), self-contained (apps/web only), low-risk (UI fixes; no money-flow, no production-incident surface, no DB writes). **PHASE 2 candidate exists for the next session** — the WS-1 build session. This session (the playbook + plan session) does NOT execute the WS-1 build, because the brief explicitly restricts this session to playbook + plan + scan, no feature code. See [`CUSTOMER-FACING-PLAN.md`](CUSTOMER-FACING-PLAN.md).
 
-**PHASE 2 STOPS.** Run 4 ships LB-3 only; remaining work is owner-gated.
+**Next session's task:** WS-1 (LB-5 + LB-6 — one PR). [`docs/NEXT-SESSION-HANDOFF.md § 6`](../NEXT-SESSION-HANDOFF.md) names this.
