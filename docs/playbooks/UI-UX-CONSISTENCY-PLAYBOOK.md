@@ -187,14 +187,14 @@ When you need a semi-transparent color overlay, prefer the named overlay tokens 
 
 | Need | Use | Not |
 |---|---|---|
-| Soft primary tint (≈5%) | `bg-overlay-primary-soft` | `bg-primary/5` |
-| Subtle primary tint (≈10%) | `bg-overlay-primary-subtle` | `bg-primary/10` |
-| Medium primary tint (≈15%) | `bg-overlay-primary-medium` | `bg-primary/15` |
-| Strong primary tint (≈25%) | `bg-overlay-primary-strong` | `bg-primary/25` |
-| Soft fg overlay (≈4%) | `bg-overlay-fg-soft` | `bg-foreground/4` |
-| Subtle fg overlay (≈8%) | `bg-overlay-fg-subtle` | `bg-foreground/8` |
+| Soft primary tint (≈5%) | `bg-primary-soft` / `border-primary-soft` | `bg-primary/5` |
+| Subtle primary tint (≈10%) | `bg-primary-subtle` / `border-primary-subtle` | `bg-primary/10` |
+| Medium primary tint (≈15%) | `bg-primary-medium` / `border-primary-medium` | `bg-primary/15` or `bg-primary/20` |
+| Strong primary tint (≈25%) | `bg-primary-strong` / `border-primary-strong` | `bg-primary/25` or `bg-primary/30` |
+| Soft fg overlay (≈4%) | `bg-fg-soft` | `bg-foreground/4` |
+| Subtle fg overlay (≈8%) | `bg-fg-subtle` | `bg-foreground/8` |
 
-These tokens live at [globals.css:160-167 + 365-371](../../packages/ui/src/styles/globals.css) and use `color-mix(in oklch, var(--primary) N%, transparent)` — which means the SAME visual relationship holds in both light + dark mode (the alpha % is constant; the underlying color changes).
+The underlying CSS variables live at [globals.css:162-167 + 381-386](../../packages/ui/src/styles/globals.css) as `--overlay-primary-{soft,subtle,medium,strong}` / `--overlay-fg-{soft,subtle}` and are exposed as Tailwind utilities via `--color-primary-{soft,subtle,medium,strong}` / `--color-fg-{soft,subtle}` (see [globals.css:549-554](../../packages/ui/src/styles/globals.css)) — so the utility names are `bg-primary-soft` etc. (no `overlay-` prefix on the utility). They use `color-mix(in oklch, var(--primary) N%, transparent)`, meaning the SAME visual relationship holds in both light + dark mode (the alpha % is constant; the underlying color changes).
 
 ### When the bespoke /N is allowed
 

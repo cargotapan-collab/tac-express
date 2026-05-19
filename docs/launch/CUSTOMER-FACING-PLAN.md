@@ -6,7 +6,8 @@
 >
 > **Source audit:** the 2026-05-19 landing-page audit (score 72/100 — `ACCEPTABLE`, below the 75 pre-merge gate). The audit's C-1…C-5 critical defects + Fourteen-Laws table + PR-A…PR-D roadmap are the seed inputs. This file reclassifies each item into LAUNCH-BLOCKER vs POST-LAUNCH and sequences the work into PR-scale build sessions.
 >
-> **Version:** 1.0 — established 2026-05-19. Updated when WS items close or new findings emerge.
+> **Version:** 1.1 — WS-1 + WS-2 closed, 2026-05-19 (build session against the merged playbook).
+> **Previous:** 1.0 — established 2026-05-19 (PR #180).
 
 ---
 
@@ -20,23 +21,23 @@ This file plans them as **WS-1 → WS-4**: four discrete future build sessions w
 
 ## 1. Bucket totals
 
-| Bucket | WS items | LB count | POST-LAUNCH count |
-|---|---|---|---|
-| 🚀 LAUNCH-BLOCKER | WS-1 | 2 | 0 |
-| 📋 POST-LAUNCH (polish, perf, a11y, conversion) | WS-2 | 0 | 11 |
-| 📋 POST-LAUNCH (feature — UX migration) | WS-3 | 0 | 3 |
-| 📋 POST-LAUNCH (feature — new surface) | WS-4 | 0 | 4 (split 2 + 2 across two halves) |
-| **Total finite customer-facing surface** | 4 | **2** | **18** |
+| Bucket | WS items | Status |
+|---|---|---|
+| 🚀 LAUNCH-BLOCKER | WS-1 (LB-5 + LB-6) | ✅ DONE 2026-05-19 — landed in WS-1+WS-2 build PR |
+| 📋 POST-LAUNCH (polish — audit consistency pass) | WS-2 (all 6 items) | ✅ DONE 2026-05-19 — bundled with WS-1 in the same build PR |
+| 📋 POST-LAUNCH (feature — UX migration) | WS-3 | OPEN — next agent session |
+| 📋 POST-LAUNCH (feature — new surface) | WS-4 (A + B) | OPEN — PI-1-blocked for production functionality |
 
-**Net launch-surface impact:** the customer-facing workstream adds **2 LAUNCH-BLOCKERs** to the master plan. After PR #179 closed LB-3, the master plan stood at 1 PI + 3 LBs = 4 closeable items. After this reconciliation, **1 PI + 5 LBs = 6 closeable items**. See § 8 for the MASTER-LAUNCH-PLAN reconciliation.
+**Post-v1.1 launch surface:** WS-1's two LBs (LB-5 + LB-6) closed. Master plan goes from 1 PI + 5 LBs = 6 closeable → **1 PI + 3 LBs = 4 closeable**.
 
 The third audit-flagged candidate-blocker (the placeholder-contrast WCAG failure at the AWB input) was already covered by LB-3 (issue #173 — "Landing color-contrast WCAG AA"). LB-3 closed 2026-05-19 via PR #179 (Option B class-redirect across 4 contrast sites; `AXE_FAIL_ON_VIOLATIONS=1` gating regressions). Cross-referenced under WS-1 below but not double-counted. Verify in the WS-1 build session that PR #179's class-redirect covers the AWB-input placeholder; if not, file a small follow-up.
 
 ---
 
-## 2. WS-1 — Landing launch-blockers
+## 2. WS-1 — Landing launch-blockers ✅ DONE 2026-05-19
 
 **Bucket:** 🚀 LAUNCH-BLOCKER (BOTH items below pass the DoD hard test under "broken-irrecoverable-journey").
+**Status:** ✅ CLOSED — landed in the WS-1+WS-2 build PR. axe verified 0 serious/critical at desktop/mobile/tablet.
 **Source audit references:** [audit C-1, C-2, R-2, C-4](#9-audit-source-references).
 **Estimate:** 1 small agent session (~30 min).
 **Dependencies:** none — independent of PI-1, LB-1, LB-2, LB-3, LB-4.
@@ -88,10 +89,10 @@ The third audit-flagged candidate-blocker (the placeholder-contrast WCAG failure
 
 The audit's PR-B / PR-C / PR-D roadmap maps onto four coherent sub-PRs:
 
-### 3.1 WS-2A — Consistency pass (the PR-B equivalent)
+### 3.1 WS-2A — Consistency pass (the PR-B equivalent) ✅ DONE 2026-05-19
 
 **Bucket:** POST-LAUNCH-POLISH.
-**Estimate:** ~1 small session.
+**Status:** ✅ CLOSED — bundled with WS-1 in the build PR. Rubric re-scored 72 → 80/100 (clears the ≥75 gate; ≥90 premium target deferred to WS-2B + WS-3).
 
 **Scope (all from audit § 9 remediation):**
 - Align hero CTA heights (C-3): pick h-14 or h-12 consistently for LOCATE + GET A QUOTE + CONTACT SALES.
