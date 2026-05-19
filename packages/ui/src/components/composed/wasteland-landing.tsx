@@ -60,7 +60,10 @@ function LogisticsHero() {
   }
 
   return (
-    <section className="relative flex flex-col items-center pt-32 pb-16 px-6 bg-background border-b border-border overflow-hidden">
+    <section
+      id="tracking"
+      className="relative flex flex-col items-center pt-32 pb-16 px-6 bg-background border-b border-border overflow-hidden scroll-mt-20"
+    >
       <HudOverlay />
       <div className="container mx-auto max-w-6xl text-center relative z-10 flex flex-col items-center">
 
@@ -114,7 +117,7 @@ function LogisticsHero() {
                 placeholder="ENTER AWB / CARGO ID..."
                 aria-describedby={trackError ? "awb-locate-error" : undefined}
                 aria-invalid={trackError ? true : undefined}
-                className="h-14 font-mono text-sm border-none focus-visible:ring-0 rounded-none bg-transparent text-foreground uppercase placeholder:text-muted-foreground/30 px-6 font-bold tracking-paper-20 focus-visible:outline-none focus-visible:tac-focus-premium"
+                className="h-14 font-mono text-sm border-none focus-visible:ring-0 rounded-none bg-transparent text-foreground uppercase placeholder:text-muted-foreground px-6 font-bold tracking-paper-20 focus-visible:outline-none focus-visible:tac-focus-premium"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none hidden md:flex items-center">
                 <span className="tac-mono-label text-primary">STANDBY</span>
@@ -168,7 +171,7 @@ function LogisticsHero() {
               asChild
               variant="default"
               size="lg"
-              className="h-12 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 w-full sm:w-auto focus-visible:outline-none focus-visible:tac-focus-premium"
+              className="h-14 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 w-full sm:w-auto focus-visible:outline-none focus-visible:tac-focus-premium"
             >
               <Link href="/quote">
                 <Icon name="calculator" className="mr-3 w-5 h-5" />
@@ -179,7 +182,7 @@ function LogisticsHero() {
               asChild
               variant="outline"
               size="lg"
-              className="h-12 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 w-full sm:w-auto focus-visible:outline-none focus-visible:tac-focus-premium"
+              className="h-14 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 w-full sm:w-auto focus-visible:outline-none focus-visible:tac-focus-premium"
             >
               <Link href="/contact">
                 <Icon name="mail" className="mr-3 w-5 h-5" />
@@ -194,9 +197,9 @@ function LogisticsHero() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.5, ease: EASE_SMOOTH }}
-          className="w-full aspect-[16/9] md:aspect-[21/9] relative border-2 border-primary/20 bg-card overflow-hidden shadow-brutal group"
+          className="w-full aspect-[16/9] md:aspect-[21/9] relative border-2 border-primary-medium bg-card overflow-hidden shadow-brutal group"
         >
-          <div className="absolute inset-0 z-10 bg-primary/10 mix-blend-overlay pointer-events-none" />
+          <div className="absolute inset-0 z-10 bg-primary-subtle mix-blend-overlay pointer-events-none" />
           <div className="absolute inset-0 z-10 pointer-events-none opacity-20">
              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
               <defs>
@@ -223,7 +226,7 @@ function LogisticsHero() {
           <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-primary z-20 m-4" />
           <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-primary z-20 m-4" />
           
-          <div className="absolute bottom-4 right-4 bg-background border border-primary/30 px-3 py-1 z-20 tac-mono-label text-primary">
+          <div className="absolute bottom-4 right-4 bg-background border border-primary-strong px-3 py-1 z-20 tac-mono-label text-primary">
             SYS_CAM_01 // LIVE
           </div>
         </motion.div>
@@ -237,7 +240,10 @@ function LogisticsHero() {
 
 function BusinessUtility() {
   return (
-    <section className="py-24 bg-card border-b border-border relative">
+    <section
+      id="how-it-works"
+      className="py-24 bg-card border-b border-border relative scroll-mt-20"
+    >
       <div className="container mx-auto max-w-6xl px-6 relative z-10">
         
         <motion.div 
@@ -255,7 +261,7 @@ function BusinessUtility() {
           </p>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-100px" }}
@@ -263,17 +269,20 @@ function BusinessUtility() {
             visible: { transition: { staggerChildren: 0.15 } },
             hidden: {}
           }}
-          className="grid grid-cols-1 md:grid-cols-12 gap-6"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
-          {/* Asymmetric 5/4/3 split — M-01 leads (largest visual), M-03 compact at end.
-              Breaks the "three equal cards" template read while preserving narrative order. */}
+          {/* Equal md:grid-cols-3 — three KPIs read most scannably as equal columns.
+              The earlier 5/4/3 asymmetric grid carried identical content shape in
+              each card (id badge + title + metric + subtitle + desc), so the width
+              variation read as arbitrary rather than intentional. Per the playbook
+              (§ 3 spacing & rhythm + § 4 component reuse): same content shape →
+              same container. WS-2 / 2026-05-19. */}
           <MetricCard
             id="M-01"
             title="Time Saving"
             metric="20%"
             subtitle="Less Mundanity"
             desc="Process automation frees up logistical units to focus on core tasks."
-            colSpanClass="md:col-span-5"
           />
           <MetricCard
             id="M-02"
@@ -281,7 +290,6 @@ function BusinessUtility() {
             metric="50%"
             subtitle="Fewer Accidents"
             desc="Analyzing driving behavior improves transit road safety dramatically."
-            colSpanClass="md:col-span-4"
           />
           <MetricCard
             id="M-03"
@@ -289,7 +297,6 @@ function BusinessUtility() {
             metric="30%"
             subtitle="Reduction in Burn"
             desc="Algorithmic route optimization saves up to a third on fossil fuel expenditure."
-            colSpanClass="md:col-span-3"
           />
         </motion.div>
 
@@ -304,14 +311,12 @@ function MetricCard({
   metric,
   subtitle,
   desc,
-  colSpanClass,
 }: {
   id: string
   title: string
   metric: string
   subtitle: string
   desc: string
-  colSpanClass?: string
 }) {
   return (
     <motion.div
@@ -319,7 +324,7 @@ function MetricCard({
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE_SMOOTH } }
       }}
-      className={`bg-background border-2 border-border p-8 relative flex flex-col group hover:border-primary transition-colors shadow-brutal ${colSpanClass ?? ""}`}
+      className="bg-background border-2 border-border p-8 relative flex flex-col group hover:border-primary transition-colors shadow-brutal"
     >
       <div className="absolute -top-3 left-6 bg-primary text-primary-foreground px-2 py-0.5 tac-mono-label-base">{id}</div>
       <div className="tac-mono-label text-muted-foreground mb-8 border-b border-border pb-2">{title}</div>
@@ -354,7 +359,7 @@ function ResultsChart() {
           </p>
         </motion.div>
 
-        <div className="bg-surface-elevated border-2 border-border p-8 md:p-12 relative shadow-md max-w-4xl mx-auto">
+        <div className="bg-surface-elevated border-2 border-border p-8 relative shadow-md max-w-4xl mx-auto">
            <div className="absolute top-4 right-4 flex gap-2">
              <span aria-hidden className="w-2 h-2 bg-primary animate-pulse motion-reduce:animate-none"></span>
              <span aria-hidden className="w-2 h-2 bg-secondary"></span>
@@ -369,7 +374,7 @@ function ResultsChart() {
              * text-foreground from the parent removes the failing color
              * override; the bracketed "reduced costs by 27%" callout keeps
              * its inverse bg-foreground/text-background emphasis path. */}
-           <p className="font-mono text-lg md:text-xl text-foreground font-medium uppercase tracking-wide leading-relaxed max-w-2xl mb-8">
+           <p className="t-h3 font-mono text-foreground uppercase leading-relaxed max-w-2xl mb-8">
              &quot;Since implementing the telematics system from <span className="font-bold">TAC Express</span>, our fleet has reached an entirely new level of efficiency. Over six months, we have <span className="bg-foreground text-background px-2 py-1 font-bold">reduced costs by 27%</span>.&quot;
            </p>
 
@@ -430,7 +435,10 @@ function ResultsChart() {
 
 function SystemCompatibility() {
   return (
-    <section className="py-24 bg-card border-b border-border overflow-hidden">
+    <section
+      id="features"
+      className="py-24 bg-card border-b border-border overflow-hidden scroll-mt-20"
+    >
       <div className="container mx-auto max-w-6xl px-6">
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -484,16 +492,16 @@ function SystemCompatibility() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8, delay: 0.3, ease: EASE_SMOOTH }}
-            className="relative aspect-[3/4] border-2 border-primary/20 bg-muted shadow-md p-2 group"
+            className="relative aspect-[3/4] border-2 border-primary-medium bg-muted shadow-md p-2 group"
           >
              <div className="w-full h-full relative overflow-hidden border border-border">
-               <div className="absolute inset-0 z-10 bg-primary/10 mix-blend-overlay pointer-events-none" />
+               <div className="absolute inset-0 z-10 bg-primary-subtle mix-blend-overlay pointer-events-none" />
                <img
                  src="/images/tac-dock-illustration.jpg"
                  alt="TAC Logistics Operations"
                  className="w-full h-full object-cover filter grayscale contrast-125"
                />
-               <div className="absolute top-4 left-4 bg-background border border-primary/30 px-3 py-1 z-20 tac-mono-label text-primary">
+               <div className="absolute top-4 left-4 bg-background border border-primary-strong px-3 py-1 z-20 tac-mono-label text-primary">
                   DOCK_04 // ACTIVE
                </div>
              </div>

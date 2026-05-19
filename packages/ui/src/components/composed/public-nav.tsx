@@ -9,6 +9,14 @@ import { AnimatedThemeToggler } from "@workspace/ui/components/composed/animated
 import { cn } from "@workspace/ui/lib/utils"
 import { useSession } from "@workspace/ui/hooks/use-session"
 
+// LB-5 — dashboard URL is environment-driven. The same pattern is used at
+// apps/web/app/dashboard/page.tsx (the /dashboard redirect). The fallback
+// matches the local dev port so `pnpm --filter web dev` continues to work
+// when the env var is unset; in production the owner sets
+// NEXT_PUBLIC_DASHBOARD_URL on the apps/web Vercel project — see
+// docs/launch/MASTER-LAUNCH-PLAN.md § 4.6.
+const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001"
+
 export function PublicNav() {
   const [isScrolled, setIsScrolled] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
@@ -78,7 +86,7 @@ export function PublicNav() {
             </>
           ) : (
             <Button className="rounded-none shadow-brutal-sm hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none transition-all border border-border bg-card text-foreground" asChild>
-              <Link href="http://localhost:3001">
+              <Link href={DASHBOARD_URL}>
                 Dashboard <Icon name="arrowRight" className="ml-2 w-4 h-4" />
               </Link>
             </Button>
@@ -136,7 +144,7 @@ export function PublicNav() {
                       </>
                     ) : (
                       <Button className="w-full justify-center rounded-none shadow-brutal-sm border border-border" asChild>
-                        <Link href="http://localhost:3001">Go to Dashboard</Link>
+                        <Link href={DASHBOARD_URL}>Go to Dashboard</Link>
                       </Button>
                     )}
                   </div>

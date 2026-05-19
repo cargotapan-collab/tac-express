@@ -2,10 +2,10 @@
 
 > **Authority:** this file is the single, reconciled launch plan. It supersedes the *scope* of [`docs/launch/definition-of-done.md`](definition-of-done.md) (engineering) and [`docs/launch/product-launch-readiness.md`](product-launch-readiness.md) (product) AND the customer-facing slice of [`docs/launch/CUSTOMER-FACING-PLAN.md`](CUSTOMER-FACING-PLAN.md) as the **unified** burn-down. Those three files remain the per-workstream detail; this file is the rollup + ordering.
 
-**Version:** 1.2 — customer-facing reconciliation (LB-5 + LB-6 added), 2026-05-19.
-**Previous versions:** 1.1 — LB-3 closed (2026-05-19, PR #179). 1.0 — initial master reconciliation (2026-05-18, PR #178).
+**Version:** 1.3 — WS-1 closed; LB-5 + LB-6 marked DONE, 2026-05-19.
+**Previous versions:** 1.2 — LB-5 + LB-6 added (2026-05-19, PR #180). 1.1 — LB-3 closed (2026-05-19, PR #179). 1.0 — initial master reconciliation (2026-05-18, PR #178).
 **Authority chain:** [`AGENTS.md` § 0](../../AGENTS.md) → THIS FILE → `definition-of-done.md` + `product-launch-readiness.md` + `CUSTOMER-FACING-PLAN.md` → [`docs/backlog/production-readiness.md`](../backlog/production-readiness.md).
-**Main HEAD at v1.2 reconciliation:** `c21e56b` (`fix(a11y): close LB-3 / #173 — Option B class-redirect for WCAG AA contrast (#179)`).
+**Main HEAD at v1.3 reconciliation:** `2b9b42b` (`docs(customer-facing): UI/UX consistency playbook + WS-1..WS-4 plan + MASTER reconciliation (#180)`).
 
 ---
 
@@ -13,7 +13,7 @@
 
 > # **NOT READY**
 
-The verdict is BOOLEAN — `engineering_ready AND product_ready AND customer_facing_ready`. **Five** launch-blockers remain. v1.1 closed LB-3 (contrast / #173). v1.2 added LB-5 + LB-6 from the customer-facing workstream — **both agent-actionable**, gated only on a 2-min owner env-var input. The agent-actionable launch-blocker queue is no longer empty. PI-1, LB-1, LB-2, LB-4 stay owner-blocked.
+The verdict is BOOLEAN — `engineering_ready AND product_ready AND customer_facing_ready`. **Three** launch-blockers remain (PI-1 + LB-1 + LB-2 + LB-4 — net 4 items including PI-1). v1.3 closed LB-5 + LB-6 via the WS-1+WS-2 build PR. All remaining items are owner-only credential/permission/decision work; the agent-actionable launch-blocker queue is empty.
 
 **Evidence trail (re-verified 2026-05-19):**
 
@@ -91,7 +91,7 @@ Four workstreams now exist (v1.2 added the customer-facing one):
 |---|---|---|---|---|
 | **PI-1** | **Activate the migration-deploy pipeline + run the one-time backfill (#174)** | `SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('contact_leads','whatsapp_sends')` returns BOTH rows on remote `mdvnphbucrpspntrezmj`. Verified via Supabase MCP `list_tables` post-deploy. | **OWNER** (irreversible production write; secret-bearing) | ~10 min after secrets set |
 
-### 2.2 LAUNCH-BLOCKER — 5 (finite, closeable; LB-3 closed 2026-05-19; LB-5 + LB-6 added 2026-05-19 v1.2)
+### 2.2 LAUNCH-BLOCKER — 3 (finite, closeable; LB-3 closed by PR #179; LB-5 + LB-6 closed by the WS-1+WS-2 PR 2026-05-19 v1.3)
 
 | ID | Item | Done criterion (testable) | Owner / Agent | Estimate | Depends on |
 |---|---|---|---|---|---|
@@ -99,10 +99,10 @@ Four workstreams now exist (v1.2 added the customer-facing one):
 | **LB-2** | **PL-2b activation — live lead notification end-to-end** | Submit `/contact` on production. `contact_leads` row lands with `notification_status='sent'`; recipient phone receives the WhatsApp template message; the row's `whatsapp_send_id` resolves to a `whatsapp_sends` row with `status='sent'` | **OWNER** (template approval + WPBOX env + production submit; bundled because all three are owner-only inputs feeding the same e2e verification) | ~30 min after PI-1 + template approval lands | PI-1; Meta template approval |
 | ~~**LB-3**~~ | ~~#173 — design call on contrast approach + apply to remaining sites~~ | ✅ DONE 2026-05-19 — Option B class-redirect applied across 4 sites; `AXE_FAIL_ON_VIOLATIONS=1` flipped; all 9 carve pages × 3 viewports = 0 serious/critical | AGENT (Run 4 → PR #179) | closed | — |
 | **LB-4** | **SB-3 P1–P4 owner-prerequisites — verify in Supabase dashboard** | The 4 fill-in blocks in [`DATABASE-RESTORE.md § 2`](../runbooks/DATABASE-RESTORE.md#2-prerequisites-owner-confirmed--verify-before-launch) all checked: P1 Pro plan, P2 PITR enabled + retention, P3 daily backups, P4 Owner role | **OWNER** | ~10 min in Supabase dashboard | — |
-| **LB-5** | **Customer-facing WS-1.1 — replace hardcoded `localhost:3001` dashboard link in PublicNav with `NEXT_PUBLIC_DASHBOARD_URL`** | Reads from env var with build-time fallback that fails build if unset on production. Unit test asserts non-localhost in `VERCEL_ENV='production'`. Playwright smoke-test confirms working dashboard nav. See [`CUSTOMER-FACING-PLAN.md § 2.1`](CUSTOMER-FACING-PLAN.md). | **AGENT** | ~30 min agent session | Owner sets `NEXT_PUBLIC_DASHBOARD_URL` on apps/web Vercel project — see § 4.6 |
-| **LB-6** | **Customer-facing WS-1.2 — wire 11 dead in-page anchors (`#features` / `#how-it-works` / `#tracking`) to real sections** | All 11 anchor links resolve. Playwright `landing.spec.ts` asserts navigation to each anchor produces `scrollTop > 100`. Owner-decided naming/IDs documented in PR. See [`CUSTOMER-FACING-PLAN.md § 2.2`](CUSTOMER-FACING-PLAN.md). | **AGENT** (bundled with LB-5 in one PR) | ~15 min agent session | — |
+| ~~**LB-5**~~ | ~~Customer-facing WS-1.1 — replace hardcoded `localhost:3001` dashboard link in PublicNav with `NEXT_PUBLIC_DASHBOARD_URL`~~ | ✅ DONE 2026-05-19 — `process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001"` matching the existing pattern at `apps/web/app/dashboard/page.tsx`. Owner action: confirm `NEXT_PUBLIC_DASHBOARD_URL` is set on the apps/web Vercel project (see § 4.6) — without it the production deploy uses the localhost fallback. | AGENT (WS-1+WS-2 PR) | closed | — |
+| ~~**LB-6**~~ | ~~Customer-facing WS-1.2 — wire 11 dead in-page anchors (`#features` / `#how-it-works` / `#tracking`) to real sections~~ | ✅ DONE 2026-05-19 — `id="tracking"` on hero LOCATE form, `id="how-it-works"` on BusinessUtility, `id="features"` on SystemCompatibility (+ `scroll-mt-20` for fixed-nav offset). Verified in rendered HTML; 15 Playwright smoke tests pass. | AGENT (WS-1+WS-2 PR) | closed | — |
 
-**Total finite launch surface:** 1 production-incident + 5 launch-blockers = **6 closeable items.** Three are owner-only credential/permission acts (PI-1, LB-1, LB-4); one is owner-only template approval bundled with a production e2e (LB-2); **two are agent-only with a trivial owner env-var input (LB-5, LB-6)**. The agent now has an actionable launch-blocker queue.
+**Total finite launch surface:** 1 production-incident + 3 launch-blockers = **4 closeable items.** Three are owner-only credential/permission acts (PI-1, LB-1, LB-4); one is owner-only template approval bundled with a production e2e (LB-2). The agent-actionable launch-blocker queue is now empty.
 
 ### 2.3 POST-LAUNCH — 7
 
@@ -147,13 +147,11 @@ PI-1 ──┬──> LB-2 (depends on PI-1's tables existing + template approva
 LB-1 ──┘  (independent — owner can run in parallel with PI-1)
 
 LB-4 (independent — owner-only Supabase-dashboard verification)
-
-LB-5 + LB-6 (independent — single agent PR; only owner input is the NEXT_PUBLIC_DASHBOARD_URL env-var setting on Vercel)
 ```
 
-LB-3 closed 2026-05-19 (PR #179 supersedes #176).
+LB-3 closed 2026-05-19 (PR #179). LB-5 + LB-6 closed 2026-05-19 (the WS-1+WS-2 PR).
 
-**Critical-path estimate:** ~1 hour of owner work + Meta template-approval latency (external, typically 24–48h) + ~45 min agent session for WS-1 (LB-5 + LB-6 together). The launch verdict flips to READY once all 5 remaining items pass their done-criteria.
+**Critical-path estimate:** ~1 hour of owner work + Meta template-approval latency (external, typically 24–48h). The launch verdict flips to READY once all 4 remaining items pass their done-criteria.
 
 ---
 

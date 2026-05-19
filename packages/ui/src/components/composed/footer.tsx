@@ -4,7 +4,7 @@ import { Icon } from "@workspace/ui/icons"
 
 export function Footer() {
   return (
-    <footer className="bg-card pt-24 pb-12 border-t-2 border-primary/20 shadow-brutal-t">
+    <footer className="bg-card pt-24 pb-12 border-t-2 border-primary-medium">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
           
@@ -63,7 +63,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t-2 border-primary/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-foreground/70 font-mono font-medium">
+        <div className="border-t-2 border-primary-subtle pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-foreground/70 font-mono font-medium">
           <div>
             &copy; {new Date().getFullYear()} Tapan Associate Cargo. All rights reserved.
           </div>
@@ -71,7 +71,7 @@ export function Footer() {
             {["Imphal", "New Delhi", "Northeast India"].map((loc) => (
               <span
                 key={loc}
-                className="border border-primary/20 tac-mono-label px-2.5 py-1"
+                className="border border-primary-medium tac-mono-label px-2.5 py-1"
               >
                 {loc}
               </span>
