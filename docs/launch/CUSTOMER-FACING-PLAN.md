@@ -103,17 +103,24 @@ The audit's PR-B / PR-C / PR-D roadmap maps onto four coherent sub-PRs:
 
 **Done criterion:** `tac-ui-rubric` re-scores the landing at ≥ 80, with **criteria 2 (Hierarchy) ≥ 9** and **criterion 3 (Rhythm) ≥ 9**.
 
-### 3.2 WS-2B — Closing CTA section (the conversion-funnel fix)
+### 3.2 WS-2B — Landing premium polish (6-group section-by-section)
 
-**Bucket:** POST-LAUNCH-POLISH (conversion-funnel optimization, not blocker).
-**Estimate:** ~1 small session.
+**Bucket:** POST-LAUNCH-POLISH (premium-tier rubric lift from 80 → 90+).
+**Status:** OPEN — PHASE 1 plan in place (this PR); PHASE 2 ships as 3 batched PRs.
+**Estimate:** 3 small build sessions (~30-60 min each).
 
-**Scope:**
-- Add a 5th section to `WastelandLanding` between `SystemCompatibility` and the footer: `<ClosingCta>`. Full-bleed band, eyebrow + display headline + the same two CTAs that appear in the hero ("GET A QUOTE" linked to `/quote` / "CONTACT TAC" linked to `/contact` — see WS-4A for the rename).
-- Section background `bg-background` to match the rhythm ladder (alternate `bg-background` / `bg-card`).
-- Apply `--motion-expressive` staggered entrance.
+**Re-scoping note (2026-05-19):** the original WS-2B scope was a closing-CTA conversion-funnel section. After review of the post-PR-#181 state, the owner re-scoped WS-2B to a **section-by-section premium polish workstream** targeting six specific defect groups identified in the live screenshots: hero input/CTA proportions, section spacing voids, motion-overlap, testimonial → un-attributed case study, integration-card consistency, footer type-scale + lone social icon. The closing-CTA section is deferred to a future POST-LAUNCH-POLISH session and is no longer WS-2B.
 
-**Done criterion:** the landing reads top-to-bottom with a clear terminal conversion action; scroll-depth analytics (if instrumented) shows a measurable share of bottom-of-page sessions clicking through. **Without analytics**, the testable proxy: the Playwright `landing.spec.ts` "primary CTA reachable" assertion now passes BOTH at top-of-page (existing) AND after scrolling to viewport bottom.
+**Full spec:** [`docs/launch/WS-2B-LANDING-POLISH.md`](WS-2B-LANDING-POLISH.md).
+
+**PR batching (PHASE 2):**
+- **PR-2B-1** — Hero refinement (Group 1: AWB input shell + secondary-CTA proportions).
+- **PR-2B-2** — Page rhythm + motion-overlap (Groups 2 + 3).
+- **PR-2B-3** — Content sections (Groups 4 + 5 + 6: testimonial-to-case-study, integration, footer).
+
+**Done criterion:** `tac-ui-rubric` cumulative landing score in the 90+ tier (or 88-89 with the boundary acknowledged), with criteria 3 / 5 / 9 / 10 each lifted at least +1. axe 0 serious/critical across 3 viewports for every PHASE-2 PR.
+
+**Identity discipline:** WS-2B is **refinement, not redesign**. Existing identity (HUD, brutalist offsets, hand-rolled chart, mono eyebrows) is preserved. If a fix requires structural change, bail and surface as owner decision per [`WS-2B-LANDING-POLISH.md § 10`](WS-2B-LANDING-POLISH.md).
 
 ### 3.3 WS-2C — Primitive extraction (the DRY pass)
 
