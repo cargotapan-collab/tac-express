@@ -112,9 +112,16 @@ Honest scope-bucketing — these are real but **NOT in WS-2B** unless explicitly
 
 For each group: **defect → fix → rubric criterion lifted → testable done-criterion → PR**.
 
-### GROUP 1 — Hero: AWB input visibility + CTA proportions
+### GROUP 1 — Hero: AWB input visibility + CTA proportions ✅ DONE 2026-05-19 (PR-2B-1)
 
-**Defect.** The AWB tracking form (`<motion.form>` in `LogisticsHero`) renders as a faint outlined rectangle: wrapper `bg-secondary/5 border border-secondary/20`, child input `border-none bg-transparent`. Despite being the page's primary interaction, it lacks visual weight. The secondary CTAs (GET A QUOTE / CONTACT SALES) sit below at `h-14 px-10` — visually heavier than the primary tracking field. The hierarchy is inverted.
+**Status:** ✅ CLOSED. Shipped in PR-2B-1.
+- AWB form wrapper restyled: `p-1 bg-card border-2 border-border focus-within:border-primary focus-within:shadow-brutal-sm tac-fui-hover mb-16 transition-colors` (replaces the earlier `bg-secondary/5 border border-secondary/20`).
+- Input child kept its existing `placeholder:text-muted-foreground` (already WCAG-AA against `bg-card`); the wrapper now carries the field shell, so no additional placeholder change was needed. The "faint placeholder" perception was a function of the missing shell, not the placeholder color itself.
+- Secondary CTAs (`GET A QUOTE` / `CONTACT SALES`): `h-14 → h-11`, `px-10 → px-6`, `text-sm → text-xs`, icon `mr-3 w-5 h-5 → mr-2 w-4 h-4`, wrapper `gap-3 → gap-2`. `size="lg"` dropped.
+- axe verified at desktop / tablet / mobile — 0 serious/critical violations including the focus-within state.
+- Rubric per criterion: Surface Depth 8 → 9 (+1), Focus & Hover Polish 8 → 9 (+1). Cumulative landing rubric 80 → 82.
+
+**Original defect (preserved for history).** The AWB tracking form (`<motion.form>` in `LogisticsHero`) renders as a faint outlined rectangle: wrapper `bg-secondary/5 border border-secondary/20`, child input `border-none bg-transparent`. Despite being the page's primary interaction, it lacks visual weight. The secondary CTAs (GET A QUOTE / CONTACT SALES) sit below at `h-14 px-10` — visually heavier than the primary tracking field. The hierarchy is inverted.
 
 **Fix.**
 - **AWB form wrapper:** replace `bg-secondary/5 border border-secondary/20` with a real input-shell treatment. Recommended: `bg-card border-2 border-border focus-within:border-primary focus-within:shadow-brutal-sm transition-colors`. The form reads as a definite field; on focus the border lights up and the brutalist offset shadow lifts the shell.
@@ -296,20 +303,24 @@ Three coherent PRs, sequenced. Each independently merges; the next opens against
 ## 7. Cumulative rubric target — premium tier
 
 ```
-                              Before   PR-2B-1   PR-2B-2   PR-2B-3   Target
-1.  Token Discipline             9         9         9      9.5         10
-2.  Hierarchy by Scale          10        10        10        10        10
-3.  Rhythm & Whitespace          9         9        10        10        10
-4.  Surface Depth                8         9         9         9         9
-5.  Motion Choreography          9         9        10        10        10
-6.  Mono Discipline              9         9         9         9         9
-7.  State Choreography           5         5         5         5         5   (WS-3 territory)
-8.  Focus & Hover Polish         8         9         9         9         9
-9.  Content Voice                8         8         8         9         9
-10. Anti-AI-Slop                 5         5         5         8         8
+                              Before   PR-2B-1 ✅   PR-2B-2   PR-2B-3   Target
+1.  Token Discipline             9         9            9      9.5         10
+2.  Hierarchy by Scale          10        10           10        10        10
+3.  Rhythm & Whitespace          9         9           10        10        10
+4.  Surface Depth                8         9 ✅         9         9         9
+5.  Motion Choreography          9         9           10        10        10
+6.  Mono Discipline              9         9            9         9         9
+7.  State Choreography           5         5            5         5         5   (WS-3 territory)
+8.  Focus & Hover Polish         8         9 ✅         9         9         9
+9.  Content Voice                8         8            8         9         9
+10. Anti-AI-Slop                 5         5            5         8         8
 
-TOTAL                           80        82        84        88.5      89-92
+TOTAL                           80        82           84        88.5      89-92
+                                           ↑
+                                       this PR
 ```
+
+**PR-2B-1 closed 2026-05-19.** Lifted criteria 4 (Surface Depth) and 8 (Focus & Hover Polish) each +1, as planned. Cumulative landing rubric 80 → 82.
 
 **Result:** WS-2B lifts the landing from **80 → 89-92** — into the PREMIUM tier (≥ 90 with the tighter rounding) or right at the boundary (88-89). The remaining ~5 points to a perfect 95+ live in WS-3 (state choreography on LOCATE submit) and a future content pass (real customer testimonial when one is captured).
 

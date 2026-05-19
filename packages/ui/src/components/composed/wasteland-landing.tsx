@@ -96,13 +96,18 @@ function LogisticsHero() {
           Real-time tracking, advanced analytics, and seamless surface cargo management — centralized in one mission-critical platform.
         </motion.p>
 
-        {/* Tactical Tracking Input — wired to /track/[awb] */}
+        {/* Tactical Tracking Input — wired to /track/[awb].
+            WS-2B Group 1: real input-shell treatment so the field reads as the
+            hero's primary control. bg-card + 2px border-border + focus-within
+            lifts the border to primary and adds a brutalist offset shadow. The
+            earlier `bg-secondary/5 border border-secondary/20` rendered as
+            decoration. Plan: docs/launch/WS-2B-LANDING-POLISH.md § 5 Group 1. */}
         <motion.form
           onSubmit={onTrack}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4, ease: EASE_SMOOTH }}
-          className="w-full max-w-2xl relative p-1 bg-secondary/5 border border-secondary/20 tac-fui-hover mb-16"
+          className="w-full max-w-2xl relative p-1 bg-card border-2 border-border focus-within:border-primary focus-within:shadow-brutal-sm tac-fui-hover mb-16 transition-colors"
         >
           <div className="flex flex-col sm:flex-row gap-0">
             <div className="relative flex-1">
@@ -160,32 +165,30 @@ function LogisticsHero() {
           <span className="tac-mono-label text-muted-foreground">
             NOT TRACKING A SHIPMENT?
           </span>
-          {/* PL-3 — buttons span the full width at <640w so the tap target
-              hits the recommended minimum and matches the LOCATE button's
-              w-full/sm:w-auto pattern above. At sm+ the wrapper drops the
-              width cap (sm:w-auto + sm:max-w-none) AND the inner buttons
-              revert to content-width — the row reads as a paired CTA group
-              under the eyebrow text, not as a full-bleed band. */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs sm:w-auto sm:max-w-none">
+          {/* WS-2B Group 1 — secondary CTAs subordinate to the AWB input.
+              These were previously h-14 / px-10 / text-sm — visually outweighing
+              the primary tracking field. Now h-11 / px-6 / text-xs / smaller
+              icons / tighter row gap. The PL-3 mobile pattern (full-width at
+              <640w, content-width at sm+) is preserved.
+              Plan: docs/launch/WS-2B-LANDING-POLISH.md § 5 Group 1. */}
+          <div className="flex flex-col sm:flex-row gap-2 w-full max-w-xs sm:w-auto sm:max-w-none">
             <Button
               asChild
               variant="default"
-              size="lg"
-              className="h-14 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 w-full sm:w-auto focus-visible:outline-none focus-visible:tac-focus-premium"
+              className="h-11 rounded-none font-mono font-bold text-xs tracking-paper-20 uppercase px-6 w-full sm:w-auto focus-visible:outline-none focus-visible:tac-focus-premium"
             >
               <Link href="/quote">
-                <Icon name="calculator" className="mr-3 w-5 h-5" />
+                <Icon name="calculator" className="mr-2 w-4 h-4" />
                 GET A QUOTE
               </Link>
             </Button>
             <Button
               asChild
               variant="outline"
-              size="lg"
-              className="h-14 rounded-none font-mono font-bold text-sm tracking-paper-20 uppercase px-10 w-full sm:w-auto focus-visible:outline-none focus-visible:tac-focus-premium"
+              className="h-11 rounded-none font-mono font-bold text-xs tracking-paper-20 uppercase px-6 w-full sm:w-auto focus-visible:outline-none focus-visible:tac-focus-premium"
             >
               <Link href="/contact">
-                <Icon name="mail" className="mr-3 w-5 h-5" />
+                <Icon name="mail" className="mr-2 w-4 h-4" />
                 CONTACT SALES
               </Link>
             </Button>

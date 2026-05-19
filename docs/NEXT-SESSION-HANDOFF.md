@@ -1,11 +1,11 @@
 # Next-Session Handoff — Start Here
 
-> **The launch authority is [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md) (v1.3).** The customer-facing workstream detail lives in [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md). The UI/UX consistency playbook at [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) is the standing standard for any customer-facing UI session.
+> **The launch authority is [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md) (v1.3).** The customer-facing workstream detail lives in [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md). The UI/UX consistency playbook at [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) is the standing standard.
 
-**Last code commit on main:** the WS-1+WS-2 build PR — `feat(landing): WS-1 + WS-2 — launch-blockers + consistency pass`. Closes LB-5 + LB-6. Rubric 72 → 80/100.
-**Previous on main:** PR #180 — playbook + plan + master reconciliation.
-**This handoff covers:** the WS-1 + WS-2 build session (2026-05-19) which fixed the 2 customer-facing LBs + the 6 audit consistency items in one PR. See [`docs/retros/2026-05-19-landing-ws1-ws2.md`](retros/2026-05-19-landing-ws1-ws2.md).
-**Author of last session:** Claude Code (Opus 4.7), in Senior Frontend Architect + UI/UX Designer + PM + CTO mode (delegated).
+**Last code commit on main:** the WS-2B PR-2B-1 — `feat(landing): WS-2B PR-2B-1 — hero refinement (Group 1)`. Closes WS-2B Group 1. Rubric 80 → 82.
+**Previous on main:** PR #183 — WS-2B PHASE 1 plan.
+**This handoff covers:** the PR-2B-1 build session (2026-05-19). See [`docs/retros/2026-05-19-ws2b-pr1-hero.md`](retros/2026-05-19-ws2b-pr1-hero.md).
+**Author of last session:** Claude Code (Opus 4.7), Senior Frontend Architect + UI/UX Designer + PM + CTO mode.
 
 ---
 
@@ -13,34 +13,26 @@
 
 > # **NOT READY** (BOOLEAN per the master plan)
 
-**The finite launch surface is 4 items** (1 PRODUCTION-INCIDENT + 3 LAUNCH-BLOCKERs). v1.3 closed LB-5 + LB-6. The agent-actionable launch-blocker queue is empty — all remaining items are owner-only.
+**The finite launch surface is 4 items** (1 PRODUCTION-INCIDENT + 3 LAUNCH-BLOCKERs). Unchanged from PR #182. The agent-actionable launch-blocker queue is empty — all remaining items are owner-only. WS-2B is POST-LAUNCH; PR-2B-1 closed Group 1 / lifted the landing rubric to 82.
 
 | | |
 |---|---|
 | 🚨 PI-1 | Activate migration-deploy pipeline + backfill 4 migrations |
 | 🚀 LB-1 | SB-2 Sentry alert provisioning (~20 min owner-runnable) |
 | 🚀 LB-2 | PL-2b live notifications (env vars + Meta template approval + e2e verify) |
-| ~~🛠️ LB-3~~ | ✅ DONE 2026-05-19 (PR #179) |
 | 🛠️ LB-4 | SB-3 P1–P4 prerequisites in Supabase dashboard |
-| ~~🚀 LB-5~~ | ✅ DONE 2026-05-19 (WS-1+WS-2 PR) — `NEXT_PUBLIC_DASHBOARD_URL` env-var pattern wired |
-| ~~🚀 LB-6~~ | ✅ DONE 2026-05-19 (WS-1+WS-2 PR) — 11 in-page anchors resolve |
-
-Critical path: ~1 hour of owner work + Meta template-approval latency (24–48h external). See [`MASTER-LAUNCH-PLAN.md § 3`](launch/MASTER-LAUNCH-PLAN.md).
 
 ---
 
 ## 2. What changed in this session
 
-Code (3 files):
-- **`packages/ui/src/components/composed/public-nav.tsx`** — extracted `DASHBOARD_URL` const from `process.env.NEXT_PUBLIC_DASHBOARD_URL`; applied to desktop + mobile-sheet nav.
-- **`packages/ui/src/components/composed/wasteland-landing.tsx`** — `id="tracking"` / `id="how-it-works"` / `id="features"` + `scroll-mt-20`; placeholder contrast lifted; metric grid → equal `md:grid-cols-3`; chart card padding `p-12` → `p-8`; hero CTA heights unified to h-14; testimonial quote → `.t-h3 font-mono uppercase`; 4 opacity modifiers → named overlay tokens.
-- **`packages/ui/src/components/composed/footer.tsx`** — dead `shadow-brutal-t` removed; 2 opacity modifiers → named overlay tokens.
+Code (1 file):
+- **`packages/ui/src/components/composed/wasteland-landing.tsx`** — `LogisticsHero` only. AWB form wrapper restyled with real input shell (`bg-card border-2 border-border focus-within:border-primary focus-within:shadow-brutal-sm transition-colors`); secondary CTAs `h-14 px-10 text-sm` → `h-11 px-6 text-xs` + smaller icons + `gap-3 → gap-2`.
 
-Docs (4 files):
-- **`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`** — overlay-token name correction (§ 5: `bg-primary-soft` etc., not `bg-overlay-primary-soft`).
-- **`docs/launch/CUSTOMER-FACING-PLAN.md`** v1.1 — WS-1 + WS-2A marked DONE.
-- **`docs/launch/MASTER-LAUNCH-PLAN.md`** v1.3 — LB-5 + LB-6 struck-through; finite surface 6 → 4 items.
-- **`docs/retros/2026-05-19-landing-ws1-ws2.md`** (new).
+Docs (3 files):
+- **`docs/launch/WS-2B-LANDING-POLISH.md`** — § 5 Group 1 marked DONE; § 7 cumulative rubric updated with the +2 delta.
+- **`docs/launch/CUSTOMER-FACING-PLAN.md`** § 3.2 — PR-2B-1 marked DONE.
+- **`docs/retros/2026-05-19-ws2b-pr1-hero.md`** (new).
 
 ---
 
@@ -51,16 +43,13 @@ git checkout main && git pull origin main
 pnpm typecheck && pnpm lint && pnpm test
 # Expected: all green.
 pnpm audit --prod --audit-level moderate
-node scripts/sentry/lint-alert-rules.mjs
 ```
 
 Then read in order:
 
 1. [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) — load if working on any UI surface.
-2. [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md) — § 4 (WS-3 spec for the tracking dialog).
-3. [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md) — § 2.2 for the remaining owner-only LBs.
-4. [`docs/retros/2026-05-19-landing-ws1-ws2.md`](retros/2026-05-19-landing-ws1-ws2.md) — full session retro.
-5. § 6 of this file — the next task.
+2. [`docs/launch/WS-2B-LANDING-POLISH.md`](launch/WS-2B-LANDING-POLISH.md) — § 5 Groups 2 + 3 (next PR spec) + § 7 cumulative rubric.
+3. § 6 of this file — the next task.
 
 ---
 
@@ -74,43 +63,42 @@ Then read in order:
 4. **Do NOT run `scripts/sentry/create-alert-rules.mjs` from an agent session.** Owner-only.
 5. **Do NOT regress to `console.*` in the three pino-migrated API routes.**
 6. **Do NOT attempt to merge from an agent session without typed per-PR authorization.**
-7. **Do NOT derive task references from `#102`-the-GitHub-issue.** `docs/backlog/production-readiness.md` is authoritative.
+7. **Do NOT derive task references from `#102`-the-GitHub-issue.**
 8. **Do NOT promote a POST-LAUNCH item to SHIP-BLOCKER without explicit owner decision.**
-9. **Do NOT mark SB-2 done on the owner's word alone.** Sentry MCP must show the synthetic event.
-10. **Do NOT bundle WS-3 with WS-4 or any other workstream.**
+9. **Do NOT mark SB-2 done on the owner's word alone.**
+10. **Do NOT bundle PR-2B-2 with PR-2B-3** — each ships independently per the WS-2B-LANDING-POLISH plan.
+11. **Do NOT redesign sections in PR-2B-2/3** — refinement only.
 
 ---
 
 ## 5. Open items snapshot
 
-- **Open PRs:** the WS-1+WS-2 build PR (this branch). After merge → 0 open PRs.
+- **Open PRs:** the PR-2B-1 build PR (this branch). After merge → 0 open PRs.
 - **Open issues:** 12. All reconciled into [`MASTER-LAUNCH-PLAN.md § 1.2`](launch/MASTER-LAUNCH-PLAN.md).
 
 ---
 
 ## 6. Next session's lead task
 
-**WS-3 — AWB tracking dialog (UX migration from page → dialog).**
+**PR-2B-2 — page rhythm + motion-overlap (WS-2B Groups 2 + 3).**
 
-- **Scope:** see [`CUSTOMER-FACING-PLAN.md § 4`](launch/CUSTOMER-FACING-PLAN.md). The tracking service + `/track/[awb]` page already exist + work; WS-3 is a UX migration to surface results in a shadcn `<Dialog>` from the landing hero (cheaper for visitors with one quick lookup) while keeping the page route for deep-linking + SEO. Three commits: API route → dialog component → wire LOCATE form.
+- **Scope:** see [`WS-2B-LANDING-POLISH.md § 5`](launch/WS-2B-LANDING-POLISH.md) Groups 2 + 3. Section padding ladder `py-24 → py-20` on `BusinessUtility` / `ResultsChart` / `SystemCompatibility`; header `mb-16 → mb-12`; `whileInView viewport margin -100px → -50px` on all 3 sections; `SystemCompatibility` two-col gap `gap-16 → gap-12`; left-col heading `mb-12 → mb-8`.
 - **Gated on:** nothing — independent of owner. Ready any time.
-- **Done criterion:** LOCATE form opens dialog on submit, shows loading skeleton → results within ~500ms; deep-link-able via `?track=AWB123` URL param; all 4 states (loaded/loading/empty/error) designed; axe-clean; Playwright E2E for happy path.
-- **Pre-PR skill load:** [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) FIRST, then `tac-ui-authoring` + `tac-forms` + `tac-tdd`.
-- **Estimate:** ~half-day PR-scale session with its own PHASE-0.
+- **Done criterion:** rubric criterion 3 (Rhythm) → 10; criterion 5 (Motion) → 10. axe-clean. No two sections' entrance animations overlap on slow scroll.
+- **Pre-PR skill load:** [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) FIRST, then `tac-design-tokens` + `tac-micro-interactions`.
+- **Estimate:** ~30 min build session.
 
-Alternative if owner prefers: the `chore(deps)` PR for the pre-existing npm-audit moderates (`@sentry/nextjs` + `@supabase/supabase-js` minor bumps). ~30 min. Slot-filler.
+After PR-2B-2 merges → PR-2B-3 (content sections). After PR-2B-3 merges → WS-2B closed → WS-3 spec is the next workstream.
 
 ---
 
 ## 7. OWNER ACTIONS — before next session
 
-See [`docs/retros/2026-05-19-landing-ws1-ws2.md § 8`](retros/2026-05-19-landing-ws1-ws2.md). Most-urgent first: **PI-1** (production-incident → activate migration-deploy pipeline).
-
 1. 🚨 **PI-1** — Activate migration-deploy + backfill (~10-15 min). See [`§ 4.1`](launch/MASTER-LAUNCH-PLAN.md).
 2. 🚀 **LB-1** — Run SB-2 Sentry alert provisioning (~20 min). See § 4.2.
-3. 🚀 **LB-2** — Activate PL-2b live notifications (after PI-1 + Meta template approval, 24-48h external). See § 4.3. WS-4A "Contact TAC" rename bundles with this owner step.
+3. 🚀 **LB-2** — Activate PL-2b live notifications (after PI-1 + Meta template approval). See § 4.3.
 4. 🛠️ **LB-4** — Verify SB-3 prereqs in Supabase dashboard (~10 min). See § 4.5.
-5. 🛠️ **Verify `NEXT_PUBLIC_DASHBOARD_URL`** is set on apps/web Vercel project — required so the LB-5 nav link resolves to the live dashboard in production (the fallback is the localhost URL). ~2 min.
-6. (Optional) Bump `@sentry/nextjs` + `@supabase/supabase-js` minors to clear pre-existing `npm audit` moderates. Or tell the next agent session to ship it as the slot-filler before WS-3.
 
-🤖 Handoff written by Claude (Opus 4.7), 2026-05-19, post WS-1+WS-2.
+Vercel `NEXT_PUBLIC_DASHBOARD_URL` remains deferred per the standing owner call. `npm audit` gate is green on main (PR #182).
+
+🤖 Handoff written by Claude (Opus 4.7), 2026-05-19, post PR-2B-1.
