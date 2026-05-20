@@ -343,8 +343,13 @@ export function createContactLeadInboxService(
       if (status) query = query.eq("status", status)
       if (reason) query = query.eq("reason", reason)
       if (search) {
+        // PostgREST .or() parses commas/parens/quotes as filter grammar, so a
+        // search like "Acme, Inc." would corrupt the filter. Escape backslashes
+        // + quotes and wrap the WHOLE ilike pattern (incl. the % wildcards) in
+        // PostgREST double-quotes so reserved chars are treated as the value.
+        const escaped = search.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
         query = query.or(
-          `name.ilike.%${search}%,email.ilike.%${search}%,company.ilike.%${search}%`,
+          `name.ilike."%${escaped}%",email.ilike."%${escaped}%",company.ilike."%${escaped}%"`,
         )
       }
       const from = (page - 1) * pageSize
@@ -359,7 +364,9 @@ export function createContactLeadInboxService(
         .from("contact_leads")
         .select(CONTACT_LEAD_COLUMNS)
         .eq("id", id)
-        .single()
+        // maybeSingle (not single): single() raises PGRST116 on zero rows,
+        // which would throw before the `| null` return contract can apply.
+        .maybeSingle()
       if (error) throw error
       return data ? mapContactLeadRow(data as Record<string, unknown>) : null
     },

@@ -277,6 +277,7 @@ function makeInboxDb(result: { data: unknown; error: { message: string } | null 
     builder.or = vi.fn(chain("or"))
     builder.range = vi.fn(() => Promise.resolve(result))
     builder.single = vi.fn(() => Promise.resolve(result))
+    builder.maybeSingle = vi.fn(() => Promise.resolve(result))
     builder.update = vi.fn((values: unknown) => {
       calls.updateValues.push(values)
       return builder
@@ -310,6 +311,19 @@ describe("createContactLeadInboxService", () => {
     const orCall = calls.filters.find((f) => f[0] === "or")
     expect(orCall?.[1]).toContain("aman")
     expect(orCall?.[1]).toContain("name.ilike")
+  })
+
+  it("getContactLeads quotes the search value so reserved chars don't corrupt the .or() filter", async () => {
+    const { db, calls } = makeInboxDb({ data: [], error: null })
+    const service = createContactLeadInboxService(db)
+
+    await service.getContactLeads({ search: 'Acme, Inc."x' })
+
+    const orCall = calls.filters.find((f) => f[0] === "or")
+    const filter = orCall?.[1] as string
+    // The whole ilike pattern is wrapped in double quotes (comma protected),
+    // and the embedded quote is backslash-escaped.
+    expect(filter).toContain('name.ilike."%Acme, Inc.\\"x%"')
   })
 
   it("getContactLeads throws on a query error", async () => {
