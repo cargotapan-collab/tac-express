@@ -122,6 +122,40 @@ describe("GET /api/track/[awb]", () => {
     expect(getShipmentByAwb).not.toHaveBeenCalled()
   })
 
+  it("returns 400 when the AWB has malformed percent-encoding", async () => {
+    // `%E0%A4%A` is a partial UTF-8 sequence — decodeURIComponent throws
+    // URIError. The guard converts this to 400 (was 500 before WS-3a fixup).
+    const [req, ctx] = makeRequest("%E0%A4%A")
+
+    // @ts-expect-error -- NextRequest stub: only .headers.get is used by the route
+    const res = await GET(req, ctx)
+
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.ok).toBe(false)
+    expect(getShipmentByAwb).not.toHaveBeenCalled()
+    expect(getTrackingEvents).not.toHaveBeenCalled()
+  })
+
+  it("returns 503 when the tracking service throws (network / upstream failure)", async () => {
+    // The service handles non-2xx upstream by returning null/[]. This case
+    // covers the pathological path: fetch rejection, DNS failure, malformed
+    // JSON — anything that lets the service rethrow.
+    getShipmentByAwb.mockRejectedValueOnce(new Error("fetch failed"))
+    // getTrackingEvents may or may not have resolved; the Promise.all rejects
+    // as soon as one side throws.
+    getTrackingEvents.mockResolvedValueOnce([])
+
+    const [req, ctx] = makeRequest("TAC12345678")
+    // @ts-expect-error -- NextRequest stub: only .headers.get is used by the route
+    const res = await GET(req, ctx)
+
+    expect(res.status).toBe(503)
+    const body = await res.json()
+    expect(body.ok).toBe(false)
+    expect(body.error).toMatch(/unavailable|try again/i)
+  })
+
   it("returns 429 when rate-limited; service is NOT called", async () => {
     checkTrackLookup.mockResolvedValueOnce({
       success: false,

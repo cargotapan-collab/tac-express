@@ -74,8 +74,20 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
   }
 
   // ── 2. Validate AWB shape ────────────────────────────────────────────────
+  // decodeURIComponent throws URIError on malformed percent-encoding
+  // (e.g. "%E0%A4%A"). Guard it so bad input becomes 400 not 500.
   const { awb: rawAwb } = await ctx.params
-  const parsed = AwbSchema.safeParse(decodeURIComponent(rawAwb))
+  let decodedAwb: string
+  try {
+    decodedAwb = decodeURIComponent(rawAwb)
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Invalid AWB." },
+      { status: 400 },
+    )
+  }
+
+  const parsed = AwbSchema.safeParse(decodedAwb)
   if (!parsed.success) {
     const issue = parsed.error.issues[0]
     return NextResponse.json(
@@ -86,15 +98,29 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
   const awb = parsed.data
 
   // ── 3. Service-layer call ────────────────────────────────────────────────
+  // The service already handles non-2xx upstream responses by returning
+  // null / []. The try/catch is for the pathological cases the service
+  // can't swallow: network rejection, DNS failure, malformed JSON.
+  // Returning 503 (Service Unavailable) signals "upstream is down, retry
+  // later" — the dialog client can show its ERROR state with a retry CTA.
   const tracking = createPublicTrackingService({
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
     anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
   })
 
-  const [shipment, events] = await Promise.all([
-    tracking.getShipmentByAwb(awb),
-    tracking.getTrackingEvents(awb),
-  ])
+  let shipment: Awaited<ReturnType<typeof tracking.getShipmentByAwb>>
+  let events: Awaited<ReturnType<typeof tracking.getTrackingEvents>>
+  try {
+    ;[shipment, events] = await Promise.all([
+      tracking.getShipmentByAwb(awb),
+      tracking.getTrackingEvents(awb),
+    ])
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Tracking service unavailable. Please try again." },
+      { status: 503 },
+    )
+  }
 
   if (!shipment) {
     return NextResponse.json(
