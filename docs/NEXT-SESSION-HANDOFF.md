@@ -2,77 +2,64 @@
 
 > **The launch authority is [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md).** Customer-facing detail: [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md). UI/UX standard: [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md).
 
-**Last code commit on main:** `224d6e2` — `feat(landing): WS-4A — rename hero CTA "Contact Sales" → "Contact TAC"` (#189).
-**This handoff covers:** the PI-1 deploy attempt + migration-history diagnostic (2026-05-20). See [`docs/retros/2026-05-20-pi-1-history-diagnostic.md`](retros/2026-05-20-pi-1-history-diagnostic.md).
+**Last code commit on main:** `21d77d6` (PI-1 diagnostic docs, #190). This PR adds the PI-1-done docs.
+**This handoff covers:** the PI-1 production deploy (2026-05-20). See [`docs/retros/2026-05-20-pi-1-deploy.md`](retros/2026-05-20-pi-1-deploy.md).
 **Author:** Claude Code (Opus 4.7), DevOps + PM lens.
 
 ---
 
 ## 1. LAUNCH VERDICT
 
-> # **NOT READY** (BOOLEAN per the master plan)
+> # **NOT READY** (BOOLEAN per the master plan) — but PI-1 is now cleared.
 
-Finite launch surface unchanged: 1 PRODUCTION-INCIDENT + 3 LAUNCH-BLOCKERs.
+The production-incident is resolved. Remaining surface: 3 owner-gated launch-blockers.
 
 | | |
 |---|---|
-| 🚨 PI-1 | **BLOCKED on migration-history repair** (see § 6) — pipeline works, `db push` fails on pre-existing version drift |
-| 🚀 LB-1 | SB-2 Sentry alert provisioning (~20 min owner-runnable; independent of PI-1 — can run now) |
-| 🚀 LB-2 | PL-2b live notifications (env vars + Meta template approval + e2e); gated on PI-1 |
-| 🛠️ LB-4 | SB-3 P1–P4 prerequisites in Supabase dashboard (~10 min) |
+| ✅ PI-1 | **EVIDENCED DONE** — 4 migrations deployed (run `26180576599`); `contact_leads` + `whatsapp_sends` live, RLS correct, security advisors clean |
+| 🚀 LB-1 | SB-2 Sentry alert provisioning (~20 min) — independent, runnable now |
+| 🚀 LB-2 | PL-2b live notifications — now unblocked by PI-1; needs Meta WhatsApp template approval + WPBOX env vars + production e2e |
+| 🛠️ LB-4 | SB-3 prereqs — **open owner decision**: Free plan blocks P1 (Pro) + P2 (PITR); upgrade vs accept-the-limitation |
 
 ---
 
-## 2. What happened this session (PI-1 attempt)
+## 2. What happened this session
 
-The owner set the pipeline secrets/variable; the agent triggered `migration-deploy.yml` twice:
-
-- **Run `26174554451`** — "success" but **skipped all deploy steps**: `MIGRATION_DEPLOY_ENABLED` was created as a *secret*, not the *variable* the workflow reads. Owner fixed it.
-- **Run `26175215585`** — gate passed, deploy steps ran, **`supabase db push` failed** on migration-history drift. Nothing applied.
-
-**Root cause:** the `baseline_from_production` squash renumbered local migration files, but production `schema_migrations` still records the 20 original pre-squash versions → `db push` refuses to proceed. Diagnosed read-only; the post-baseline migrations are content-identical + idempotent, so the fix is pure bookkeeping reconciliation.
-
-**Production is unchanged** (`contact_leads`, `whatsapp_sends`, `audit_logs.before_state`, the destructive-action CHECK all still absent). No agent production writes.
+PI-1 deployed after a four-attempt arc (skipped run → history-drift failure → repair runbook in PR #190 → CLI-not-installed false repair → CLI install + history repair → successful deploy `26180576599`). Full story + lessons in the retro. Production verified read-only via Supabase MCP; the perf-advisor call (non-blocking) was made explicitly by the owner. No agent production writes — the agent triggered the pipeline (authorized) and verified read-only.
 
 ---
 
-## 3. Durable principle reinforced
+## 3. Open items
 
-Agents do not write to production directly — deploys go through the owner-credentialed GHA pipeline. The repair (`supabase migration repair`) is owner-side. See [`docs/runbooks/pi-1-migration-history-repair.md`](runbooks/pi-1-migration-history-repair.md).
-
----
-
-## 4. Open items
-
-- **Open PRs:** this diagnostic docs PR. After merge → 0 open PRs.
-- **Open issues:** #174 (PI-1) remains OPEN — do NOT close until the repair lands and the 4 tables/columns are verified in production.
+- **Open PRs:** this PI-1-done docs PR. After merge → 0 open PRs.
+- **Open issues:** #174 closed this session.
+- **Deferred, non-blocking:** perf-tuning for the 2 new PII tables (FK indexes + `(select auth.uid())` RLS wrapping) — see retro § 6. Not a launch gate.
 
 ---
 
-## 5. Customer-facing status
+## 4. Customer-facing status
 
-WS-1, WS-2 + WS-2B, WS-3, WS-4A all closed (landing at clean PREMIUM ~92). **WS-4B (dashboard support inbox) is the last sizable build and is PI-1-gated** — it reads `contact_leads`, which does not yet exist in production. It becomes startable only after PI-1 lands.
-
----
-
-## 6. Next session's lead task — execute the PI-1 migration-history repair
-
-**Owner runs the repair**, then re-triggers PI-1:
-
-1. Owner: follow [`docs/runbooks/pi-1-migration-history-repair.md`](runbooks/pi-1-migration-history-repair.md) — **Strategy B** (two `supabase migration repair` commands; no schema re-execution). Take a PITR checkpoint first (runbook § 6).
-2. Confirm `supabase migration list --linked` shows **only** the 4 new migrations pending.
-3. Tell the agent the repair is done → agent re-runs `gh workflow run migration-deploy.yml` (with explicit authorization), watches it, verifies the opt-in gate passed AND deploy steps executed (not skipped), then verifies read-only via MCP (tables + column + constraint + 4 versions + `get_advisors` clean on the 2 PII tables).
-4. Agent stamps PI-1 EVIDENCED DONE + closes #174.
-
-After PI-1: the **launch-readiness reconciliation** session (record PI-1 done, OD decisions, evidence the rest of the verdict), then **WS-4B** fires from a known-good state.
+WS-1, WS-2 + WS-2B, WS-3, WS-4A all closed (landing at clean PREMIUM ~92). **WS-4B (dashboard support inbox) is NOW UNBLOCKED** — `contact_leads` exists in production. It's the last sizable agent build and needs its own PHASE-0 (RLS for MANAGER+ read, additive schema columns, service-layer methods, composed UI, audit-trail wiring).
 
 ---
 
-## 7. OWNER ACTIONS — before next session
+## 5. Next session's lead task — launch-readiness reconciliation
 
-1. 🚨 **PI-1 (blocked)** — run the migration-history repair per the runbook (Strategy B), take a PITR checkpoint first, then tell the agent to re-trigger the pipeline.
-2. 🚀 **LB-1** — SB-2 Sentry alert provisioning (~20 min; **independent of PI-1, can run now in parallel**).
-3. 🚀 **LB-2** — PL-2b live notifications (submit Meta template if not yet done; gated on PI-1).
-4. 🛠️ **LB-4** — SB-3 prerequisites in Supabase dashboard (~10 min).
+Per the original PI-1 plan, the next session is **not** a build — it's the **launch-readiness reconciliation**:
+1. Record PI-1 EVIDENCED DONE in the DoD / launch verdict (this PR stamps the master plan; the reconciliation evidences the rest of the verdict).
+2. Capture OD decisions if available.
+3. **Resolve the LB-4 / Free-plan question** (upgrade to Pro for PITR vs accept the limitation + document residual risk).
+4. Re-evaluate the launch verdict against the remaining LB-1 / LB-2 owner work.
 
-🤖 Handoff written by Claude (Opus 4.7), 2026-05-20, post PI-1 history diagnostic.
+After reconciliation, **WS-4B** fires from a known-good production state.
+
+---
+
+## 6. OWNER ACTIONS — before next session
+
+1. ✅ **PI-1 — DONE.** No action.
+2. 🚀 **LB-1** — SB-2 Sentry alert provisioning (~20 min). Independent of everything else; can run now.
+3. 🚀 **LB-2** — PL-2b live notifications: submit the Meta WhatsApp template for approval (the one item on a real external clock — start it early), set WPBOX env vars, then production e2e. Now unblocked by PI-1.
+4. 🛠️ **LB-4** — decide Supabase Free vs Pro (PITR/P1/P2). Open decision for the reconciliation session.
+
+🤖 Handoff written by Claude (Opus 4.7), 2026-05-20, post PI-1 deploy.
