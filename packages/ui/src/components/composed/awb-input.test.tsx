@@ -39,6 +39,21 @@ describe("<AwbInput>", () => {
     expect(onSubmit).toHaveBeenCalledWith("TAC12345678")
   })
 
+  it("does not fire onSubmit while loading (held-Enter guard)", () => {
+    const { onSubmit } = setup({ value: "tac12345678", loading: true })
+    fireEvent.submit(screen.getByLabelText(/AWB or cargo ID/i).closest("form")!)
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it("auto-generates a stable id base when none is passed (no collisions)", () => {
+    setup({ error: "bad" })
+    const alert = screen.getByRole("alert")
+    const input = screen.getByLabelText(/AWB or cargo ID/i)
+    // The error id is derived from a generated base, not the literal "awb".
+    expect(alert.id).toMatch(/-error$/)
+    expect(input).toHaveAttribute("aria-describedby", alert.id)
+  })
+
   it("hero size renders the LOCATE button + STANDBY chip", () => {
     setup({ size: "hero" })
     expect(screen.getByRole("button", { name: /locate/i })).toBeInTheDocument()

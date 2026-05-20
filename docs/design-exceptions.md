@@ -20,7 +20,7 @@ The Paper Ops Console's `tracking-paper-*` scale (`0.04 / 0.06 / 0.08 / 0.10 / 0
 |---|---:|---|---|---|
 | `tracking-[0.2em]` | 7 | landing, wasteland, badge variants | **TOKENIZE** | Add `--tracking-paper-20: 0.20em` to globals.css in Phase 5 |
 | `tracking-[0.25em]` | 1 | invoice print view | **DESIGN-LOCKED** | One-off print-strip mark; rounding to 0.24 (paper-24?) would re-flow the strip |
-| `tracking-[0.3em]` | 1 | invoice tax-band | **DESIGN-LOCKED** | Print-only; intentional wide-spread for the brand emboss |
+| `tracking-[0.3em]` | 2 | invoice tax-band; landing-hero LOCATE button (`awb-input.tsx`, also `wasteland-landing.tsx`) | **DESIGN-LOCKED** | Invoice: print-only brand emboss. Hero CTA: deliberately wider than the field's `tracking-paper-20` (0.20em) for primary-action hierarchy — tokenizing to paper-20 would flatten the field/button contrast. Add `--tracking-paper-30` if a third caller appears. |
 | `tracking-[0.15em]` | 1 | one widget | **TOKENIZE** | Add `--tracking-paper-15` in Phase 5 if a second consumer appears; otherwise round down to `tracking-paper-14` after VRT check |
 | `tracking-[-0.01em]` | 1 | sidebar wordmark | **DESIGN-LOCKED** | Tight kerning on the brand mark; matches paper-spec wordmark |
 

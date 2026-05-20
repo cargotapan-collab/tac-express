@@ -53,7 +53,7 @@ interface AwbInputProps extends VariantProps<typeof fieldVariants> {
   error?: string | null
   placeholder?: string
   autoFocus?: boolean
-  /** Unique id base — the input gets `${id}-input`, error gets `${id}-error`. */
+  /** Unique id base — input gets `${id}-input`, error `${id}-error`. Auto-generated when omitted. */
   id?: string
   className?: string
 }
@@ -67,14 +67,21 @@ function AwbInput({
   placeholder = "ENTER AWB / CARGO ID...",
   autoFocus = false,
   size = "default",
-  id = "awb",
+  id,
   className,
 }: AwbInputProps) {
-  const inputId = `${id}-input`
-  const errorId = `${id}-error`
+  // Fall back to a render-stable unique id so multiple un-id'd instances
+  // never collide on the input/error ids (aria wiring would otherwise break).
+  const autoId = React.useId()
+  const baseId = id ?? `awb-${autoId}`
+  const inputId = `${baseId}-input`
+  const errorId = `${baseId}-error`
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    // Enter still fires submit even when the button is disabled — guard it
+    // so a held-Enter can't double-submit while a lookup is in flight.
+    if (loading) return
     onSubmit(value.trim().toUpperCase())
   }
 
