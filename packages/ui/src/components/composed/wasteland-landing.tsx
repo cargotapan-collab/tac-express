@@ -245,16 +245,16 @@ function BusinessUtility() {
   return (
     <section
       id="how-it-works"
-      className="py-24 bg-card border-b border-border relative scroll-mt-20"
+      className="py-20 bg-card border-b border-border relative scroll-mt-20"
     >
       <div className="container mx-auto max-w-6xl px-6 relative z-10">
-        
-        <motion.div 
+
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
           <h2 className="t-h1 md:t-display uppercase text-foreground mb-4">
             Operational Telemetry.
@@ -267,7 +267,7 @@ function BusinessUtility() {
         <motion.div
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-50px" }}
           variants={{
             visible: { transition: { staggerChildren: 0.15 } },
             hidden: {}
@@ -344,15 +344,15 @@ function MetricCard({
 
 function ResultsChart() {
   return (
-    <section className="py-24 bg-background border-b border-border relative overflow-hidden">
+    <section className="py-20 bg-background border-b border-border relative overflow-hidden">
       <div className="container mx-auto max-w-6xl px-6">
-        
-        <motion.div 
+
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
           <h2 className="t-h1 md:t-display uppercase text-foreground mb-4">
             Cost Delta <br /> 27% · 6 Months.
@@ -440,27 +440,27 @@ function SystemCompatibility() {
   return (
     <section
       id="features"
-      className="py-24 bg-card border-b border-border overflow-hidden scroll-mt-20"
+      className="py-20 bg-card border-b border-border overflow-hidden scroll-mt-20"
     >
       <div className="container mx-auto max-w-6xl px-6">
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
           <div>
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
+              viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.6, ease: EASE_SMOOTH }}
-              className="t-h1 md:t-display uppercase text-foreground mb-12"
+              className="t-h1 md:t-display uppercase text-foreground mb-8"
             >
               Integration <br/> Layer · OPEN.
             </motion.h2>
 
-            <motion.div 
+            <motion.div
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
+              viewport={{ once: true, margin: "-50px" }}
               variants={{
                 visible: { transition: { staggerChildren: 0.15 } },
                 hidden: {}
@@ -493,7 +493,7 @@ function SystemCompatibility() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true, margin: "-100px" }}
+            viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.8, delay: 0.3, ease: EASE_SMOOTH }}
             className="relative aspect-[3/4] border-2 border-primary-medium bg-muted shadow-md p-2 group"
           >

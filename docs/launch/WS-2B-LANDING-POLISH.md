@@ -143,9 +143,16 @@ For each group: **defect → fix → rubric criterion lifted → testable done-c
 
 ---
 
-### GROUP 2 — Section spacing / floating-in-void
+### GROUP 2 — Section spacing / floating-in-void ✅ DONE 2026-05-19 (PR-2B-2)
 
-**Defect.** Every section uses `py-24`, but content within each section is often < 50 % of the section's vertical extent. Result: each section reads as a card floating in a gray sea, with the next section a half-screen-scroll away. Inconsistent perceived rhythm despite consistent padding.
+**Status:** ✅ CLOSED. Shipped in PR-2B-2.
+- `BusinessUtility` / `ResultsChart` / `SystemCompatibility` section padding `py-24 → py-20`.
+- Centered headers in `BusinessUtility` / `ResultsChart`: `mb-16 → mb-12`.
+- `SystemCompatibility` two-col `gap-16 → gap-12`; left-col heading `mb-12 → mb-8`.
+- Hero `pt-32 pb-16` and footer `pt-24 pb-12` intentionally untouched (ladder edges).
+- Two surviving hero-internal `mb-16` (form bottom margin + CTA-row bottom margin) intentionally untouched — they're LogisticsHero internal rhythm, not section-level.
+
+**Defect (preserved for history).** Every section uses `py-24`, but content within each section is often < 50 % of the section's vertical extent. Result: each section reads as a card floating in a gray sea, with the next section a half-screen-scroll away. Inconsistent perceived rhythm despite consistent padding.
 
 **Fix.**
 - **Section vertical padding:** drop `py-24` → `py-20` on `BusinessUtility`, `ResultsChart`, `SystemCompatibility`. Section padding ladder becomes: hero `pt-32 pb-16` → content `py-20` × 3 → footer `pt-24 pb-12`. Consistent and tighter.
@@ -164,9 +171,14 @@ For each group: **defect → fix → rubric criterion lifted → testable done-c
 
 ---
 
-### GROUP 3 — Motion-overlap defect
+### GROUP 3 — Motion-overlap defect ✅ DONE 2026-05-19 (PR-2B-2)
 
-**Defect.** The four sections use `whileInView={{ ... }}` with `viewport={{ once: true, margin: "-100px" }}`. The `-100px` trigger margin means an animation fires when an element is still 100px outside the viewport. On a long page with adjacent stagger animations, the entering animation of section N can be visible while section N-1 is still partially on screen — the audit's "COST DELTA heading overlaps the adjacent section mid-animation."
+**Status:** ✅ CLOSED. Shipped in PR-2B-2.
+- All `whileInView` containers in `BusinessUtility` / `ResultsChart` / `SystemCompatibility` updated: `viewport.margin "-100px" → "-50px"` (4 sites: BusinessUtility header + grid stagger, ResultsChart header, SystemCompatibility heading + feature stagger + dock card).
+- Per-section internal staggers (chart's `delay: 0.2` polyline + `delay: 1.2` fill) intentionally untouched — that's the chart's draw-in choreography, not section-level animation.
+- Verified visually via slow-scroll: no two sections' entrance animations are visible simultaneously. Boundary snapshots in retro § 2.
+
+**Defect (preserved for history).** The four sections use `whileInView={{ ... }}` with `viewport={{ once: true, margin: "-100px" }}`. The `-100px` trigger margin means an animation fires when an element is still 100px outside the viewport. On a long page with adjacent stagger animations, the entering animation of section N can be visible while section N-1 is still partially on screen — the audit's "COST DELTA heading overlaps the adjacent section mid-animation."
 
 **Fix.**
 - Change `margin: "-100px"` → `margin: "-50px"` (or `0`) on all `whileInView` containers in `BusinessUtility`, `ResultsChart`, `SystemCompatibility`. Animation fires when the element is 50px inside the viewport (or right at the edge), not before. Two animations no longer overlap because section N's animation can't start until N-1 is already scrolled out.
@@ -303,24 +315,25 @@ Three coherent PRs, sequenced. Each independently merges; the next opens against
 ## 7. Cumulative rubric target — premium tier
 
 ```
-                              Before   PR-2B-1 ✅   PR-2B-2   PR-2B-3   Target
-1.  Token Discipline             9         9            9      9.5         10
-2.  Hierarchy by Scale          10        10           10        10        10
-3.  Rhythm & Whitespace          9         9           10        10        10
-4.  Surface Depth                8         9 ✅         9         9         9
-5.  Motion Choreography          9         9           10        10        10
-6.  Mono Discipline              9         9            9         9         9
-7.  State Choreography           5         5            5         5         5   (WS-3 territory)
-8.  Focus & Hover Polish         8         9 ✅         9         9         9
-9.  Content Voice                8         8            8         9         9
-10. Anti-AI-Slop                 5         5            5         8         8
+                              Before   PR-2B-1 ✅   PR-2B-2 ✅   PR-2B-3   Target
+1.  Token Discipline             9         9              9        9.5         10
+2.  Hierarchy by Scale          10        10             10         10        10
+3.  Rhythm & Whitespace          9         9             10 ✅      10        10
+4.  Surface Depth                8         9 ✅           9          9         9
+5.  Motion Choreography          9         9             10 ✅      10        10
+6.  Mono Discipline              9         9              9          9         9
+7.  State Choreography           5         5              5          5         5   (WS-3 territory)
+8.  Focus & Hover Polish         8         9 ✅           9          9         9
+9.  Content Voice                8         8              8          9         9
+10. Anti-AI-Slop                 5         5              5          8         8
 
-TOTAL                           80        82           84        88.5      89-92
-                                           ↑
-                                       this PR
+TOTAL                           80        82             84       88.5      89-92
+                                                          ↑
+                                                      this PR
 ```
 
-**PR-2B-1 closed 2026-05-19.** Lifted criteria 4 (Surface Depth) and 8 (Focus & Hover Polish) each +1, as planned. Cumulative landing rubric 80 → 82.
+**PR-2B-1 closed 2026-05-19.** Lifted criteria 4 + 8 each +1. Cumulative 80 → 82.
+**PR-2B-2 closed 2026-05-19.** Lifted criteria 3 (Rhythm & Whitespace) and 5 (Motion Choreography) each +1. Cumulative 82 → 84.
 
 **Result:** WS-2B lifts the landing from **80 → 89-92** — into the PREMIUM tier (≥ 90 with the tighter rounding) or right at the boundary (88-89). The remaining ~5 points to a perfect 95+ live in WS-3 (state choreography on LOCATE submit) and a future content pass (real customer testimonial when one is captured).
 
