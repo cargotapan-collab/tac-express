@@ -2,8 +2,8 @@
 
 > **Authority:** this file is the single, reconciled launch plan. It supersedes the *scope* of [`docs/launch/definition-of-done.md`](definition-of-done.md) (engineering) and [`docs/launch/product-launch-readiness.md`](product-launch-readiness.md) (product) AND the customer-facing slice of [`docs/launch/CUSTOMER-FACING-PLAN.md`](CUSTOMER-FACING-PLAN.md) as the **unified** burn-down. Those three files remain the per-workstream detail; this file is the rollup + ordering.
 
-**Version:** 1.3 — WS-1 closed; LB-5 + LB-6 marked DONE, 2026-05-19.
-**Previous versions:** 1.2 — LB-5 + LB-6 added (2026-05-19, PR #180). 1.1 — LB-3 closed (2026-05-19, PR #179). 1.0 — initial master reconciliation (2026-05-18, PR #178).
+**Version:** 1.4 — PI-1 EVIDENCED DONE; LB-4 RESOLVED (Free-tier stance); LB-2 split a/b; launch surface 4→2, 2026-05-21.
+**Previous versions:** 1.3 — WS-1 closed; LB-5 + LB-6 marked DONE (2026-05-19). 1.2 — LB-5 + LB-6 added (2026-05-19, PR #180). 1.1 — LB-3 closed (2026-05-19, PR #179). 1.0 — initial master reconciliation (2026-05-18, PR #178).
 **Authority chain:** [`AGENTS.md` § 0](../../AGENTS.md) → THIS FILE → `definition-of-done.md` + `product-launch-readiness.md` + `CUSTOMER-FACING-PLAN.md` → [`docs/backlog/production-readiness.md`](../backlog/production-readiness.md).
 **Main HEAD at v1.3 reconciliation:** `2b9b42b` (`docs(customer-facing): UI/UX consistency playbook + WS-1..WS-4 plan + MASTER reconciliation (#180)`).
 
@@ -11,9 +11,26 @@
 
 ## 0. LAUNCH VERDICT (evidenced)
 
-> # **NOT READY**
+> # **NOT READY** — but the launch surface is now **2 owner actions**, down from 4.
 
-The verdict is BOOLEAN — `engineering_ready AND product_ready AND customer_facing_ready`. **Three** launch-blockers remain (PI-1 + LB-1 + LB-2 + LB-4 — net 4 items including PI-1). v1.3 closed LB-5 + LB-6 via the WS-1+WS-2 build PR. All remaining items are owner-only credential/permission/decision work; the agent-actionable launch-blocker queue is empty.
+The verdict is BOOLEAN — `engineering_ready AND product_ready AND customer_facing_ready`.
+
+**2026-05-21 reconciliation (v1.4):** the launch surface dropped **4 → 2 actionable items**:
+- ✅ **PI-1 EVIDENCED DONE** — 4 migrations deployed to production (run `26180576599`); see § 4.1.
+- ✅ **LB-4 RESOLVED** — operating on Supabase **Free** tier for launch (active stance, not a deferred TODO; upgrade-when-warranted with documented triggers); see § 4.5.
+- 🚀 **LB-1** (Sentry alert provisioning, ~20 min, independent) — remaining.
+- 🚀 **LB-2** (PL-2b live notifications) — remaining; now unblocked by PI-1. Split into **LB-2a** (submit Meta WhatsApp template — external-clock long-pole) + **LB-2b** (WPBOX env + production e2e, gated on Meta approval).
+
+Customer-facing burn-down is **complete** (WS-1 / WS-2 / WS-2B / WS-3 / WS-4A all CLOSED). **WS-4B** (dashboard support inbox) is unblocked and sequenced as the next agent session, post-reconciliation. Both remaining items (LB-1, LB-2) are owner-side and parallelizable with WS-4B.
+
+> **Production-deploy policy (codified after the PI-1 arc).** Database migrations
+> deploy via the `migration-deploy.yml` workflow **only**. Direct production writes —
+> Supabase MCP `apply_migration`, manual SQL against the production schema, or a raw
+> `supabase db push` from an owner laptop outside the pipeline — are **not** part of
+> the supported deploy surface. Every production-affecting action pairs an action-layer
+> step with a state-layer read (two-signal verification); a `pg_dump` precedes any
+> deploy that could be destructive on the Free tier. This principle survived four
+> false-success modes during PI-1 (see [`docs/retros/2026-05-20-pi-1-deploy.md`](../retros/2026-05-20-pi-1-deploy.md)) and is now part of the architecture.
 
 **Evidence trail (re-verified 2026-05-19):**
 
@@ -89,20 +106,21 @@ Four workstreams now exist (v1.2 added the customer-facing one):
 
 | ID | Item | Done criterion (testable) | Owner / Agent | Estimate |
 |---|---|---|---|---|
-| **PI-1** | **Activate the migration-deploy pipeline + run the one-time backfill (#174)** | `SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('contact_leads','whatsapp_sends')` returns BOTH rows on remote `mdvnphbucrpspntrezmj`. Verified via Supabase MCP `list_tables` post-deploy. | **OWNER** (irreversible production write; secret-bearing) | ~10 min after secrets set |
+| ~~**PI-1**~~ | ~~Activate the migration-deploy pipeline + run the one-time backfill (#174)~~ | ✅ **EVIDENCED DONE 2026-05-20** — both tables present on `mdvnphbucrpspntrezmj` (run `26180576599`); schema + RLS + security advisors verified via Supabase MCP. See § 4.1. | OWNER (pipeline) | closed |
 
-### 2.2 LAUNCH-BLOCKER — 3 (finite, closeable; LB-3 closed by PR #179; LB-5 + LB-6 closed by the WS-1+WS-2 PR 2026-05-19 v1.3)
+### 2.2 LAUNCH-BLOCKER — 2 remaining (LB-1 + LB-2; LB-3/5/6 closed earlier; LB-4 resolved-as-stance 2026-05-21)
 
 | ID | Item | Done criterion (testable) | Owner / Agent | Estimate | Depends on |
 |---|---|---|---|---|---|
 | **LB-1** | **SB-2 — Sentry alert provisioning** | `scripts/sentry/create-alert-rules.mjs` run with `project:write` token; at least one rule fires end-to-end; an `api/diagnostics`-tagged synthetic event visible via Sentry MCP `search_issues` for `tapan-cargo-az/javascript-nextjs` | **OWNER** (owner-only credential per handoff do-NOT list #4) | ~20 min |
-| **LB-2** | **PL-2b activation — live lead notification end-to-end** | Submit `/contact` on production. `contact_leads` row lands with `notification_status='sent'`; recipient phone receives the WhatsApp template message; the row's `whatsapp_send_id` resolves to a `whatsapp_sends` row with `status='sent'` | **OWNER** (template approval + WPBOX env + production submit; bundled because all three are owner-only inputs feeding the same e2e verification) | ~30 min after PI-1 + template approval lands | PI-1; Meta template approval |
+| **LB-2a** | **PL-2b — submit the Meta WhatsApp template for approval** | Template submitted in the Meta/WPBOX console; approval status pending or approved | **OWNER** | ~10 min to submit (then 24–48h external approval wait) | — (PI-1 done; can submit now) |
+| **LB-2b** | **PL-2b — WPBOX env vars + production e2e** | Submit `/contact` on production. `contact_leads` row lands with `notification_status='sent'`; recipient phone receives the WhatsApp template message; the row's `whatsapp_send_id` resolves to a `whatsapp_sends` row with `status='sent'` | **OWNER** (WPBOX env + production submit) | ~30 min | LB-2a (Meta approval); PI-1 ✅ |
 | ~~**LB-3**~~ | ~~#173 — design call on contrast approach + apply to remaining sites~~ | ✅ DONE 2026-05-19 — Option B class-redirect applied across 4 sites; `AXE_FAIL_ON_VIOLATIONS=1` flipped; all 9 carve pages × 3 viewports = 0 serious/critical | AGENT (Run 4 → PR #179) | closed | — |
-| **LB-4** | **SB-3 P1–P4 owner-prerequisites — verify in Supabase dashboard** | The 4 fill-in blocks in [`DATABASE-RESTORE.md § 2`](../runbooks/DATABASE-RESTORE.md#2-prerequisites-owner-confirmed--verify-before-launch) all checked: P1 Pro plan, P2 PITR enabled + retention, P3 daily backups, P4 Owner role | **OWNER** | ~10 min in Supabase dashboard | — |
+| ~~**LB-4**~~ | ~~SB-3 P1–P4 owner-prerequisites — verify in Supabase dashboard~~ | ✅ **RESOLVED 2026-05-21** — decision: operate on Supabase **Free** tier for launch (P1/P2/P3 are Pro-tier features, intentionally not adopted pre-launch). Active stance with residual-risk acceptance, operational compensations, and upgrade triggers — see § 4.5. NOT a deferred TODO. | OWNER (decision) | closed (30-day review: [#192](https://github.com/cargotapan-collab/tac-express/issues/192)) | — |
 | ~~**LB-5**~~ | ~~Customer-facing WS-1.1 — replace hardcoded `localhost:3001` dashboard link in PublicNav with `NEXT_PUBLIC_DASHBOARD_URL`~~ | ✅ DONE 2026-05-19 — `process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001"` matching the existing pattern at `apps/web/app/dashboard/page.tsx`. Owner action: confirm `NEXT_PUBLIC_DASHBOARD_URL` is set on the apps/web Vercel project (see § 4.6) — without it the production deploy uses the localhost fallback. | AGENT (WS-1+WS-2 PR) | closed | — |
 | ~~**LB-6**~~ | ~~Customer-facing WS-1.2 — wire 11 dead in-page anchors (`#features` / `#how-it-works` / `#tracking`) to real sections~~ | ✅ DONE 2026-05-19 — `id="tracking"` on hero LOCATE form, `id="how-it-works"` on BusinessUtility, `id="features"` on SystemCompatibility (+ `scroll-mt-20` for fixed-nav offset). Verified in rendered HTML; 15 Playwright smoke tests pass. | AGENT (WS-1+WS-2 PR) | closed | — |
 
-**Total finite launch surface:** 1 production-incident + 3 launch-blockers = **4 closeable items.** Three are owner-only credential/permission acts (PI-1, LB-1, LB-4); one is owner-only template approval bundled with a production e2e (LB-2). The agent-actionable launch-blocker queue is now empty.
+**Total finite launch surface (2026-05-21):** **2 owner actions remaining** — LB-1 (Sentry, independent) + LB-2 (LB-2a Meta template submission → LB-2b env + e2e). PI-1 EVIDENCED DONE; LB-4 RESOLVED (Free-tier stance). Both remaining items are owner-side and parallelizable with the next agent build (WS-4B). The agent-actionable launch-blocker queue remains empty.
 
 ### 2.3 POST-LAUNCH — 7
 
@@ -142,12 +160,16 @@ Per the autonomous-run policy: security-sensitive sweeps get their own PRs, kept
 ## 3. Burn-down sequence (dependency-ordered)
 
 ```
-PI-1 ──┬──> LB-2 (depends on PI-1's tables existing + template approval + WPBOX env)
-       │
-LB-1 ──┘  (independent — owner can run in parallel with PI-1)
+PI-1 ✅ DONE ──> LB-2a (submit Meta template — can run now) ──> LB-2b (WPBOX env + prod e2e, after ~24–48h Meta approval)
 
-LB-4 (independent — owner-only Supabase-dashboard verification)
+LB-1 (Sentry — independent; run anytime)
+
+LB-4 ✅ RESOLVED (Free-tier stance; 30-day review issue filed)
+
+WS-4B (next agent build — unblocked by PI-1; parallelizable with LB-1/LB-2)
 ```
+
+**Critical path to launch-ready:** LB-2a → (Meta approval, external clock) → LB-2b. Submit LB-2a first; every hour it waits shifts the launch-ready date by an hour. LB-1 and WS-4B run in parallel and do not gate LB-2.
 
 LB-3 closed 2026-05-19 (PR #179). LB-5 + LB-6 closed 2026-05-19 (the WS-1+WS-2 PR).
 
@@ -284,17 +306,55 @@ Run 4 applied the owner-chosen Option B (class-redirect + typography-preserved) 
 
 `AXE_FAIL_ON_VIOLATIONS=1` in `.github/workflows/e2e-web.yml` gates regressions. No owner action remaining.
 
-### 4.5 🛠️ LB-4 — Verify SB-3 prerequisites in Supabase dashboard
+### 4.5 ✅ LB-4 — RESOLVED: operating on Supabase Free tier for launch
 
-```text
-# Open Supabase Dashboard → Project mdvnphbucrpspntrezmj.
-# Confirm + tick the 4 fill-in blocks in
-# docs/runbooks/DATABASE-RESTORE.md § 2:
-#   P1 — Pro plan or higher (PITR requires Pro+)
-#   P2 — PITR enabled + retention window confirmed
-#   P3 — Daily backups visible in dashboard
-#   P4 — Owner role on the project (recovery requires Owner)
-```
+> **Status:** ACTIVE STANCE, not a deferred TODO. **Resolved 2026-05-21.**
+
+**Decision:** launch on Supabase **Free** tier. The SB-3 prerequisites P1 (Pro
+plan), P2 (PITR + retention), P3 (daily dashboard backups) are **Pro-tier
+features**, intentionally **not adopted** pre-launch. P4 (Owner role) is already
+held. Upgrade to Pro is **conditional on real product signal** (see triggers
+below), not scheduled.
+
+**Rationale:** pre-launch, the product has no customer traffic, no measured SLA
+need, and no incident history requiring point-in-time recovery. Pro tier (verify
+current pricing at <https://supabase.com/pricing> — do not rely on a hardcoded
+figure) buys insurance (PITR, daily backups, dedicated compute, paid SLA) whose
+value scales with production load. Pre-launch that load is zero; upgrading now
+would pay for risk that does not yet exist.
+
+**Residual risk accepted:**
+- **No PITR** — recovery from a catastrophic incident relies on the most recent
+  owner-run `pg_dump`; recovery window is hours, not minutes. (The `pg_dump`
+  path was exercised during PI-1 repair prep.)
+- **No scheduled dashboard backups** — backups are owner-initiated only.
+- **Shared compute** — subject to noisy-neighbor latency effects.
+- **Community support** — no paid response-time SLA.
+
+**Operational compensations (accepted in lieu of Pro):**
+- `pg_dump` before any production-affecting deploy — same discipline as PI-1.
+  Capture the command in a runbook for repeat use.
+- `migration-deploy.yml` remains the **only** sanctioned deploy path (audit
+  trail + rollback discoverability).
+- Sentry (LB-1) provides external incident monitoring once provisioned.
+- Two-signal verification (action layer + MCP state read) for any
+  production-affecting work — the discipline that caught all four PI-1
+  false-success modes.
+
+**Upgrade triggers (any one flips the decision to Pro):**
+1. First customer-facing incident where PITR would have meaningfully shortened recovery.
+2. Sustained traffic where noisy-neighbor effects produce measurable user-facing latency (e.g., p95 API latency > 1s for > 24h).
+3. Any customer/contract requirement specifying a paid SLA.
+4. `contact_leads` + `whatsapp_sends` volume where losing > 24h of data is commercially material (rough threshold: 100+ entries/day sustained).
+5. A revenue level where the Pro fee is operationally trivial (rough threshold: any month with > $500 GMV through the platform).
+
+**Review cadence:** re-evaluate at **30 days post-launch**, then quarterly.
+Tracked by [#192](https://github.com/cargotapan-collab/tac-express/issues/192) (filed 2026-05-21).
+
+> Historical: the original P1–P4 verification checklist lived in
+> [`DATABASE-RESTORE.md § 2`](../runbooks/DATABASE-RESTORE.md#2-prerequisites-owner-confirmed--verify-before-launch);
+> it is superseded for launch by this Free-tier stance and re-applies only if an
+> upgrade trigger fires.
 
 ### 4.6 🚀 LB-5 — Set `NEXT_PUBLIC_DASHBOARD_URL` on apps/web Vercel project (~2 min)
 

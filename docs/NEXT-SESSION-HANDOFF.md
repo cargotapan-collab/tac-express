@@ -1,65 +1,74 @@
 # Next-Session Handoff — Start Here
 
-> **The launch authority is [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md).** Customer-facing detail: [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md). UI/UX standard: [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md).
+> **The launch authority is [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md) (v1.4).** Customer-facing detail: [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md). UI/UX standard: [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md).
 
-**Last code commit on main:** `21d77d6` (PI-1 diagnostic docs, #190). This PR adds the PI-1-done docs.
-**This handoff covers:** the PI-1 production deploy (2026-05-20). See [`docs/retros/2026-05-20-pi-1-deploy.md`](retros/2026-05-20-pi-1-deploy.md).
-**Author:** Claude Code (Opus 4.7), DevOps + PM lens.
+**Last code commit on main:** `f337540` (PI-1 EVIDENCED DONE docs, #191). This PR is the launch-readiness reconciliation (docs-only).
+**This handoff covers:** the reconciliation session (2026-05-21). See [`docs/retros/2026-05-21-launch-readiness-reconciliation.md`](retros/2026-05-21-launch-readiness-reconciliation.md).
+**Author:** Claude Code (Opus 4.7), PM lens.
 
 ---
 
 ## 1. LAUNCH VERDICT
 
-> # **NOT READY** (BOOLEAN per the master plan) — but PI-1 is now cleared.
-
-The production-incident is resolved. Remaining surface: 3 owner-gated launch-blockers.
+> # **NOT READY** (BOOLEAN) — launch surface now **2 owner actions**, down from 4.
 
 | | |
 |---|---|
-| ✅ PI-1 | **EVIDENCED DONE** — 4 migrations deployed (run `26180576599`); `contact_leads` + `whatsapp_sends` live, RLS correct, security advisors clean |
+| ✅ PI-1 | **EVIDENCED DONE** — 4 migrations deployed (run `26180576599`); tables live, RLS correct, security advisors clean |
+| ✅ LB-4 | **RESOLVED** — operating on Supabase **Free** for launch (active stance; upgrade-when-warranted; 30-day review [#192](https://github.com/cargotapan-collab/tac-express/issues/192)) |
 | 🚀 LB-1 | SB-2 Sentry alert provisioning (~20 min) — independent, runnable now |
-| 🚀 LB-2 | PL-2b live notifications — now unblocked by PI-1; needs Meta WhatsApp template approval + WPBOX env vars + production e2e |
-| 🛠️ LB-4 | SB-3 prereqs — **open owner decision**: Free plan blocks P1 (Pro) + P2 (PITR); upgrade vs accept-the-limitation |
+| 🚀 LB-2a | Submit the Meta WhatsApp template — **external-clock long-pole** (24–48h approval); run first |
+| 🚀 LB-2b | WPBOX env vars + production e2e — gated on LB-2a approval |
 
 ---
 
 ## 2. What happened this session
 
-PI-1 deployed after a four-attempt arc (skipped run → history-drift failure → repair runbook in PR #190 → CLI-not-installed false repair → CLI install + history repair → successful deploy `26180576599`). Full story + lessons in the retro. Production verified read-only via Supabase MCP; the perf-advisor call (non-blocking) was made explicitly by the owner. No agent production writes — the agent triggered the pipeline (authorized) and verified read-only.
+Reconciliation only (docs). Recorded PI-1 EVIDENCED DONE in the verdict; codified the **production-deploy policy** (pipeline-only; no MCP/manual prod writes; two-signal verification; `pg_dump` before destructive ops on Free); **resolved LB-4** as a Free-tier stance with documented residual risk, compensations, and 5 upgrade triggers; **split LB-2** into a/b to surface the Meta-template external clock; filed the 30-day LB-4 review issue #192.
 
 ---
 
 ## 3. Open items
 
-- **Open PRs:** this PI-1-done docs PR. After merge → 0 open PRs.
-- **Open issues:** #174 closed this session.
-- **Deferred, non-blocking:** perf-tuning for the 2 new PII tables (FK indexes + `(select auth.uid())` RLS wrapping) — see retro § 6. Not a launch gate.
+- **Open PRs:** this reconciliation PR. After merge → 0 open PRs.
+- **Open issues:** #192 (30-day LB-4 review, intentionally open). #174 closed last session.
+- **Deferred, non-blocking:** perf-tuning for the 2 new PII tables (FK indexes + `(select auth.uid())` RLS wrapping) — see the PI-1 retro § 6.
 
 ---
 
 ## 4. Customer-facing status
 
-WS-1, WS-2 + WS-2B, WS-3, WS-4A all closed (landing at clean PREMIUM ~92). **WS-4B (dashboard support inbox) is NOW UNBLOCKED** — `contact_leads` exists in production. It's the last sizable agent build and needs its own PHASE-0 (RLS for MANAGER+ read, additive schema columns, service-layer methods, composed UI, audit-trail wiring).
+WS-1, WS-2 + WS-2B, WS-3, WS-4A all closed (landing at clean PREMIUM ~92). The agent-actionable customer-facing burn-down is complete.
 
 ---
 
-## 5. Next session's lead task — launch-readiness reconciliation
+## 5. Operating principles for production-affecting work (carry forward)
 
-Per the original PI-1 plan, the next session is **not** a build — it's the **launch-readiness reconciliation**:
-1. Record PI-1 EVIDENCED DONE in the DoD / launch verdict (this PR stamps the master plan; the reconciliation evidences the rest of the verdict).
-2. Capture OD decisions if available.
-3. **Resolve the LB-4 / Free-plan question** (upgrade to Pro for PITR vs accept the limitation + document residual risk).
-4. Re-evaluate the launch verdict against the remaining LB-1 / LB-2 owner work.
-
-After reconciliation, **WS-4B** fires from a known-good production state.
+- **Pipeline-only deploys** — migrations via `migration-deploy.yml` only. No MCP `apply_migration`, no manual prod SQL, no off-pipeline `db push`.
+- **Two-signal verification** — pair every action with a state-layer read (it caught all four PI-1 false-success modes).
+- **`pg_dump` before any destructive prod op** on the Free tier — the standing backup substitute (no PITR).
 
 ---
 
-## 6. OWNER ACTIONS — before next session
+## 6. Next session's lead task — WS-4B (dashboard support inbox)
+
+The next **agent** session is the WS-4B build. Preconditions, all now met:
+- ✅ PI-1 done — `contact_leads` exists in production with RLS (MANAGER+ select, MANAGER+ update; no insert/delete policy — service-role writes only).
+- ✅ LB-4 resolved — operating on Free; `pg_dump` discipline established.
+- No other agent dependencies.
+
+WS-4B is a NEW `apps/dashboard` surface reading `contact_leads`. It needs its own PHASE-0: confirm/extend the RLS read path for MANAGER+, additive schema columns (e.g., `read_at`/`triaged_by` if the inbox needs triage state — design in the build session, NOT before), service-layer methods, composed UI components, audit-trail wiring. ~half-day PR-scale. Load the UI-UX consistency playbook first (customer-facing-adjacent dashboard surface).
+
+**LB-1 and LB-2 are owner-side and parallelizable with WS-4B** — they do not block the next agent session.
+
+---
+
+## 7. OWNER ACTIONS — before next session
 
 1. ✅ **PI-1 — DONE.** No action.
-2. 🚀 **LB-1** — SB-2 Sentry alert provisioning (~20 min). Independent of everything else; can run now.
-3. 🚀 **LB-2** — PL-2b live notifications: submit the Meta WhatsApp template for approval (the one item on a real external clock — start it early), set WPBOX env vars, then production e2e. Now unblocked by PI-1.
-4. 🛠️ **LB-4** — decide Supabase Free vs Pro (PITR/P1/P2). Open decision for the reconciliation session.
+2. ✅ **LB-4 — RESOLVED** (Free for launch). No action; #192 holds the 30-day review.
+3. 🚀 **LB-2a** — submit the Meta WhatsApp template **now** (external-clock long-pole; 24–48h approval). This is the launch-ready critical path.
+4. 🚀 **LB-1** — SB-2 Sentry alert provisioning (~20 min). Independent; run anytime.
+5. 🚀 **LB-2b** — WPBOX env vars + production e2e, after LB-2a approval lands.
 
-🤖 Handoff written by Claude (Opus 4.7), 2026-05-20, post PI-1 deploy.
+🤖 Handoff written by Claude (Opus 4.7), 2026-05-21, post launch-readiness reconciliation.
