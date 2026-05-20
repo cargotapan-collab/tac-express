@@ -14,7 +14,10 @@
 import { describe, expect, it, vi } from "vitest"
 import type { SupabaseClient } from "@workspace/database/supabase.types"
 
-import { createContactLeadService } from "../contact-lead.service"
+import {
+  createContactLeadService,
+  createContactLeadInboxService,
+} from "../contact-lead.service"
 import type { TrackedWhatsAppService } from "../whatsapp-tracked.service"
 
 const SAMPLE_INPUT = {
@@ -228,5 +231,120 @@ describe("createContactLeadService.submitContactLead", () => {
     const call = (whatsapp.sendTemplate as ReturnType<typeof vi.fn>).mock.calls[0]?.[0]
     const bodyParams = call?.components?.[0]?.parameters as Array<{ text: string }>
     expect(bodyParams[0]?.text).toBe("Partner")
+  })
+})
+
+// ── WS-4B: createContactLeadInboxService (operator-side read + triage) ───────
+
+const SAMPLE_ROW = {
+  id: "lead-1",
+  name: "Aman Sharma",
+  email: "aman@example.com",
+  company: "Tea Cooperative",
+  reason: "sales",
+  message: "Looking for a quote to Imphal.",
+  status: "new",
+  notification_status: "sent",
+  notification_sent_at: "2026-05-21T10:00:00Z",
+  whatsapp_send_id: "wa-1",
+  ip_address: "203.0.113.5",
+  user_agent: "Mozilla/5.0",
+  created_at: "2026-05-21T09:59:00Z",
+}
+
+/** A chained-query mock for the inbox read path. `select/order/eq/or` return
+ *  the builder; the list terminal `.range()` and the single-row `.single()`
+ *  both resolve to `result`. `update` returns the builder too. Records the
+ *  table, filter calls, and update values for assertions. */
+function makeInboxDb(result: { data: unknown; error: { message: string } | null }) {
+  const calls = {
+    tables: [] as string[],
+    filters: [] as Array<[string, ...unknown[]]>,
+    updateValues: [] as unknown[],
+  }
+  const from = vi.fn((table: string) => {
+    calls.tables.push(table)
+    const builder: Record<string, unknown> = {}
+    const chain =
+      (name: string) =>
+      (...args: unknown[]) => {
+        calls.filters.push([name, ...args])
+        return builder
+      }
+    builder.select = vi.fn(chain("select"))
+    builder.order = vi.fn(chain("order"))
+    builder.eq = vi.fn(chain("eq"))
+    builder.or = vi.fn(chain("or"))
+    builder.range = vi.fn(() => Promise.resolve(result))
+    builder.single = vi.fn(() => Promise.resolve(result))
+    builder.update = vi.fn((values: unknown) => {
+      calls.updateValues.push(values)
+      return builder
+    })
+    return builder
+  })
+  return { db: { from } as unknown as SupabaseClient, calls }
+}
+
+describe("createContactLeadInboxService", () => {
+  it("getContactLeads maps rows, queries contact_leads, orders by created_at desc", async () => {
+    const { db, calls } = makeInboxDb({ data: [SAMPLE_ROW], error: null })
+    const service = createContactLeadInboxService(db)
+
+    const rows = await service.getContactLeads()
+
+    expect(calls.tables[0]).toBe("contact_leads")
+    expect(calls.filters).toContainEqual(["order", "created_at", { ascending: false }])
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ id: "lead-1", status: "new", reason: "sales" })
+  })
+
+  it("getContactLeads applies status + reason + search filters", async () => {
+    const { db, calls } = makeInboxDb({ data: [], error: null })
+    const service = createContactLeadInboxService(db)
+
+    await service.getContactLeads({ status: "new", reason: "sales", search: "aman" })
+
+    expect(calls.filters).toContainEqual(["eq", "status", "new"])
+    expect(calls.filters).toContainEqual(["eq", "reason", "sales"])
+    const orCall = calls.filters.find((f) => f[0] === "or")
+    expect(orCall?.[1]).toContain("aman")
+    expect(orCall?.[1]).toContain("name.ilike")
+  })
+
+  it("getContactLeads throws on a query error", async () => {
+    const { db } = makeInboxDb({ data: null, error: { message: "rls denied" } })
+    const service = createContactLeadInboxService(db)
+    await expect(service.getContactLeads()).rejects.toMatchObject({ message: "rls denied" })
+  })
+
+  it("getContactLeadById returns the mapped row", async () => {
+    const { db, calls } = makeInboxDb({ data: SAMPLE_ROW, error: null })
+    const service = createContactLeadInboxService(db)
+
+    const row = await service.getContactLeadById("lead-1")
+
+    expect(calls.filters).toContainEqual(["eq", "id", "lead-1"])
+    expect(row).toMatchObject({ id: "lead-1", email: "aman@example.com" })
+  })
+
+  it("updateContactLeadStatus writes ONLY the status column and returns the updated row", async () => {
+    const updated = { ...SAMPLE_ROW, status: "contacted" }
+    const { db, calls } = makeInboxDb({ data: updated, error: null })
+    const service = createContactLeadInboxService(db)
+
+    const row = await service.updateContactLeadStatus("lead-1", "contacted")
+
+    expect(calls.updateValues).toEqual([{ status: "contacted" }])
+    expect(calls.filters).toContainEqual(["eq", "id", "lead-1"])
+    expect(row.status).toBe("contacted")
+  })
+
+  it("updateContactLeadStatus throws on a query error", async () => {
+    const { db } = makeInboxDb({ data: null, error: { message: "update blocked" } })
+    const service = createContactLeadInboxService(db)
+    await expect(
+      service.updateContactLeadStatus("lead-1", "closed"),
+    ).rejects.toMatchObject({ message: "update blocked" })
   })
 })
