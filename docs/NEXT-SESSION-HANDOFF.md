@@ -2,9 +2,9 @@
 
 > **The launch authority is [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md) (v1.3).** The customer-facing workstream detail lives in [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md). The UI/UX consistency playbook at [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) is the standing standard.
 
-**Last code commit on main:** the WS-3 PR-WS-3a — `feat(api): public /api/track/[awb] route + tests`. WS-3 split per pre-named bailout seam; UI layer is PR-WS-3b.
-**Previous on main:** PR #186 — WS-2B PR-2B-3 (closed WS-2B; rubric 88.5).
-**This handoff covers:** the PR-WS-3a build session (2026-05-20). See [`docs/retros/2026-05-20-ws3-pra-track-route.md`](retros/2026-05-20-ws3-pra-track-route.md).
+**Last code commit on main:** the WS-3 PR-WS-3b — `feat(ui): WS-3 PR-WS-3b — tracking dialog + LOCATE wire-up`. **Closes WS-3.** Landing rubric ~92 (clean PREMIUM).
+**Previous on main:** PR #187 — WS-3 PR-WS-3a (the `/api/track/[awb]` route).
+**This handoff covers:** the PR-WS-3b build session (2026-05-20). See [`docs/retros/2026-05-20-ws3-prb-tracking-dialog.md`](retros/2026-05-20-ws3-prb-tracking-dialog.md).
 **Author of last session:** Claude Code (Opus 4.7), Senior Frontend Architect + Full-Stack Engineer + PM + CTO mode.
 
 ---
@@ -13,7 +13,7 @@
 
 > # **NOT READY** (BOOLEAN per the master plan)
 
-**The finite launch surface is 4 items** (1 PRODUCTION-INCIDENT + 3 LAUNCH-BLOCKERs). Unchanged. WS-3 is POST-LAUNCH; this session shipped the API contract half (PR-WS-3a). UI half (PR-WS-3b) is the next agent session.
+**The finite launch surface is 4 items** (1 PRODUCTION-INCIDENT + 3 LAUNCH-BLOCKERs). Unchanged. WS-3 closed (POST-LAUNCH). The customer-facing landing + tracking experience is now at clean PREMIUM; the remaining launch gate is entirely owner-side credential/permission work.
 
 | | |
 |---|---|
@@ -26,15 +26,17 @@
 
 ## 2. What changed in this session
 
-Code (4 files):
-- **`apps/web/app/api/track/[awb]/route.ts`** — new. Public GET handler. Zod-validates AWB, rate-limits, calls `createPublicTrackingService` server-side, returns JSON.
-- **`apps/web/app/api/track/[awb]/route.test.ts`** — new. 6 value-capturing tests covering 200 / 404 / 400-too-short / 400-illegal-chars / 429 / XFF parsing.
-- **`apps/web/lib/rate-limit.ts`** — new `trackLookupRateLimit` + `checkTrackLookup` helper (30 req / 1 min / IP).
-- **`vitest.config.ts`** — new workspace alias `@workspace/services/<name>` → `packages/services/src/<name>.ts` (mirrors the existing UI alias). First consumer: this PR's route test.
+Code (4 source files + 2 tests):
+- **`packages/ui/src/components/composed/awb-input.tsx`** (new) — shared AWB input primitive (hero/default sizes).
+- **`packages/ui/src/components/composed/awb-input.test.tsx`** (new) — 8 tests.
+- **`packages/ui/src/components/composed/tracking-result-dialog.tsx`** (new) — shadcn-Dialog-wrapped tracking dialog; 4 states; fetches `/api/track/[awb]`.
+- **`packages/ui/src/components/composed/tracking-result-dialog.test.tsx`** (new) — 6 tests.
+- **`packages/ui/src/components/composed/wasteland-landing.tsx`** — hero uses `<AwbInput>`; LOCATE opens the dialog; `?track=AWB` History-API URL sync; mount auto-open; `useRouter` removed.
+- **`apps/web/e2e/landing.smoke.spec.ts`** — 3 new dialog smokes (open-on-submit + URL, Esc-close + clear, deep-link auto-open).
 
 Docs (2 files):
-- **`docs/launch/CUSTOMER-FACING-PLAN.md`** § 4 — recommended PR shape rewritten as PR-WS-3a (done) + PR-WS-3b (next).
-- **`docs/retros/2026-05-20-ws3-pra-track-route.md`** (new).
+- **`docs/launch/CUSTOMER-FACING-PLAN.md`** § 4 — WS-3 marked CLOSED (PR-WS-3a + PR-WS-3b).
+- **`docs/retros/2026-05-20-ws3-prb-tracking-dialog.md`** (new).
 
 ---
 
@@ -43,15 +45,15 @@ Docs (2 files):
 ```bash
 git checkout main && git pull origin main
 pnpm typecheck && pnpm lint && pnpm test
-# Expected: all green; 787 tests pass (was 781 + 6 new route tests).
+# Expected: all green; 803 tests pass (was 789 + 14 new: 8 AwbInput, 6 dialog).
 pnpm audit --prod --audit-level moderate
 ```
 
 Then read in order:
 
-1. [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) — load FIRST for any customer-facing UI work.
-2. [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md) — § 4.1 (PR-WS-3b scope).
-3. [`docs/retros/2026-05-20-ws3-pra-track-route.md`](retros/2026-05-20-ws3-pra-track-route.md) — § 8 names PR-WS-3b's 3 commits.
+1. [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) — load FIRST for any UI work.
+2. [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md) — § 5 (WS-4 scope).
+3. [`docs/retros/2026-05-20-ws3-prb-tracking-dialog.md`](retros/2026-05-20-ws3-prb-tracking-dialog.md) — § 7 names WS-4's split.
 4. § 6 of this file — the next task.
 
 ---
@@ -69,46 +71,39 @@ Then read in order:
 7. **Do NOT derive task references from `#102`-the-GitHub-issue.**
 8. **Do NOT promote a POST-LAUNCH item to SHIP-BLOCKER without explicit owner decision.**
 9. **Do NOT mark SB-2 done on the owner's word alone.**
-10. **Do NOT modify the `/track/[awb]` page route** in PR-WS-3b. It's the surviving deep-link / SEO / share surface. Dialog wraps `<TrackingResultView>` only.
-11. **Do NOT duplicate AWB validation** between the route and the dialog. The route owns validation. Dialog surfaces the route's error response.
+10. **Do NOT design the WS-4B schema in a planning session.** WS-4B (dashboard support inbox) reads `contact_leads` PII — its RLS + schema + service are PHASE-0 work for that build session.
+11. **Do NOT bundle WS-4A (rename) with WS-4B (inbox).** They're separate per the plan; WS-4A bundles with LB-2 activation.
 
 ---
 
 ## 5. Open items snapshot
 
-- **Open PRs:** the PR-WS-3a build PR (this branch). After merge → 0 open PRs.
+- **Open PRs:** the PR-WS-3b build PR (this branch). After merge → 0 open PRs.
 - **Open issues:** 12. All reconciled into [`MASTER-LAUNCH-PLAN.md § 1.2`](launch/MASTER-LAUNCH-PLAN.md).
 
 ---
 
 ## 6. Next session's lead task
 
-**PR-WS-3b — `<AwbInput>` + `<TrackingResultDialog>` + LOCATE-form wire-up.**
+**WS-4 — "Contact Sales" → "Contact TAC" + dashboard support inbox.** See [`CUSTOMER-FACING-PLAN.md § 5`](launch/CUSTOMER-FACING-PLAN.md).
 
-The API contract is now stable on main; PR-WS-3b composes against it.
+Two halves, genuinely separate:
+- **WS-4A — the rename.** "Contact Sales" → "Contact TAC" across the landing (one occurrence at `wasteland-landing.tsx` CONTACT SALES button). ~10-min change. **Bundles with LB-2 activation** per the plan — renaming a button that links to a 500-ing `/api/contact` has limited value until PI-1 deploys `contact_leads`. Recommend the owner ship this alongside the LB-2 owner step.
+- **WS-4B — dashboard support inbox.** NEW `apps/dashboard/app/ops-console/support/` surface reading `contact_leads`. **PI-1-blocked** (the table must exist in production). Needs its own PHASE-0: RLS policy for MANAGER+ read, additive schema columns (read_at/triaged_by/etc.), service-layer methods, 3 composed UI components, audit-trail wiring. ~half-day PR-scale session.
 
-- **Scope:** see [`CUSTOMER-FACING-PLAN.md § 4.1`](launch/CUSTOMER-FACING-PLAN.md) (PR-WS-3b row) + [`docs/retros/2026-05-20-ws3-pra-track-route.md § 8`](retros/2026-05-20-ws3-pra-track-route.md). Three commits:
-  1. **`feat(ui): <AwbInput> primitive`** — `packages/ui/src/components/composed/awb-input.tsx`. Variants `size: "hero" | "default"`. Refactor hero LOCATE to use it (second consumer triggers extraction per playbook § 4).
-  2. **`feat(ui): <TrackingResultDialog> composed`** — Wraps shadcn `<Dialog>` primitive from `packages/ui/src/components/primitives/dialog.tsx`. Fetches `/api/track/${awb}`. Four states (LOADED / LOADING / EMPTY / ERROR) per playbook § 6.
-  3. **`feat(landing): wire LOCATE → TrackingResultDialog with ?track sync`** — Hero LOCATE submit opens dialog + `router.replace` shallow `?track=AWB`. Mount-read opens dialog from `?track=` URL. Close clears param. Playwright smoke + a11y additions.
-- **Gated on:** nothing — independent of owner.
-- **Done criterion:** LOCATE on landing opens dialog with skeleton within 100ms → result within 500ms; deep-link-able via `?track=AWB123`; `/track/[awb]` page route unchanged; axe-clean with dialog open; Playwright covers happy path + empty state + URL deep-link + Esc-close. Lifts rubric criterion 7 (State Choreography) 5 → 9.
-- **Pre-PR skill load:** [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) FIRST, then `tac-ui-authoring` + `tac-forms` + `tac-tdd`.
-- **Estimate:** ~45-90 min build session.
+Owner triggers with `write the WS-4 prompt`, `start WS-4A`, or another priority (e.g., the deferred WS-2 closing-CTA polish, or the carry-forward POST-LAUNCH-POLISH items).
 
-Owner triggers with `start PR-WS-3b` (or `write the PR-WS-3b prompt` to receive a fresh prompt first).
-
-After PR-WS-3b merges → WS-3 closed → WS-4 (Contact TAC rename + dashboard support inbox; PI-1-blocked) is next.
+**Note:** the agent-actionable customer-facing UI burn-down is now substantial-complete — WS-1 (launch-blockers), WS-2 + WS-2B (consistency + premium polish), and WS-3 (tracking dialog) are all closed. WS-4B is the last sizable build, and it's PI-1-gated. **The critical path to launch is now almost entirely the owner's 4-item queue.**
 
 ---
 
 ## 7. OWNER ACTIONS — before next session
 
-1. 🚨 **PI-1** — Activate migration-deploy + backfill (~10-15 min). See [`§ 4.1`](launch/MASTER-LAUNCH-PLAN.md).
+1. 🚨 **PI-1** — Activate migration-deploy + backfill (~10-15 min). See [`§ 4.1`](launch/MASTER-LAUNCH-PLAN.md). **Now doubly relevant:** it unblocks both the contact form AND verifies the new tracking dialog against live shipment data.
 2. 🚀 **LB-1** — Run SB-2 Sentry alert provisioning (~20 min). See § 4.2.
-3. 🚀 **LB-2** — Activate PL-2b live notifications (after PI-1 + Meta template approval). See § 4.3.
+3. 🚀 **LB-2** — Activate PL-2b live notifications (after PI-1 + Meta template approval). See § 4.3. Bundle the WS-4A "Contact TAC" rename here.
 4. 🛠️ **LB-4** — Verify SB-3 prereqs in Supabase dashboard (~10 min). See § 4.5.
 
 Vercel `NEXT_PUBLIC_DASHBOARD_URL` remains deferred. `npm audit` gate is green on main (PR #182).
 
-🤖 Handoff written by Claude (Opus 4.7), 2026-05-20, post PR-WS-3a (bailout split).
+🤖 Handoff written by Claude (Opus 4.7), 2026-05-20, post WS-3 closing PR-WS-3b.

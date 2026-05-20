@@ -151,11 +151,13 @@ The audit's PR-B / PR-C / PR-D roadmap maps onto four coherent sub-PRs:
 
 ---
 
-## 4. WS-3 — AWB tracking presentation (UX migration, not from-scratch wiring)
+## 4. WS-3 — AWB tracking presentation (UX migration) ✅ CLOSED 2026-05-20
 
 **Bucket:** 📋 POST-LAUNCH (UX migration — pre-existing tracking page works; the dialog is an enhancement).
 **Source:** owner request + audit's R-8 (extract `<AwbInput>` to share between hero + tracking dialog).
-**Estimate:** 1 full PR-scale build session (~half day).
+**Status:** ✅ CLOSED 2026-05-20. Shipped as two PRs (bailout split):
+- **PR-WS-3a (#187)** — `GET /api/track/[awb]` route + 8 tests + `checkTrackLookup` rate-limit + `@workspace/services` vitest alias. CodeRabbit-hardened (decode guard → 400; service-error guard → 503).
+- **PR-WS-3b** — `<AwbInput>` primitive (hero/default sizes) + `<TrackingResultDialog>` (4 states: loaded/loading/empty/error) + LOCATE wire-up with `?track=AWB` deep-link URL sync. axe-clean closed AND dialog-open (0 violations). 803 unit tests + 3 new Playwright dialog smokes. Rubric criterion 7 (State Choreography) 5 → 9.
 **Dependencies:** WS-2C ships `<AwbInput>` first (avoids re-extracting mid-session). Independent of PI-1 / LB-* otherwise.
 
 ### 4.1 BAILOUT-grade finding — WS-3 is materially smaller than the prompt assumed
