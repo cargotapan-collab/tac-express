@@ -58,6 +58,22 @@ export const contactFormRateLimit = redis
     })
   : null
 
+/**
+ * Public AWB lookup rate limit: backs `/api/track/[awb]` (WS-3). More
+ * permissive than the contact form because this is a read operation —
+ * a legitimate visitor may retry with corrected AWBs a few times before
+ * giving up. 30 lookups / minute / identifier covers normal use and still
+ * limits abuse.
+ */
+export const trackLookupRateLimit = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(30, "1 m"),
+      analytics: true,
+      prefix: "ratelimit:track",
+    })
+  : null
+
 export interface RateLimitResult {
   success: boolean
   limit: number
@@ -87,4 +103,11 @@ export async function checkContactForm(
 ): Promise<RateLimitResult> {
   if (!contactFormRateLimit) return noopResult
   return contactFormRateLimit.limit(identifier)
+}
+
+export async function checkTrackLookup(
+  identifier: string,
+): Promise<RateLimitResult> {
+  if (!trackLookupRateLimit) return noopResult
+  return trackLookupRateLimit.limit(identifier)
 }
