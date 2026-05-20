@@ -2,9 +2,9 @@
 
 > **The launch authority is [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md) (v1.3).** The customer-facing workstream detail lives in [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md). The UI/UX consistency playbook at [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) is the standing standard.
 
-**Last code commit on main:** the WS-2B PR-2B-2 — `feat(landing): WS-2B PR-2B-2 — page rhythm + motion-overlap (Groups 2 + 3)`. Rubric 82 → 84.
-**Previous on main:** PR #184 — WS-2B PR-2B-1 (hero refinement).
-**This handoff covers:** the PR-2B-2 build session (2026-05-19). See [`docs/retros/2026-05-19-ws2b-pr2-rhythm-motion.md`](retros/2026-05-19-ws2b-pr2-rhythm-motion.md).
+**Last code commit on main:** the WS-2B PR-2B-3 — `feat(landing): WS-2B PR-2B-3 — content sections (Groups 4 + 5 + 6)`. **Closes WS-2B.** Rubric 84 → 88.5.
+**Previous on main:** PR #185 — WS-2B PR-2B-2 (page rhythm + motion-overlap).
+**This handoff covers:** the PR-2B-3 build session (2026-05-19). See [`docs/retros/2026-05-19-ws2b-pr3-content.md`](retros/2026-05-19-ws2b-pr3-content.md).
 **Author of last session:** Claude Code (Opus 4.7), Senior Frontend Architect + UI/UX Designer + PM + CTO mode.
 
 ---
@@ -13,7 +13,7 @@
 
 > # **NOT READY** (BOOLEAN per the master plan)
 
-**The finite launch surface is 4 items** (1 PRODUCTION-INCIDENT + 3 LAUNCH-BLOCKERs). Unchanged from PR #182. WS-2B is POST-LAUNCH; PR-2B-2 lifted the landing rubric to 84.
+**The finite launch surface is 4 items** (1 PRODUCTION-INCIDENT + 3 LAUNCH-BLOCKERs). Unchanged from PR #182. The agent-actionable launch-blocker queue is empty — all remaining items are owner-only. **WS-2B closed; landing rubric at 88.5 (premium-tier boundary).**
 
 | | |
 |---|---|
@@ -26,13 +26,14 @@
 
 ## 2. What changed in this session
 
-Code (1 file):
-- **`packages/ui/src/components/composed/wasteland-landing.tsx`** — section padding `py-24 → py-20` on 3 content sections; headers `mb-16 → mb-12` on 2 centered sections; `whileInView margin "-100px" → "-50px"` on 6 sites across BusinessUtility / ResultsChart / SystemCompatibility; SystemCompatibility two-col `gap-16 → gap-12`; left-col heading `mb-12 → mb-8`.
+Code (2 files):
+- **`packages/ui/src/components/composed/wasteland-landing.tsx`** — `ResultsChart`: testimonial reframed as un-attributed case study (no avatar, no founder, no quotes, no inverted-highlight box); chart preserved. `SystemCompatibility`: dock card `shadow-md → shadow-brutal`; feature list `gap-8 → gap-10`.
+- **`packages/ui/src/components/composed/footer.tsx`** — 3 column headings → `.t-overline text-foreground mb-6`; lone GitHub icon row removed entirely (owner decision A); `Icon` import dropped.
 
 Docs (3 files):
-- **`docs/launch/WS-2B-LANDING-POLISH.md`** — Groups 2 + 3 marked DONE; § 7 cumulative rubric updated with the +2 delta.
-- **`docs/launch/CUSTOMER-FACING-PLAN.md`** § 3.2 — PR-2B-2 marked DONE; PR-2B-3 named as the remaining work.
-- **`docs/retros/2026-05-19-ws2b-pr2-rhythm-motion.md`** (new).
+- **`docs/launch/WS-2B-LANDING-POLISH.md`** — Groups 4, 5, 6 marked DONE; § 7 cumulative rubric finalized; "WS-2B CLOSED" stamp.
+- **`docs/launch/CUSTOMER-FACING-PLAN.md`** § 3.2 — WS-2B marked CLOSED with rubric 80 → 88.5.
+- **`docs/retros/2026-05-19-ws2b-pr3-content.md`** (new).
 
 ---
 
@@ -48,7 +49,7 @@ pnpm audit --prod --audit-level moderate
 Then read in order:
 
 1. [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) — load if working on any UI surface.
-2. [`docs/launch/WS-2B-LANDING-POLISH.md`](launch/WS-2B-LANDING-POLISH.md) — § 5 Groups 4 + 5 + 6 (next PR spec) + § 7 cumulative rubric.
+2. [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md) — § 4 (WS-3 spec).
 3. § 6 of this file — the next task.
 
 ---
@@ -66,31 +67,31 @@ Then read in order:
 7. **Do NOT derive task references from `#102`-the-GitHub-issue.**
 8. **Do NOT promote a POST-LAUNCH item to SHIP-BLOCKER without explicit owner decision.**
 9. **Do NOT mark SB-2 done on the owner's word alone.**
-10. **Do NOT redesign sections in PR-2B-3** — refinement only. The testimonial reframe is a content swap to an un-attributed case study; no invented customer name or quote.
+10. **Do NOT bundle WS-3 with WS-4.** Each is its own session.
+11. **WS-2B is CLOSED.** Do not reopen unless a new defect surfaces; file as POST-LAUNCH-POLISH instead.
 
 ---
 
 ## 5. Open items snapshot
 
-- **Open PRs:** the PR-2B-2 build PR (this branch). After merge → 0 open PRs.
+- **Open PRs:** the PR-2B-3 build PR (this branch). After merge → 0 open PRs.
 - **Open issues:** 12. All reconciled into [`MASTER-LAUNCH-PLAN.md § 1.2`](launch/MASTER-LAUNCH-PLAN.md).
 
 ---
 
 ## 6. Next session's lead task
 
-**PR-2B-3 — content sections (WS-2B Groups 4 + 5 + 6). Closes WS-2B.**
+**WS-3 — AWB tracking dialog (UX migration from page → dialog).**
 
-- **Scope:** see [`WS-2B-LANDING-POLISH.md § 5`](launch/WS-2B-LANDING-POLISH.md) Groups 4 + 5 + 6.
-  - **Group 4** — Testimonial → un-attributed case study (`ResultsChart`). Section eyebrow → `CASE STUDY · NORTH-EAST CORRIDOR FLEET`. Body → factual case-study statement (no quotes, no avatar, no founder line). `bg-foreground text-background` inline highlight → `text-primary font-bold`. **NO INVENTED CUSTOMER NAME OR QUOTE.**
-  - **Group 5** — Integration dock card `shadow-md → shadow-brutal`; left-col feature `gap-8 → gap-10` + `lg:justify-between` for vertical fill.
-  - **Group 6** — Footer column headings → `.t-overline text-foreground mb-6`. **Owner decision at PR merge:** lone GitHub icon — (A) drop the row [default], (B) add second link, (C) keep.
+- **Scope:** see [`CUSTOMER-FACING-PLAN.md § 4`](launch/CUSTOMER-FACING-PLAN.md). The tracking service + `/track/[awb]` page already exist + work; WS-3 is a UX migration to surface results in a shadcn `<Dialog>` from the landing hero. Three commits: API route → dialog component → wire LOCATE form. Closes the criterion 7 (State Choreography) gap that's holding the rubric at 88.5.
 - **Gated on:** nothing — independent of owner. Ready any time.
-- **Done criterion:** rubric criterion 9 (Content Voice) → 9; criterion 10 (Anti-AI-Slop) → 8. axe-clean. No `bg-foreground text-background` inline highlights remaining. No `text-sm font-bold ... tracking-paper-20` raw class strings in footer.
-- **Pre-PR skill load:** [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) FIRST, then `tac-design-tokens` + `tac-ui-rubric`.
-- **Estimate:** ~45 min build session.
+- **Done criterion:** LOCATE form opens dialog on submit, shows loading skeleton → result within ~500ms; deep-link-able via `?track=AWB123` URL param; all 4 states (loaded/loading/empty/error) designed; axe-clean; Playwright E2E for happy path. Rubric criterion 7 → 9, criterion 10 → 9-10. **Landing rubric 88.5 → 92+ (clean PREMIUM).**
+- **Pre-PR skill load:** [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) FIRST, then `tac-ui-authoring` + `tac-forms` + `tac-tdd` + `tac-api-surface`.
+- **Estimate:** ~half-day PR-scale session with its own PHASE-0.
 
-After PR-2B-3 merges → WS-2B closed → WS-3 (AWB tracking dialog) is the next workstream (prompt already drafted).
+Owner triggers with `start WS-3` (or `write the WS-3 prompt` to receive the prompt first — the prompt was drafted in a prior session and is ready to re-emit).
+
+After WS-3 merges → WS-4 (Contact TAC rename + dashboard support inbox; PI-1-blocked for production functionality).
 
 ---
 
@@ -103,4 +104,4 @@ After PR-2B-3 merges → WS-2B closed → WS-3 (AWB tracking dialog) is the next
 
 Vercel `NEXT_PUBLIC_DASHBOARD_URL` remains deferred. `npm audit` gate is green on main (PR #182).
 
-🤖 Handoff written by Claude (Opus 4.7), 2026-05-19, post PR-2B-2.
+🤖 Handoff written by Claude (Opus 4.7), 2026-05-19, post WS-2B closing PR-2B-3.
