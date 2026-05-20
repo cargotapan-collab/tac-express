@@ -215,18 +215,14 @@ When the WS-3 build session opens, the agent does PHASE-0 first:
 - WS-4A (rename) — independent.
 - WS-4B (dashboard inbox) — **DEPENDS ON PI-1** (the contact_leads migration deployed to production; see master plan § 4.1). The inbox is reading a table that doesn't yet exist in production.
 
-### 5.1 WS-4A — "Contact Sales" → "Contact TAC" rename
+### 5.1 WS-4A — "Contact Sales" → "Contact TAC" rename — ✅ CLOSED (2026-05-20)
 
 **Bucket:** POST-LAUNCH-POLISH.
-**Estimate:** ~10-minute agent task — single-character-edit-PR shape.
+**Shipped:** the landing hero secondary CTA in [`wasteland-landing.tsx`](../../packages/ui/src/components/composed/wasteland-landing.tsx) now reads `CONTACT TAC` (still links to `/contact`). The Playwright landing smokes were updated to assert the new label (link text + `/contact` href + click-navigation), verified green against a local env-provisioned server.
 
-**Scope:**
-- Single occurrence in the codebase: [`wasteland-landing.tsx:186`](../../packages/ui/src/components/composed/wasteland-landing.tsx) — `CONTACT SALES` → `CONTACT TAC`.
-- Verify no other references (grep across the repo).
-- Update WS-2B's closing CTA section (if WS-2B has shipped) to use the new label.
-- Update the `MASTER-LAUNCH-PLAN.md` mention of the CTA's contract if appropriate.
+**Done criterion met:** `grep 'Contact Sales' / 'CONTACT SALES'` returns 0 matches in source/tests (remaining hits are frozen historical retros + the third-party `ui-ux-pro-max` archetype CSV, neither owned here). The `/contact` page's "sales" topic option is intentionally retained — the page is a general sales/support/ops inbox, which is exactly why "CONTACT TAC" is the more accurate label.
 
-**Testable done criterion:** grep `'Contact Sales'` and `'CONTACT SALES'` across the repo returns 0 matches. Playwright `landing.spec.ts` updated to assert `CONTACT TAC` text.
+**Note on launch value:** the rename is correct independent of deploy, but the button links to `/api/contact`, which 500s in production until **PI-1** deploys `contact_leads`. The label change ships now; user-facing value lands with PI-1 / LB-2.
 
 ### 5.2 WS-4B — Dashboard support inbox (NEW dashboard surface)
 

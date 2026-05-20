@@ -27,14 +27,14 @@ test.describe("Landing page", () => {
     await expect(locate).toBeVisible()
   })
 
-  test("the secondary sales CTA row offers GET A QUOTE + CONTACT SALES (PL-2a/PL-3)", async ({
+  test("the secondary sales CTA row offers GET A QUOTE + CONTACT TAC (PL-2a/PL-3)", async ({
     page,
   }) => {
     await page.goto("/")
 
     // Both links exist as accessible role="link" elements via Button asChild.
     const quote = page.getByRole("link", { name: /get a quote/i })
-    const contact = page.getByRole("link", { name: /contact sales/i })
+    const contact = page.getByRole("link", { name: /contact tac/i })
 
     await expect(quote).toBeVisible()
     await expect(quote).toHaveAttribute("href", "/quote")
@@ -67,9 +67,9 @@ test.describe("Landing page", () => {
     await expect(page).toHaveURL(/\/quote/)
   })
 
-  test("clicking CONTACT SALES routes to the /contact page", async ({ page }) => {
+  test("clicking CONTACT TAC routes to the /contact page", async ({ page }) => {
     await page.goto("/")
-    await page.getByRole("link", { name: /contact sales/i }).click()
+    await page.getByRole("link", { name: /contact tac/i }).click()
     await expect(page).toHaveURL(/\/contact/)
   })
 

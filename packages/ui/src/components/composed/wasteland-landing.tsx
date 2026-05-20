@@ -190,7 +190,7 @@ function LogisticsHero() {
             >
               <Link href="/contact">
                 <Icon name="mail" className="mr-2 w-4 h-4" />
-                CONTACT SALES
+                CONTACT TAC
               </Link>
             </Button>
           </div>
