@@ -174,13 +174,19 @@ The audit's PR-B / PR-C / PR-D roadmap maps onto four coherent sub-PRs:
 - Add a LOADING state to the LOCATE button (per playbook § 6).
 - Add an API route at `apps/web/app/api/track/[awb]/route.ts` so the dialog can fetch client-side without a full route navigation. The API route is a thin pass-through to the existing service — no business logic.
 
-**Recommended PR shape (single PR, three commits):**
+**PR shape — split per the bailout clause:**
 
-1. **Commit 1 — `feat(api): public /api/track/[awb] route`** — Adds the API route + zod-validates the AWB shape + calls `createPublicTrackingService` server-side + returns JSON. Rate-limited via `apps/web/lib/rate-limit.ts` (extend the existing pattern from `/api/contact`). 5 req / 10 min per IP. Tests: route returns 200 for valid AWB, 404 for unknown, 400 for malformed, 429 when rate-limited.
+> Bailout fired 2026-05-20. The original plan was one PR with three commits; the session naturally completed Commit 1 (the API route + tests) and surfaced the appropriate seam to split before adding the UI layer. Concern-count would have exceeded 3 (route + UI primitive + dialog + LogisticsHero refactor + Playwright) if all three commits had landed in one PR.
 
-2. **Commit 2 — `feat(ui): <TrackingResultDialog> composed component`** — A shadcn `<Dialog>` wrapping the existing `<TrackingResultView>`. Loaded / loading / empty / error states all designed (per playbook § 6). Skeleton matches the result shape. Empty state has a "Maybe the AWB has a typo? Try again" message + a re-search input. Error state has retry + "contact support" deep link.
+1. **PR-WS-3a — `feat(api): public /api/track/[awb] route`** — ✅ DONE 2026-05-20. Adds the API route + zod-validates the AWB shape + calls `createPublicTrackingService` server-side + returns JSON. Rate-limited via the new `checkTrackLookup` helper in `apps/web/lib/rate-limit.ts` (30 lookups / minute / IP; more permissive than `/contact` since this is a read). Tests: 6 cases covering 200 / 404 / 400-too-short / 400-illegal-chars / 429 / XFF parsing — all value-capturing per CodeRabbit catalog #1. Also added a workspace-scoped vitest alias for `@workspace/services/<name>` subpath resolution.
 
-3. **Commit 3 — `feat(landing): wire LOCATE to TrackingResultDialog`** — On submit, the form opens the dialog and fires the fetch. Loading state on the button. Dialog `open` state mirrored to URL query param `?track=AWB123` so a refresh re-opens the dialog (deep-link-able dialog, not just page-link-able). Keyboard `Esc` closes; focus restored to the LOCATE input.
+2. **PR-WS-3b — `feat(ui): tracking dialog + LOCATE wire-up`** — combines the original commits 2 + 3:
+   - **`<AwbInput>`** primitive extracted to `packages/ui/src/components/composed/awb-input.tsx` (size: `hero` | `default`). Refactor the hero LOCATE form to use it.
+   - **`<TrackingResultDialog>`** composed component wrapping the shadcn `<Dialog>` primitive. All four states designed (LOADED / LOADING / EMPTY / ERROR) per playbook § 6.
+   - **LOCATE wire-up**: form submit opens the dialog + fires fetch against `/api/track/[awb]`. URL `?track=AWB123` deep-link param sync (router.replace + History API). Mount-read reopens dialog on shareable URL.
+   - **Playwright** smoke + a11y additions for the dialog flow.
+
+PR-WS-3a is independently mergeable and shipped first; PR-WS-3b opens against the post-WS-3a main.
 
 ### 4.2 Testable done criterion
 

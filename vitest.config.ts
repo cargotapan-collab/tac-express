@@ -38,6 +38,15 @@ export default defineConfig({
         find: /^@workspace\/ui\/(.+)$/,
         replacement: path.resolve(__dirname, './packages/ui/src/$1'),
       },
+      // packages/services exposes per-file subpaths via `./X` → `./src/X.ts`
+      // in its exports map. Tests in apps/web (and any future cross-app
+      // tests) that import from `@workspace/services/<name>` need the same
+      // /src/ hop. Added with WS-3 (the /api/track/[awb] route test was the
+      // first consumer outside packages/services itself).
+      {
+        find: /^@workspace\/services\/(.+)$/,
+        replacement: path.resolve(__dirname, './packages/services/src/$1.ts'),
+      },
       // Catchall for the remaining workspace packages — relied on by existing
       // services tests; leave behavior unchanged.
       {
