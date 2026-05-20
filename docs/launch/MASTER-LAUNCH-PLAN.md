@@ -161,6 +161,18 @@ Numbered + copy-pasteable. Most urgent first.
 
 ### 4.1 🚨 PI-1 — Activate migration-deploy pipeline + run backfill (production-incident)
 
+> **STATUS 2026-05-20: BLOCKED on migration-history repair — NOT DONE.** The
+> pipeline secrets/variable are set and the workflow runs correctly, but
+> `supabase db push` aborts on pre-existing migration-history drift (remote
+> `schema_migrations` carries 20 pre-squash versions absent from local files).
+> Production is unchanged (`contact_leads`/`whatsapp_sends` still absent). The
+> owner-runnable fix is documented in
+> [`docs/runbooks/pi-1-migration-history-repair.md`](../runbooks/pi-1-migration-history-repair.md)
+> (recommended: Strategy B — two `migration repair` commands, no schema
+> re-execution). Pipeline runs: `26174554451` (skipped — flag was a secret not
+> a variable; fixed) and `26175215585` (gate passed, `db push` failed on the
+> history drift). Re-trigger PI-1 after the repair lands.
+
 ```text
 # Step 1 — Generate a Supabase personal-access token:
 https://supabase.com/dashboard/account/tokens  (scope: project:write)

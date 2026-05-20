@@ -1,11 +1,10 @@
 # Next-Session Handoff — Start Here
 
-> **The launch authority is [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md) (v1.3).** The customer-facing workstream detail lives in [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md). The UI/UX consistency playbook at [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) is the standing standard.
+> **The launch authority is [`docs/launch/MASTER-LAUNCH-PLAN.md`](launch/MASTER-LAUNCH-PLAN.md).** Customer-facing detail: [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md). UI/UX standard: [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md).
 
-**Last code commit on main:** the WS-3 PR-WS-3b — `feat(ui): WS-3 PR-WS-3b — tracking dialog + LOCATE wire-up`. **Closes WS-3.** Landing rubric ~92 (clean PREMIUM).
-**Previous on main:** PR #187 — WS-3 PR-WS-3a (the `/api/track/[awb]` route).
-**This handoff covers:** the PR-WS-3b build session (2026-05-20). See [`docs/retros/2026-05-20-ws3-prb-tracking-dialog.md`](retros/2026-05-20-ws3-prb-tracking-dialog.md).
-**Author of last session:** Claude Code (Opus 4.7), Senior Frontend Architect + Full-Stack Engineer + PM + CTO mode.
+**Last code commit on main:** `224d6e2` — `feat(landing): WS-4A — rename hero CTA "Contact Sales" → "Contact TAC"` (#189).
+**This handoff covers:** the PI-1 deploy attempt + migration-history diagnostic (2026-05-20). See [`docs/retros/2026-05-20-pi-1-history-diagnostic.md`](retros/2026-05-20-pi-1-history-diagnostic.md).
+**Author:** Claude Code (Opus 4.7), DevOps + PM lens.
 
 ---
 
@@ -13,97 +12,67 @@
 
 > # **NOT READY** (BOOLEAN per the master plan)
 
-**The finite launch surface is 4 items** (1 PRODUCTION-INCIDENT + 3 LAUNCH-BLOCKERs). Unchanged. WS-3 closed (POST-LAUNCH). The customer-facing landing + tracking experience is now at clean PREMIUM; the remaining launch gate is entirely owner-side credential/permission work.
+Finite launch surface unchanged: 1 PRODUCTION-INCIDENT + 3 LAUNCH-BLOCKERs.
 
 | | |
 |---|---|
-| 🚨 PI-1 | Activate migration-deploy pipeline + backfill 4 migrations |
-| 🚀 LB-1 | SB-2 Sentry alert provisioning (~20 min owner-runnable) |
-| 🚀 LB-2 | PL-2b live notifications (env vars + Meta template approval + e2e verify) |
-| 🛠️ LB-4 | SB-3 P1–P4 prerequisites in Supabase dashboard |
+| 🚨 PI-1 | **BLOCKED on migration-history repair** (see § 6) — pipeline works, `db push` fails on pre-existing version drift |
+| 🚀 LB-1 | SB-2 Sentry alert provisioning (~20 min owner-runnable; independent of PI-1 — can run now) |
+| 🚀 LB-2 | PL-2b live notifications (env vars + Meta template approval + e2e); gated on PI-1 |
+| 🛠️ LB-4 | SB-3 P1–P4 prerequisites in Supabase dashboard (~10 min) |
 
 ---
 
-## 2. What changed in this session
+## 2. What happened this session (PI-1 attempt)
 
-Code (4 source files + 2 tests):
-- **`packages/ui/src/components/composed/awb-input.tsx`** (new) — shared AWB input primitive (hero/default sizes).
-- **`packages/ui/src/components/composed/awb-input.test.tsx`** (new) — 8 tests.
-- **`packages/ui/src/components/composed/tracking-result-dialog.tsx`** (new) — shadcn-Dialog-wrapped tracking dialog; 4 states; fetches `/api/track/[awb]`.
-- **`packages/ui/src/components/composed/tracking-result-dialog.test.tsx`** (new) — 6 tests.
-- **`packages/ui/src/components/composed/wasteland-landing.tsx`** — hero uses `<AwbInput>`; LOCATE opens the dialog; `?track=AWB` History-API URL sync; mount auto-open; `useRouter` removed.
-- **`apps/web/e2e/landing.smoke.spec.ts`** — 3 new dialog smokes (open-on-submit + URL, Esc-close + clear, deep-link auto-open).
+The owner set the pipeline secrets/variable; the agent triggered `migration-deploy.yml` twice:
 
-Docs (2 files):
-- **`docs/launch/CUSTOMER-FACING-PLAN.md`** § 4 — WS-3 marked CLOSED (PR-WS-3a + PR-WS-3b).
-- **`docs/retros/2026-05-20-ws3-prb-tracking-dialog.md`** (new).
+- **Run `26174554451`** — "success" but **skipped all deploy steps**: `MIGRATION_DEPLOY_ENABLED` was created as a *secret*, not the *variable* the workflow reads. Owner fixed it.
+- **Run `26175215585`** — gate passed, deploy steps ran, **`supabase db push` failed** on migration-history drift. Nothing applied.
+
+**Root cause:** the `baseline_from_production` squash renumbered local migration files, but production `schema_migrations` still records the 20 original pre-squash versions → `db push` refuses to proceed. Diagnosed read-only; the post-baseline migrations are content-identical + idempotent, so the fix is pure bookkeeping reconciliation.
+
+**Production is unchanged** (`contact_leads`, `whatsapp_sends`, `audit_logs.before_state`, the destructive-action CHECK all still absent). No agent production writes.
 
 ---
 
-## 3. Mandatory ramp (5 minutes)
+## 3. Durable principle reinforced
 
-```bash
-git checkout main && git pull origin main
-pnpm typecheck && pnpm lint && pnpm test
-# Expected: all green; 803 tests pass (was 789 + 14 new: 8 AwbInput, 6 dialog).
-pnpm audit --prod --audit-level moderate
-```
-
-Then read in order:
-
-1. [`docs/playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md`](playbooks/UI-UX-CONSISTENCY-PLAYBOOK.md) — load FIRST for any UI work.
-2. [`docs/launch/CUSTOMER-FACING-PLAN.md`](launch/CUSTOMER-FACING-PLAN.md) — § 5 (WS-4 scope).
-3. [`docs/retros/2026-05-20-ws3-prb-tracking-dialog.md`](retros/2026-05-20-ws3-prb-tracking-dialog.md) — § 7 names WS-4's split.
-4. § 6 of this file — the next task.
+Agents do not write to production directly — deploys go through the owner-credentialed GHA pipeline. The repair (`supabase migration repair`) is owner-side. See [`docs/runbooks/pi-1-migration-history-repair.md`](runbooks/pi-1-migration-history-repair.md).
 
 ---
 
-## 4. Read this first — do-NOT list
+## 4. Open items
 
-(Unchanged.)
-
-1. **Do NOT skip `tac-express-onboarding`.**
-2. **Do NOT bump dependencies in feature PRs.**
-3. **Do NOT add Sentry tag keys without updating all four artifacts.**
-4. **Do NOT run `scripts/sentry/create-alert-rules.mjs` from an agent session.** Owner-only.
-5. **Do NOT regress to `console.*` in the three pino-migrated API routes.**
-6. **Do NOT attempt to merge from an agent session without typed per-PR authorization.**
-7. **Do NOT derive task references from `#102`-the-GitHub-issue.**
-8. **Do NOT promote a POST-LAUNCH item to SHIP-BLOCKER without explicit owner decision.**
-9. **Do NOT mark SB-2 done on the owner's word alone.**
-10. **Do NOT design the WS-4B schema in a planning session.** WS-4B (dashboard support inbox) reads `contact_leads` PII — its RLS + schema + service are PHASE-0 work for that build session.
-11. **Do NOT bundle WS-4A (rename) with WS-4B (inbox).** They're separate per the plan; WS-4A bundles with LB-2 activation.
+- **Open PRs:** this diagnostic docs PR. After merge → 0 open PRs.
+- **Open issues:** #174 (PI-1) remains OPEN — do NOT close until the repair lands and the 4 tables/columns are verified in production.
 
 ---
 
-## 5. Open items snapshot
+## 5. Customer-facing status
 
-- **Open PRs:** the PR-WS-3b build PR (this branch). After merge → 0 open PRs.
-- **Open issues:** 12. All reconciled into [`MASTER-LAUNCH-PLAN.md § 1.2`](launch/MASTER-LAUNCH-PLAN.md).
+WS-1, WS-2 + WS-2B, WS-3, WS-4A all closed (landing at clean PREMIUM ~92). **WS-4B (dashboard support inbox) is the last sizable build and is PI-1-gated** — it reads `contact_leads`, which does not yet exist in production. It becomes startable only after PI-1 lands.
 
 ---
 
-## 6. Next session's lead task
+## 6. Next session's lead task — execute the PI-1 migration-history repair
 
-**WS-4 — "Contact Sales" → "Contact TAC" + dashboard support inbox.** See [`CUSTOMER-FACING-PLAN.md § 5`](launch/CUSTOMER-FACING-PLAN.md).
+**Owner runs the repair**, then re-triggers PI-1:
 
-Two halves, genuinely separate:
-- **WS-4A — the rename.** "Contact Sales" → "Contact TAC" across the landing (one occurrence at `wasteland-landing.tsx` CONTACT SALES button). ~10-min change. **Bundles with LB-2 activation** per the plan — renaming a button that links to a 500-ing `/api/contact` has limited value until PI-1 deploys `contact_leads`. Recommend the owner ship this alongside the LB-2 owner step.
-- **WS-4B — dashboard support inbox.** NEW `apps/dashboard/app/ops-console/support/` surface reading `contact_leads`. **PI-1-blocked** (the table must exist in production). Needs its own PHASE-0: RLS policy for MANAGER+ read, additive schema columns (read_at/triaged_by/etc.), service-layer methods, 3 composed UI components, audit-trail wiring. ~half-day PR-scale session.
+1. Owner: follow [`docs/runbooks/pi-1-migration-history-repair.md`](runbooks/pi-1-migration-history-repair.md) — **Strategy B** (two `supabase migration repair` commands; no schema re-execution). Take a PITR checkpoint first (runbook § 6).
+2. Confirm `supabase migration list --linked` shows **only** the 4 new migrations pending.
+3. Tell the agent the repair is done → agent re-runs `gh workflow run migration-deploy.yml` (with explicit authorization), watches it, verifies the opt-in gate passed AND deploy steps executed (not skipped), then verifies read-only via MCP (tables + column + constraint + 4 versions + `get_advisors` clean on the 2 PII tables).
+4. Agent stamps PI-1 EVIDENCED DONE + closes #174.
 
-Owner triggers with `write the WS-4 prompt`, `start WS-4A`, or another priority (e.g., the deferred WS-2 closing-CTA polish, or the carry-forward POST-LAUNCH-POLISH items).
-
-**Note:** the agent-actionable customer-facing UI burn-down is now substantial-complete — WS-1 (launch-blockers), WS-2 + WS-2B (consistency + premium polish), and WS-3 (tracking dialog) are all closed. WS-4B is the last sizable build, and it's PI-1-gated. **The critical path to launch is now almost entirely the owner's 4-item queue.**
+After PI-1: the **launch-readiness reconciliation** session (record PI-1 done, OD decisions, evidence the rest of the verdict), then **WS-4B** fires from a known-good state.
 
 ---
 
 ## 7. OWNER ACTIONS — before next session
 
-1. 🚨 **PI-1** — Activate migration-deploy + backfill (~10-15 min). See [`§ 4.1`](launch/MASTER-LAUNCH-PLAN.md). **Now doubly relevant:** it unblocks both the contact form AND verifies the new tracking dialog against live shipment data.
-2. 🚀 **LB-1** — Run SB-2 Sentry alert provisioning (~20 min). See § 4.2.
-3. 🚀 **LB-2** — Activate PL-2b live notifications (after PI-1 + Meta template approval). See § 4.3. Bundle the WS-4A "Contact TAC" rename here.
-4. 🛠️ **LB-4** — Verify SB-3 prereqs in Supabase dashboard (~10 min). See § 4.5.
+1. 🚨 **PI-1 (blocked)** — run the migration-history repair per the runbook (Strategy B), take a PITR checkpoint first, then tell the agent to re-trigger the pipeline.
+2. 🚀 **LB-1** — SB-2 Sentry alert provisioning (~20 min; **independent of PI-1, can run now in parallel**).
+3. 🚀 **LB-2** — PL-2b live notifications (submit Meta template if not yet done; gated on PI-1).
+4. 🛠️ **LB-4** — SB-3 prerequisites in Supabase dashboard (~10 min).
 
-Vercel `NEXT_PUBLIC_DASHBOARD_URL` remains deferred. `npm audit` gate is green on main (PR #182).
-
-🤖 Handoff written by Claude (Opus 4.7), 2026-05-20, post WS-3 closing PR-WS-3b.
+🤖 Handoff written by Claude (Opus 4.7), 2026-05-20, post PI-1 history diagnostic.
