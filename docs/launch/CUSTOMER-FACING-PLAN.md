@@ -106,17 +106,17 @@ The audit's PR-B / PR-C / PR-D roadmap maps onto four coherent sub-PRs:
 ### 3.2 WS-2B — Landing premium polish (6-group section-by-section)
 
 **Bucket:** POST-LAUNCH-POLISH (premium-tier rubric lift from 80 → 90+).
-**Status:** OPEN — PHASE 1 plan merged (PR #183); **PR-2B-1 + PR-2B-2 closed (rubric 80 → 84)**; PR-2B-3 remains.
-**Estimate:** 1 small build session remaining (PR-2B-3 closes WS-2B).
+**Status:** ✅ CLOSED 2026-05-19. PHASE 1 + all 3 PHASE-2 PRs merged. **Landing rubric 80 → 88.5 (premium-tier boundary).**
+**Estimate:** N/A — closed. Next workstream: WS-3.
 
 **Re-scoping note (2026-05-19):** the original WS-2B scope was a closing-CTA conversion-funnel section. After review of the post-PR-#181 state, the owner re-scoped WS-2B to a **section-by-section premium polish workstream** targeting six specific defect groups identified in the live screenshots: hero input/CTA proportions, section spacing voids, motion-overlap, testimonial → un-attributed case study, integration-card consistency, footer type-scale + lone social icon. The closing-CTA section is deferred to a future POST-LAUNCH-POLISH session and is no longer WS-2B.
 
 **Full spec:** [`docs/launch/WS-2B-LANDING-POLISH.md`](WS-2B-LANDING-POLISH.md).
 
-**PR batching (PHASE 2):**
-- ~~**PR-2B-1**~~ — ✅ DONE 2026-05-19 (PR #184). Hero refinement (Group 1). Rubric criterion 4 + 8 each +1.
-- ~~**PR-2B-2**~~ — ✅ DONE 2026-05-19. Page rhythm + motion-overlap (Groups 2 + 3). Rubric criterion 3 + 5 each +1.
-- **PR-2B-3** — Content sections (Groups 4 + 5 + 6: testimonial-to-case-study, integration, footer). Closes WS-2B.
+**PR batching (PHASE 2) — ALL CLOSED:**
+- ~~**PR-2B-1**~~ — ✅ DONE 2026-05-19 (PR #184). Hero refinement (Group 1). Rubric criteria 4 + 8 each +1.
+- ~~**PR-2B-2**~~ — ✅ DONE 2026-05-19 (PR #185). Page rhythm + motion-overlap (Groups 2 + 3). Rubric criteria 3 + 5 each +1.
+- ~~**PR-2B-3**~~ — ✅ DONE 2026-05-19. Content sections (Groups 4 + 5 + 6). Rubric criterion 9 +1, criterion 10 +3, criterion 1 +0.5. **WS-2B closed.**
 
 **Done criterion:** `tac-ui-rubric` cumulative landing score in the 90+ tier (or 88-89 with the boundary acknowledged), with criteria 3 / 5 / 9 / 10 each lifted at least +1. axe 0 serious/critical across 3 viewports for every PHASE-2 PR.
 

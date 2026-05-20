@@ -1,6 +1,5 @@
 import * as React from "react"
 import Link from "next/link"
-import { Icon } from "@workspace/ui/icons"
 
 export function Footer() {
   return (
@@ -21,20 +20,14 @@ export function Footer() {
                 </svg>
               </div>
             </Link>
-            <p className="text-sm font-medium text-foreground/80 mb-8 leading-relaxed">
+            <p className="text-sm font-medium text-foreground/80 leading-relaxed">
               Domestic Cargo Specialists <br />
               Imphal &amp; New Delhi
             </p>
-            <div className="flex gap-4">
-              <a href="https://github.com" target="_blank" rel="noreferrer" className="size-10 border border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300">
-                <Icon name="github" className="size-4" />
-                <span className="sr-only">GitHub</span>
-              </a>
-            </div>
           </div>
 
           <div>
-            <h4 className="text-sm font-bold mb-6 text-foreground tracking-paper-20 uppercase font-mono">Services</h4>
+            <h4 className="t-overline text-foreground mb-6">Services</h4>
             <ul className="flex flex-col gap-3 text-sm font-semibold text-foreground/80">
               <li><Link href="#features" className="hover:text-primary transition-colors">Air Cargo</Link></li>
               <li><Link href="#features" className="hover:text-primary transition-colors">Surface Cargo</Link></li>
@@ -44,7 +37,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold mb-6 text-foreground tracking-paper-20 uppercase font-mono">Company</h4>
+            <h4 className="t-overline text-foreground mb-6">Company</h4>
             <ul className="flex flex-col gap-3 text-sm font-semibold text-foreground/80">
               <li><Link href="#" className="hover:text-primary transition-colors">About TAC Express</Link></li>
               <li><Link href="#how-it-works" className="hover:text-primary transition-colors">How It Works</Link></li>
@@ -54,7 +47,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold mb-6 text-foreground tracking-paper-20 uppercase font-mono">Legal</h4>
+            <h4 className="t-overline text-foreground mb-6">Legal</h4>
             <ul className="flex flex-col gap-3 text-sm font-semibold text-foreground/80">
               <li><Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
               <li><Link href="#" className="hover:text-primary transition-colors">Terms of Service</Link></li>

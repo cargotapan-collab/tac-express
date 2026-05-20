@@ -196,7 +196,18 @@ For each group: **defect → fix → rubric criterion lifted → testable done-c
 
 ---
 
-### GROUP 4 — Testimonial → un-attributed case study
+### GROUP 4 — Testimonial → un-attributed case study ✅ DONE 2026-05-19 (PR-2B-3)
+
+**Status:** ✅ CLOSED. Shipped in PR-2B-3.
+- Section eyebrow: `Telemetry · case study · north-east corridor fleet` → `CASE STUDY · NORTH-EAST CORRIDOR FLEET`.
+- Overline above body: `RESULT · 6-MONTH PILOT` (`tac-mono-label text-muted-foreground`).
+- Body paragraph: factual case-study statement using ONLY pre-existing data. No invented customer name, no invented quote, no quotation marks.
+- Founder block removed (avatar + "Tapan Hidangmayum" + "Founder TAC Express" + separator).
+- `bg-foreground text-background` highlight removed. **"27%" emphasis: `font-bold` only** — initial plan called for `text-primary font-bold` but axe flagged the WCAG AA failure (primary on bg-surface-elevated at 18px bold = 3.8:1, same LB-3 defect class). Weight-only emphasis matches the page's restraint pattern.
+- Chart container preserved.
+- axe verified 3/3 viewports — 0 serious/critical.
+
+**Defect (preserved for history).**
 
 **Defect.** The current `ResultsChart` panel is structured as a personal testimonial: the founder (Tapan Hidangmayum) quoting himself about his own company. This is a credibility anti-pattern in B2B sales-led marketing — the audit flagged it, and the screenshots confirm it reads as such. Additionally, the inline `<span className="bg-foreground text-background px-2 py-1 font-bold">reduced costs by 27%</span>` highlight is a raw black-on-white box that breaks the page's restraint.
 
@@ -225,7 +236,13 @@ For each group: **defect → fix → rubric criterion lifted → testable done-c
 
 ---
 
-### GROUP 5 — Integration section: card-shadow consistency + left-column whitespace
+### GROUP 5 — Integration section: card-shadow consistency + left-column whitespace ✅ DONE 2026-05-19 (PR-2B-3)
+
+**Status:** ✅ CLOSED. Shipped in PR-2B-3.
+- Dock card shadow: `shadow-md → shadow-brutal`.
+- Left-col feature list: `gap-8 → gap-10`. (`lg:justify-between` not needed — the gap-10 + heading `mb-8` from PR-2B-2 was sufficient.)
+
+**Defect (preserved for history).**
 
 **Defect.**
 - **Card shadow inconsistency:** the dock-image card uses `shadow-md` while every other card on the page uses `shadow-brutal` (or `shadow-md` resolving to brutalist offset via globals). Inspecting `globals.css`: `--shadow-md: 6px 6px 0 0 var(--border)` AND `--shadow-brutal: var(--shadow-md)` — these are the **same value** today; the inconsistency is naming, not pixels. But the naming inconsistency means a future shadow-system change could split them apart.
@@ -250,7 +267,13 @@ For each group: **defect → fix → rubric criterion lifted → testable done-c
 
 ---
 
-### GROUP 6 — Footer: type-scale headings + lone GitHub icon
+### GROUP 6 — Footer: type-scale headings + lone GitHub icon ✅ DONE 2026-05-19 (PR-2B-3)
+
+**Status:** ✅ CLOSED. Shipped in PR-2B-3.
+- Three column headings: raw class string → `t-overline text-foreground mb-6`.
+- **Owner decision: (A) drop the row entirely.** Lone-GitHub `<div className="flex gap-4">` removed. `Icon` import removed from footer.tsx. Brand-block paragraph `mb-8` dropped.
+
+**Defect (preserved for history).**
 
 **Defect.**
 - Three column headings ("Services", "Company", "Legal") use the raw class string `text-sm font-bold mb-6 text-foreground tracking-paper-20 uppercase font-mono`. Per the playbook § 2, this is exactly what `.t-overline` exists for: `0.6875rem / weight 500 / 0.1em tracking / uppercase`. Three places, one fix.
@@ -312,28 +335,34 @@ Three coherent PRs, sequenced. Each independently merges; the next opens against
 
 ---
 
-## 7. Cumulative rubric target — premium tier
+## 7. Cumulative rubric target — premium-tier boundary (WS-2B CLOSED 2026-05-19)
 
 ```
-                              Before   PR-2B-1 ✅   PR-2B-2 ✅   PR-2B-3   Target
-1.  Token Discipline             9         9              9        9.5         10
-2.  Hierarchy by Scale          10        10             10         10        10
-3.  Rhythm & Whitespace          9         9             10 ✅      10        10
-4.  Surface Depth                8         9 ✅           9          9         9
-5.  Motion Choreography          9         9             10 ✅      10        10
-6.  Mono Discipline              9         9              9          9         9
-7.  State Choreography           5         5              5          5         5   (WS-3 territory)
-8.  Focus & Hover Polish         8         9 ✅           9          9         9
-9.  Content Voice                8         8              8          9         9
-10. Anti-AI-Slop                 5         5              5          8         8
+                              Before   PR-2B-1 ✅   PR-2B-2 ✅   PR-2B-3 ✅   Target
+1.  Token Discipline             9         9              9          9.5 ✅      10
+2.  Hierarchy by Scale          10        10             10           10         10
+3.  Rhythm & Whitespace          9         9             10 ✅        10         10
+4.  Surface Depth                8         9 ✅           9            9          9
+5.  Motion Choreography          9         9             10 ✅        10         10
+6.  Mono Discipline              9         9              9            9          9
+7.  State Choreography           5         5              5            5          5   (WS-3 territory)
+8.  Focus & Hover Polish         8         9 ✅           9            9          9
+9.  Content Voice                8         8              8            9 ✅       9
+10. Anti-AI-Slop                 5         5              5            8 ✅       8
 
-TOTAL                           80        82             84       88.5      89-92
-                                                          ↑
-                                                      this PR
+TOTAL                           80        82             84          88.5      89-92
+                                                                       ↑
+                                                                   WS-2B CLOSED
 ```
 
 **PR-2B-1 closed 2026-05-19.** Lifted criteria 4 + 8 each +1. Cumulative 80 → 82.
-**PR-2B-2 closed 2026-05-19.** Lifted criteria 3 (Rhythm & Whitespace) and 5 (Motion Choreography) each +1. Cumulative 82 → 84.
+**PR-2B-2 closed 2026-05-19.** Lifted criteria 3 + 5 each +1. Cumulative 82 → 84.
+**PR-2B-3 closed 2026-05-19.** Lifted criterion 9 +1; criterion 10 +3 cumulative (G4 testimonial -2; G6 lone-icon drop -1); criterion 1 +0.5 (footer type-scale on-system + G5 shadow naming consistent). Cumulative 84 → 88.5.
+
+**Result: WS-2B CLOSED. Landing rubric 80 → 88.5 — at the premium-tier boundary.** The remaining gap to a clean 90+ lives in:
+- Criterion 7 (State Choreography, 5/10) — WS-3 territory.
+- The half-point on criterion 1 — HUD `text-primary/80` POST-LAUNCH-POLISH; LOCATE `tracking-[0.3em]` issue #169.
+- A future content pass (real customer testimonial when captured).
 
 **Result:** WS-2B lifts the landing from **80 → 89-92** — into the PREMIUM tier (≥ 90 with the tighter rounding) or right at the boundary (88-89). The remaining ~5 points to a perfect 95+ live in WS-3 (state choreography on LOCATE submit) and a future content pass (real customer testimonial when one is captured).
 

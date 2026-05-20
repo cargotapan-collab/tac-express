@@ -357,39 +357,41 @@ function ResultsChart() {
           <h2 className="t-h1 md:t-display uppercase text-foreground mb-4">
             Cost Delta <br /> 27% · 6 Months.
           </h2>
-          <p className="tac-mono-label text-muted-foreground">
-            Telemetry · case study · north-east corridor fleet
+          <p className="tac-mono-label text-primary">
+            CASE STUDY · NORTH-EAST CORRIDOR FLEET
           </p>
         </motion.div>
 
-        <div className="bg-surface-elevated border-2 border-border p-8 relative shadow-md max-w-4xl mx-auto">
+        <div className="bg-surface-elevated border-2 border-border p-8 relative shadow-brutal max-w-4xl mx-auto">
            <div className="absolute top-4 right-4 flex gap-2">
              <span aria-hidden className="w-2 h-2 bg-primary animate-pulse motion-reduce:animate-none"></span>
              <span aria-hidden className="w-2 h-2 bg-secondary"></span>
            </div>
 
-           {/* LB-3 / #173 — Option B redirect (landing-mobile): the testimonial's
-             * inline "TAC Express" highlight used text-primary on bg-card at
-             * 18px bold = 3.8:1, failing AA (normal-text bucket for bold-18px
-             * since WCAG large-text floor is 14pt = 18.67px bold). The brand
-             * mention is already typographically differentiated by font-bold
-             * + the parent's font-mono + tracking-wide + uppercase. Inheriting
-             * text-foreground from the parent removes the failing color
-             * override; the bracketed "reduced costs by 27%" callout keeps
-             * its inverse bg-foreground/text-background emphasis path. */}
-           <p className="t-h3 font-mono text-foreground uppercase leading-relaxed max-w-2xl mb-8">
-             &quot;Since implementing the telematics system from <span className="font-bold">TAC Express</span>, our fleet has reached an entirely new level of efficiency. Over six months, we have <span className="bg-foreground text-background px-2 py-1 font-bold">reduced costs by 27%</span>.&quot;
+           {/* WS-2B Group 4 — un-attributed case study. The earlier panel
+             * structured this as a founder-quoting-himself testimonial
+             * (Tapan Hidangmayum quoting TAC Express about TAC Express) —
+             * a credibility anti-pattern in B2B sales-led marketing. The
+             * `bg-foreground text-background` inline highlight on the 27%
+             * call-out was a raw inverted box that broke the page's
+             * restraint. Reframe: factual statement of the case study,
+             * no invented customer name, no quote marks, no avatar block.
+             * The "27%" sits on the page's existing color register via
+             * text-primary font-bold. Real customer testimonial is a
+             * future enhancement, not this PR.
+             * Plan: docs/launch/WS-2B-LANDING-POLISH.md § 5 Group 4. */}
+           <p className="tac-mono-label text-muted-foreground mb-4">
+             RESULT · 6-MONTH PILOT
            </p>
-
-           <div className="flex items-center gap-4 mb-12 border-b border-border pb-8">
-             <div className="w-12 h-12 bg-primary border-2 border-primary flex items-center justify-center flex-shrink-0">
-               <span className="font-mono font-bold text-sm tracking-wider uppercase text-primary-foreground select-none">TH</span>
-             </div>
-             <div>
-               <div className="tac-mono-label text-foreground normal-case">Tapan Hidangmayum</div>
-               <div className="tac-mono-label text-muted-foreground">Founder TAC Express</div>
-             </div>
-           </div>
+           {/* LB-3 contrast follow-through: raw text-primary on bg-surface-elevated
+             * at 18px-bold = 3.8:1 (same failure class PR #179 fixed for
+             * tac-mono-label via --primary-mono-label). For inline data
+             * emphasis here we use font-bold only — inherits text-foreground,
+             * passes AA, and matches the page's weight-driven emphasis
+             * pattern. (No mono-label variant fits this inline context.) */}
+           <p className="t-h3 font-mono text-foreground uppercase leading-relaxed max-w-2xl mb-8">
+             Across a six-month telematics pilot, the North-East Corridor Fleet reduced operating costs by <span className="font-bold">27%</span> through route optimization, behavior monitoring, and centralized telemetry.
+           </p>
 
            {/* The Line Chart (LAW 13 compliant: straight lines) */}
            <div className="relative h-48 w-full border-l border-b border-border flex items-end mt-12">
@@ -465,7 +467,7 @@ function SystemCompatibility() {
                 visible: { transition: { staggerChildren: 0.15 } },
                 hidden: {}
               }}
-              className="flex flex-col gap-8"
+              className="flex flex-col gap-10"
             >
               <FeatureItem 
                 icon="plug"
@@ -495,7 +497,7 @@ function SystemCompatibility() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.8, delay: 0.3, ease: EASE_SMOOTH }}
-            className="relative aspect-[3/4] border-2 border-primary-medium bg-muted shadow-md p-2 group"
+            className="relative aspect-[3/4] border-2 border-primary-medium bg-muted shadow-brutal p-2 group"
           >
              <div className="w-full h-full relative overflow-hidden border border-border">
                <div className="absolute inset-0 z-10 bg-primary-subtle mix-blend-overlay pointer-events-none" />
