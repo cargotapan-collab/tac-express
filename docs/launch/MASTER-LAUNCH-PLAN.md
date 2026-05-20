@@ -161,17 +161,42 @@ Numbered + copy-pasteable. Most urgent first.
 
 ### 4.1 🚨 PI-1 — Activate migration-deploy pipeline + run backfill (production-incident)
 
-> **STATUS 2026-05-20: BLOCKED on migration-history repair — NOT DONE.** The
-> pipeline secrets/variable are set and the workflow runs correctly, but
-> `supabase db push` aborts on pre-existing migration-history drift (remote
-> `schema_migrations` carries 20 pre-squash versions absent from local files).
-> Production is unchanged (`contact_leads`/`whatsapp_sends` still absent). The
-> owner-runnable fix is documented in
-> [`docs/runbooks/pi-1-migration-history-repair.md`](../runbooks/pi-1-migration-history-repair.md)
-> (recommended: Strategy B — two `migration repair` commands, no schema
-> re-execution). Pipeline runs: `26174554451` (skipped — flag was a secret not
-> a variable; fixed) and `26175215585` (gate passed, `db push` failed on the
-> history drift). Re-trigger PI-1 after the repair lands.
+> ## ✅ STATUS 2026-05-20: PI-1 EVIDENCED DONE.
+>
+> Migrations deployed to production `mdvnphbucrpspntrezmj` via the
+> `migration-deploy.yml` pipeline, run **`26180576599`** (`supabase db push`
+> succeeded — "All migrations applied. Production schema is up to date").
+> Verified read-only via Supabase MCP:
+>
+> | Check | Result |
+> |---|---|
+> | `public.contact_leads` table | ✅ present |
+> | `public.whatsapp_sends` table | ✅ present |
+> | `audit_logs.before_state` column | ✅ present |
+> | `audit_logs_destructive_action_check` constraint | ✅ present |
+> | 4 PI-1 migrations in `schema_migrations` | ✅ recorded |
+> | RLS enabled on both PII tables | ✅ true (contact_leads 2 policies, whatsapp_sends 3) |
+> | Security advisors on the PII tables | ✅ zero (no `rls_disabled`/`rls_no_policy`) |
+>
+> **Performance advisors** touch the new tables (`auth_rls_initplan` ×5,
+> `unindexed_foreign_keys` ×2, `unused_index` ×6) — owner-reviewed and
+> **accepted as non-blocking**: they are performance-only, consistent with the
+> rest of the DB (`auth_rls_initplan` fires on all 17+ tables), and `unused_index`
+> is a false-positive on seconds-old tables. Optional perf-tuning (FK indexes +
+> `(select auth.uid())` RLS wrapping) is a deferred follow-up, not a launch gate.
+>
+> **The full incident arc** (skipped run `26174554451` → drift failure
+> `26175215585` → repair runbook in PR #190 → CLI-not-installed false repair →
+> CLI install + history repair → successful deploy `26180576599`) is in
+> [`docs/retros/2026-05-20-pi-1-deploy.md`](../retros/2026-05-20-pi-1-deploy.md).
+>
+> **LB-4 (SB-3 prereqs) is now an open owner decision**, not a blocker to "fix":
+> the project is on Supabase **Free**, so P1 (Pro tier) and P2 (PITR) aren't
+> satisfiable without a plan upgrade. Decide upgrade-vs-accept-the-limitation in
+> the launch-readiness reconciliation session; document the residual risk either
+> way. The pg_dump taken before the repair is the current backup substitute.
+>
+> The runbook below is retained for history; the steps were completed.
 
 ```text
 # Step 1 — Generate a Supabase personal-access token:
