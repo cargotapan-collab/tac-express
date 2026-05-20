@@ -69,3 +69,14 @@ export interface ContactLeadRow {
 export type ContactLeadSubmissionResult =
   | { ok: true; id: string; notificationStatus: ContactLeadNotificationStatus }
   | { ok: false; error: string }
+
+/** Filters for the operator-side inbox read (WS-4B dashboard support inbox).
+ *  All optional; omitted fields are not constrained. `search` matches the
+ *  name / email / company columns (ilike). Pagination is 1-indexed. */
+export interface ContactLeadFilters {
+  status?: ContactLeadStatus
+  reason?: ContactLeadReason
+  search?: string
+  page?: number
+  pageSize?: number
+}

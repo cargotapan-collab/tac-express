@@ -55,8 +55,11 @@
 
 import type { SupabaseClient } from "@workspace/database/supabase.types"
 import type {
+  ContactLeadFilters,
   ContactLeadFormInput,
   ContactLeadNotificationStatus,
+  ContactLeadRow,
+  ContactLeadStatus,
   ContactLeadSubmissionResult,
 } from "@workspace/types"
 
@@ -283,4 +286,105 @@ function extractErrorMessage(result: {
   if (result.error) return result.error
   if (result.status) return `WhatsApp send failed (HTTP ${result.status})`
   return "WhatsApp send failed (no error message)"
+}
+
+// ── WS-4B: operator-side inbox read + triage ────────────────────────────────
+// A SEPARATE, db-only factory from createContactLeadService (the public-write
+// path, which needs the WhatsApp service + config). The dashboard support
+// inbox only reads and transitions CRM status, so it takes just the client.
+// Access is gated by the contact_leads RLS policies (MANAGER+ select/update);
+// a lower-role caller's authenticated client simply returns zero rows.
+
+/** contact_leads columns are already snake_case + match ContactLeadRow 1:1,
+ *  so the map is a typed projection (no camelCase conversion). Centralized so
+ *  a future column add has a single edit point. */
+const CONTACT_LEAD_COLUMNS =
+  "id, name, email, company, reason, message, status, notification_status, notification_sent_at, whatsapp_send_id, ip_address, user_agent, created_at"
+
+function mapContactLeadRow(row: Record<string, unknown>): ContactLeadRow {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    email: row.email as string,
+    company: (row.company as string | null) ?? null,
+    reason: row.reason as ContactLeadRow["reason"],
+    message: row.message as string,
+    status: row.status as ContactLeadStatus,
+    notification_status:
+      row.notification_status as ContactLeadRow["notification_status"],
+    notification_sent_at: (row.notification_sent_at as string | null) ?? null,
+    whatsapp_send_id: (row.whatsapp_send_id as string | null) ?? null,
+    ip_address: (row.ip_address as string | null) ?? null,
+    user_agent: (row.user_agent as string | null) ?? null,
+    created_at: row.created_at as string,
+  }
+}
+
+/** Returned by the inbox service factory. */
+export interface ContactLeadInboxService {
+  getContactLeads(filters?: ContactLeadFilters): Promise<ContactLeadRow[]>
+  getContactLeadById(id: string): Promise<ContactLeadRow | null>
+  updateContactLeadStatus(
+    id: string,
+    status: ContactLeadStatus,
+  ): Promise<ContactLeadRow>
+}
+
+export function createContactLeadInboxService(
+  db: SupabaseClient,
+): ContactLeadInboxService {
+  return {
+    async getContactLeads(filters = {}) {
+      const { status, reason, search, page = 1, pageSize = 50 } = filters
+      let query = db
+        .from("contact_leads")
+        .select(CONTACT_LEAD_COLUMNS)
+        .order("created_at", { ascending: false })
+      if (status) query = query.eq("status", status)
+      if (reason) query = query.eq("reason", reason)
+      if (search) {
+        // PostgREST .or() parses commas/parens/quotes as filter grammar, so a
+        // search like "Acme, Inc." would corrupt the filter. Escape backslashes
+        // + quotes and wrap the WHOLE ilike pattern (incl. the % wildcards) in
+        // PostgREST double-quotes so reserved chars are treated as the value.
+        const escaped = search.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+        query = query.or(
+          `name.ilike."%${escaped}%",email.ilike."%${escaped}%",company.ilike."%${escaped}%"`,
+        )
+      }
+      const from = (page - 1) * pageSize
+      query = query.range(from, from + pageSize - 1)
+      const { data, error } = await query
+      if (error) throw error
+      return (data ?? []).map((r) => mapContactLeadRow(r as Record<string, unknown>))
+    },
+
+    async getContactLeadById(id) {
+      const { data, error } = await db
+        .from("contact_leads")
+        .select(CONTACT_LEAD_COLUMNS)
+        .eq("id", id)
+        // maybeSingle (not single): single() raises PGRST116 on zero rows,
+        // which would throw before the `| null` return contract can apply.
+        .maybeSingle()
+      if (error) throw error
+      return data ? mapContactLeadRow(data as Record<string, unknown>) : null
+    },
+
+    async updateContactLeadStatus(id, status) {
+      // Only the CRM `status` column is writable from the operator path —
+      // notification_status is owned by the public-write service. A
+      // non-destructive transition (new → contacted → closed), so no
+      // withAudit wrapping (consistent with customer edits).
+      const { data, error } = await db
+        .from("contact_leads")
+        .update({ status })
+        .eq("id", id)
+        .select(CONTACT_LEAD_COLUMNS)
+        .single()
+      if (error) throw error
+      if (!data) throw new Error(`contact_leads row ${id} not found after update`)
+      return mapContactLeadRow(data as Record<string, unknown>)
+    },
+  }
 }
