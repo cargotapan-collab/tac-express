@@ -72,4 +72,40 @@ test.describe("Landing page", () => {
     await page.getByRole("link", { name: /contact sales/i }).click()
     await expect(page).toHaveURL(/\/contact/)
   })
+
+  // ── WS-3 PR-WS-3b: the LOCATE → TrackingResultDialog flow ──────────────────
+
+  test("submitting an AWB opens the tracking dialog + reflects ?track in the URL", async ({
+    page,
+  }) => {
+    await page.goto("/")
+    await page.getByLabel(/AWB or cargo ID/i).fill("TAC12345678")
+    await page.getByRole("button", { name: /locate/i }).click()
+
+    // The dialog opens (radix role="dialog"); its title carries the AWB.
+    const dialog = page.getByRole("dialog")
+    await expect(dialog).toBeVisible()
+    await expect(dialog).toContainText(/TAC12345678/i)
+
+    // The AWB is reflected in the URL for deep-link / share.
+    await expect(page).toHaveURL(/[?&]track=TAC12345678/)
+  })
+
+  test("Esc closes the dialog and clears the ?track param", async ({ page }) => {
+    await page.goto("/")
+    await page.getByLabel(/AWB or cargo ID/i).fill("TAC12345678")
+    await page.getByRole("button", { name: /locate/i }).click()
+    await expect(page.getByRole("dialog")).toBeVisible()
+
+    await page.keyboard.press("Escape")
+    await expect(page.getByRole("dialog")).toBeHidden()
+    await expect(page).not.toHaveURL(/track=/)
+  })
+
+  test("a ?track=AWB deep link auto-opens the dialog on load", async ({ page }) => {
+    await page.goto("/?track=TAC12345678")
+    const dialog = page.getByRole("dialog")
+    await expect(dialog).toBeVisible()
+    await expect(dialog).toContainText(/TAC12345678/i)
+  })
 })

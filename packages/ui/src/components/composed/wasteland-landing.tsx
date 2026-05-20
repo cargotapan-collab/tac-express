@@ -4,11 +4,11 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { motion } from "motion/react"
 import { Icon } from "@workspace/ui/icons"
 import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/primitives/input"
+import { AwbInput } from "@workspace/ui/components/composed/awb-input"
+import { TrackingResultDialog } from "@workspace/ui/components/composed/tracking-result-dialog"
 
 // v6 motion bezier — mirrors --ease-smooth in globals.css.
 // motion/react accepts a 4-tuple [x1,y1,x2,y2]; using this in place of
@@ -44,20 +44,51 @@ function HudOverlay() {
 // ── Section 1: Hero ──────────────────────────────────────────────────────────
 
 function LogisticsHero() {
-  const router = useRouter()
   const [awbInput, setAwbInput] = React.useState("")
   const [trackError, setTrackError] = React.useState<string | null>(null)
+  const [trackingOpen, setTrackingOpen] = React.useState(false)
+  const [trackingAwb, setTrackingAwb] = React.useState<string | null>(null)
 
-  function onTrack(e: React.FormEvent) {
-    e.preventDefault()
-    const value = awbInput.trim().toUpperCase()
+  // Open the tracking dialog + reflect the AWB in the URL (?track=AWB) so
+  // the dialog is deep-link-able + survives a refresh. We use the History
+  // API directly (not router.replace) so the URL bar updates WITHOUT a
+  // Next navigation/re-render — the dialog is a client overlay, not a route.
+  // The /track/[awb] PAGE route still exists for direct links + SEO + share.
+  const openTracking = React.useCallback((value: string) => {
+    setTrackingAwb(value)
+    setTrackingOpen(true)
+    const url = new URL(window.location.href)
+    url.searchParams.set("track", value)
+    window.history.replaceState(window.history.state, "", url)
+  }, [])
+
+  function onTrack(value: string) {
     if (!value) {
       setTrackError("Enter an AWB or cargo ID.")
       return
     }
     setTrackError(null)
-    router.push(`/track/${encodeURIComponent(value)}`)
+    openTracking(value)
   }
+
+  function handleTrackingOpenChange(next: boolean) {
+    setTrackingOpen(next)
+    if (!next) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete("track")
+      window.history.replaceState(window.history.state, "", url)
+    }
+  }
+
+  // Auto-open the dialog when the page loads with a ?track=AWB param
+  // (a shared / refreshed deep link).
+  React.useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get("track")
+    if (param) {
+      setTrackingAwb(param.toUpperCase())
+      setTrackingOpen(true)
+    }
+  }, [])
 
   return (
     <section
@@ -96,57 +127,27 @@ function LogisticsHero() {
           Real-time tracking, advanced analytics, and seamless surface cargo management — centralized in one mission-critical platform.
         </motion.p>
 
-        {/* Tactical Tracking Input — wired to /track/[awb].
-            WS-2B Group 1: real input-shell treatment so the field reads as the
-            hero's primary control. bg-card + 2px border-border + focus-within
-            lifts the border to primary and adds a brutalist offset shadow. The
-            earlier `bg-secondary/5 border border-secondary/20` rendered as
-            decoration. Plan: docs/launch/WS-2B-LANDING-POLISH.md § 5 Group 1. */}
-        <motion.form
-          onSubmit={onTrack}
+        {/* Tactical Tracking Input — opens the <TrackingResultDialog>.
+            WS-3 PR-WS-3b: LOCATE submit opens the in-app tracking dialog and
+            reflects the AWB in the URL (?track=AWB) for deep-link/share. The
+            /track/[awb] PAGE route remains for direct links + SEO. AwbInput
+            is the shared "hero" control; the dialog reuses it ("default"
+            size) for its retry field. */}
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4, ease: EASE_SMOOTH }}
-          className="w-full max-w-2xl relative p-1 bg-card border-2 border-border focus-within:border-primary focus-within:shadow-brutal-sm tac-fui-hover mb-16 transition-colors"
+          className="w-full max-w-2xl mb-16"
         >
-          <div className="flex flex-col sm:flex-row gap-0">
-            <div className="relative flex-1">
-              <label htmlFor="awb-locate-input" className="sr-only">
-                AWB or cargo ID
-              </label>
-              <Input
-                id="awb-locate-input"
-                type="text"
-                value={awbInput}
-                onChange={(e) => setAwbInput(e.target.value)}
-                placeholder="ENTER AWB / CARGO ID..."
-                aria-describedby={trackError ? "awb-locate-error" : undefined}
-                aria-invalid={trackError ? true : undefined}
-                className="h-14 font-mono text-sm border-none focus-visible:ring-0 rounded-none bg-transparent text-foreground uppercase placeholder:text-muted-foreground px-6 font-bold tracking-paper-20 focus-visible:outline-none focus-visible:tac-focus-premium"
-              />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none hidden md:flex items-center">
-                <span className="tac-mono-label text-primary">STANDBY</span>
-              </div>
-            </div>
-            <Button
-              type="submit"
-              size="lg"
-              // eslint-disable-next-line no-restricted-syntax -- design-locked: see docs/design-exceptions.md
-              className="h-14 rounded-none font-mono font-bold text-sm tracking-[0.3em] uppercase bg-secondary text-secondary-foreground hover:bg-foreground hover:text-background w-full sm:w-auto px-10 transition-colors border-l border-secondary/20 focus-visible:outline-none focus-visible:tac-focus-premium"
-            >
-              <Icon name="scan" className="mr-3 w-5 h-5" /> LOCATE
-            </Button>
-          </div>
-          {trackError && (
-            <p
-              id="awb-locate-error"
-              role="alert"
-              className="absolute left-1 -bottom-6 tac-mono-label text-accent-danger"
-            >
-              {trackError}
-            </p>
-          )}
-        </motion.form>
+          <AwbInput
+            id="awb-locate"
+            size="hero"
+            value={awbInput}
+            onChange={setAwbInput}
+            onSubmit={onTrack}
+            error={trackError}
+          />
+        </motion.div>
 
         {/* PL-2a — sales-led B2B customer-journey CTA row. The hero's primary
             action is "locate an existing shipment" (AWB form above); this
@@ -235,6 +236,13 @@ function LogisticsHero() {
         </motion.div>
 
       </div>
+
+      <TrackingResultDialog
+        open={trackingOpen}
+        onOpenChange={handleTrackingOpenChange}
+        awb={trackingAwb}
+        onRetryAwb={openTracking}
+      />
     </section>
   )
 }
