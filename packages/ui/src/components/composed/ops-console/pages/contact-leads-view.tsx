@@ -2,6 +2,7 @@
 
 import * as React from "react"
 
+import { cn } from "@workspace/ui/lib/utils"
 import type {
   ContactLeadRow,
   ContactLeadStatus,
@@ -10,6 +11,7 @@ import {
   RiSearchLine,
   RiInboxLine,
   RiErrorWarningLine,
+  RiArrowDownSLine,
 } from "@workspace/ui/icons"
 import { OpsFrame } from "../ops-frame"
 import { OpsPageHead } from "../ops-page-head"
@@ -146,6 +148,9 @@ function ContactLeadsView({
         <OpsTable>
           <OpsTableHead>
             <tr>
+              <OpsTableHeader>
+                <span className="sr-only">Expand</span>
+              </OpsTableHeader>
               <OpsTableHeader>Received</OpsTableHeader>
               <OpsTableHeader>Name</OpsTableHeader>
               <OpsTableHeader>Reason</OpsTableHeader>
@@ -158,13 +163,28 @@ function ContactLeadsView({
               const isOpen = expandedId === lead.id
               return (
                 <React.Fragment key={lead.id}>
-                  <OpsTableRow
-                    onClick={() =>
-                      setExpandedId((prev) => (prev === lead.id ? null : lead.id))
-                    }
-                    aria-expanded={isOpen}
-                    className="cursor-pointer"
-                  >
+                  <OpsTableRow>
+                    <OpsTableCell>
+                      <button
+                        type="button"
+                        aria-expanded={isOpen}
+                        aria-label={`${isOpen ? "Collapse" : "Expand"} details for ${lead.name}`}
+                        onClick={() =>
+                          setExpandedId((prev) =>
+                            prev === lead.id ? null : lead.id,
+                          )
+                        }
+                        className="flex items-center justify-center text-paper-fg-3 hover:text-paper-fg-1 focus-visible:outline-none focus-visible:tac-focus-premium"
+                      >
+                        <RiArrowDownSLine
+                          aria-hidden
+                          className={cn(
+                            "size-4 transition-transform",
+                            isOpen && "rotate-180",
+                          )}
+                        />
+                      </button>
+                    </OpsTableCell>
                     <OpsTableCell mono muted>
                       {new Date(lead.created_at).toLocaleString()}
                     </OpsTableCell>
@@ -190,7 +210,7 @@ function ContactLeadsView({
                   </OpsTableRow>
                   {isOpen && (
                     <tr data-slot="lead-detail">
-                      <OpsTableCell colSpan={5}>
+                      <OpsTableCell colSpan={6}>
                         <div className="grid gap-4 py-2 md:grid-cols-[2fr_1fr]">
                           <div className="space-y-2">
                             <p className="paper-label">Message</p>

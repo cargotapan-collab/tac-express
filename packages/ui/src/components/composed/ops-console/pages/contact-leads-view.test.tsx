@@ -106,7 +106,8 @@ describe("ContactLeadsView", () => {
     // Row collapsed: the full message is not shown yet.
     expect(screen.queryByText(/looking for a quote to imphal/i)).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByText("Aman Sharma"))
+    // The disclosure button is the keyboard-operable expand control.
+    fireEvent.click(screen.getByRole("button", { name: /expand details for aman sharma/i }))
     expect(screen.getByText(/looking for a quote to imphal/i)).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText(/triage status/i), {
