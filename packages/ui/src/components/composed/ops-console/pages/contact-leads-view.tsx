@@ -120,7 +120,7 @@ function ContactLeadsView({
         />
       </div>
 
-      {isLoading && <SkeletonTable columns={5} rows={8} />}
+      {isLoading && <SkeletonTable columns={6} rows={8} />}
 
       {!isLoading && isError && (
         <OpsEmptyState
