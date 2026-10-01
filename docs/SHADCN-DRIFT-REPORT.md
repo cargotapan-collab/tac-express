@@ -1,6 +1,6 @@
 # shadcn drift report
 
-Generated: 2026-09-01T08:05:56.927Z
+Generated: 2026-10-01T09:35:33.211Z
 
 Tracks how far TAC's @tac primitives have diverged from the upstream shadcn 4.7.0 registry. Run by the `shadcn-drift-check` GitHub Actions cron.
 
@@ -10,19 +10,19 @@ Cherry-pick decisions go in `docs/primitive-upgrade-audit.md` (Cherry-pick backl
 
 | Primitive | Status | Detail |
 |---|---|---|
-| `button` | DRIFT · NEW SINCE LAST RUN | local has 72 lines not upstream · upstream has 30 lines not local · upstream hash 4d671c38631224ac |
-| `input` | DRIFT · UNCHANGED | local has 2 lines not upstream · upstream has 2 lines not local · upstream hash 76487cd7e1c6cf70 |
-| `label` | DRIFT · UNCHANGED | local has 2 lines not upstream · upstream has 2 lines not local · upstream hash bc6def371c5ecb10 |
-| `textarea` | DRIFT · UNCHANGED | local has 7 lines not upstream · upstream has 3 lines not local · upstream hash 76061f768b3c442b |
-| `badge` | DRIFT · UNCHANGED | local has 1 lines not upstream · upstream has 1 lines not local · upstream hash 93e4f1ed20ab9d6d |
-| `separator` | DRIFT · UNCHANGED | local has 1 lines not upstream · upstream has 1 lines not local · upstream hash 2eaccc917de329c8 |
-| `card` | DRIFT · NEW SINCE LAST RUN | local has 71 lines not upstream · upstream has 7 lines not local · upstream hash a4a9ca954b8e9b3c |
-| `select` | DRIFT · UNCHANGED | local has 7 lines not upstream · upstream has 35 lines not local · upstream hash 27333a3f3f760aa8 |
-| `dialog` | DRIFT · UNCHANGED | local has 16 lines not upstream · upstream has 28 lines not local · upstream hash b408941b7837f11f |
-| `sheet` | DRIFT · UNCHANGED | local has 9 lines not upstream · upstream has 13 lines not local · upstream hash c0945c23efc480cd |
-| `popover` | DRIFT · UNCHANGED | local has 12 lines not upstream · upstream has 23 lines not local · upstream hash 4c7bd7dbfa306ea3 |
-| `tabs` | DRIFT · UNCHANGED | local has 8 lines not upstream · upstream has 29 lines not local · upstream hash ec5377aacd03ef0b |
-| `table` | DRIFT · UNCHANGED | local has 5 lines not upstream · upstream has 5 lines not local · upstream hash a71030ab5d09539d |
-| `calendar` | DRIFT · NEW SINCE LAST RUN | local has 67 lines not upstream · upstream has 154 lines not local · upstream hash 87da62f4d705d454 |
+| `button` | DRIFT · NEW SINCE LAST RUN | local has 72 lines not upstream · upstream has 30 lines not local · upstream hash eb22ee6ae1083e4d |
+| `input` | DRIFT · NEW SINCE LAST RUN | local has 2 lines not upstream · upstream has 2 lines not local · upstream hash a578a495be70de1a |
+| `label` | DRIFT · NEW SINCE LAST RUN | local has 2 lines not upstream · upstream has 2 lines not local · upstream hash 2818f28ea21a7c24 |
+| `textarea` | DRIFT · NEW SINCE LAST RUN | local has 7 lines not upstream · upstream has 3 lines not local · upstream hash ee5c869462b6963b |
+| `badge` | DRIFT · NEW SINCE LAST RUN | local has 1 lines not upstream · upstream has 1 lines not local · upstream hash 849a539256294d9f |
+| `separator` | DRIFT · NEW SINCE LAST RUN | local has 1 lines not upstream · upstream has 1 lines not local · upstream hash b5b5460e5337c2d5 |
+| `card` | DRIFT · NEW SINCE LAST RUN | local has 71 lines not upstream · upstream has 7 lines not local · upstream hash f2cef6bb36d35d6a |
+| `select` | DRIFT · NEW SINCE LAST RUN | local has 7 lines not upstream · upstream has 35 lines not local · upstream hash 3d0dc3c37e542d26 |
+| `dialog` | DRIFT · NEW SINCE LAST RUN | local has 16 lines not upstream · upstream has 28 lines not local · upstream hash 8492b60d53610529 |
+| `sheet` | DRIFT · NEW SINCE LAST RUN | local has 9 lines not upstream · upstream has 13 lines not local · upstream hash ab1890ce4d1764f5 |
+| `popover` | DRIFT · NEW SINCE LAST RUN | local has 12 lines not upstream · upstream has 23 lines not local · upstream hash 4b31dcd02ecd964b |
+| `tabs` | DRIFT · NEW SINCE LAST RUN | local has 8 lines not upstream · upstream has 29 lines not local · upstream hash 177eab37d9b1181f |
+| `table` | DRIFT · NEW SINCE LAST RUN | local has 5 lines not upstream · upstream has 5 lines not local · upstream hash e87f4888357e1c8d |
+| `calendar` | DRIFT · NEW SINCE LAST RUN | local has 67 lines not upstream · upstream has 154 lines not local · upstream hash f7f438b0fd63d778 |
 
-**Summary:** 14 primitives checked · 14 drifted (total) · 3 new-since-last-run · 0 errors.
+**Summary:** 14 primitives checked · 14 drifted (total) · 14 new-since-last-run · 0 errors.
