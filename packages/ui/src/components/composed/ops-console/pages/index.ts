@@ -59,3 +59,7 @@ export {
   OpsWhatsAppFailedSendsView,
   type OpsWhatsAppFailedSendsViewProps,
 } from "./ops-whatsapp-failed-sends-view"
+export {
+  ContactLeadsView,
+  type ContactLeadsViewProps,
+} from "./contact-leads-view"

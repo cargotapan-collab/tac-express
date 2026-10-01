@@ -15,6 +15,7 @@ import {
   RiCheckboxCircleLine,
   RiHistoryLine,
   RiClipboardLine,
+  RiInboxLine,
 } from "@workspace/ui/icons"
 import type * as React from "react"
 
@@ -143,6 +144,16 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/ops-console/management",
         icon: RiShieldCheckLine,
         module: "management",
+      },
+      {
+        // Contact-form lead inbox (WS-4B). `module: "support"` gates the nav
+        // to MANAGER+ only — SUPER_ADMIN/ADMIN/MANAGER carry the "*" wildcard;
+        // no sub-MANAGER role lists "support", so it stays hidden for them.
+        // This mirrors the contact_leads RLS (MANAGER+ select/update).
+        label: "Contact Inbox",
+        href: "/ops-console/support",
+        icon: RiInboxLine,
+        module: "support",
       },
     ],
   },
