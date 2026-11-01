@@ -1,6 +1,6 @@
 # shadcn drift report
 
-Generated: 2026-10-01T09:35:33.211Z
+Generated: 2026-11-01T09:53:39.973Z
 
 Tracks how far TAC's @tac primitives have diverged from the upstream shadcn 4.7.0 registry. Run by the `shadcn-drift-check` GitHub Actions cron.
 
